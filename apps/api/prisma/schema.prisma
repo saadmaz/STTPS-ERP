@@ -1,0 +1,452 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// PLATFORM — tenant registry
+// ==========================================
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("starter")
+  status    String   @default("active")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tenants")
+}
+
+// ==========================================
+// IDENTITY & ACCESS
+// ==========================================
+
+model Company {
+  id              String    @id @default(uuid())
+  tenantId        String
+  name            String
+  code            String
+  legalName       String?
+  taxId           String?
+  currency        String    @default("USD")
+  timezone        String    @default("UTC")
+  fiscalYearStart Int       @default(1)
+  address         Json?
+  logoUrl         String?
+  parentId        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  parent       Company?      @relation("CompanyHierarchy", fields: [parentId], references: [id])
+  children     Company[]     @relation("CompanyHierarchy")
+  companyUsers CompanyUser[]
+  roles        Role[]
+  glAccounts   GlAccount[]
+  glPeriods    GlPeriod[]
+  glJournals   GlJournal[]
+  vendors      Vendor[]
+  customers    Customer[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("companies")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String
+  email        String
+  firstName    String
+  lastName     String
+  passwordHash String
+  phone        String?
+  avatar       String?
+  isActive     Boolean   @default(true)
+  isSuperAdmin Boolean   @default(false)
+  mfaEnabled   Boolean   @default(false)
+  mfaSecret    String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  companyUsers CompanyUser[]
+  sessions     Session[]
+  auditLogs    AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model CompanyUser {
+  id        String  @id @default(uuid())
+  userId    String
+  companyId String
+  isDefault Boolean @default(false)
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userRoles UserRole[]
+
+  @@unique([userId, companyId])
+  @@map("company_users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String?
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company         Company?         @relation(fields: [companyId], references: [id])
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model UserRole {
+  id            String   @id @default(uuid())
+  companyUserId String
+  roleId        String
+  grantedAt     DateTime @default(now())
+  grantedBy     String?
+
+  companyUser CompanyUser @relation(fields: [companyUserId], references: [id], onDelete: Cascade)
+  role        Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([companyUserId, roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id     String @id @default(uuid())
+  code   String @unique
+  name   String
+  module String
+  action String
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  companyId String?
+  userId    String?
+  module    String
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+// ==========================================
+// FINANCE — GENERAL LEDGER
+// ==========================================
+
+model GlAccount {
+  id          String  @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  type        String
+  subtype     String?
+  currency    String  @default("USD")
+  parentId    String?
+  isActive    Boolean @default(true)
+  isPosting   Boolean @default(true)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  parent       GlAccount?    @relation("GlAccountTree", fields: [parentId], references: [id])
+  children     GlAccount[]   @relation("GlAccountTree")
+  journalLines GlJournalLine[]
+  apLines      ApInvoiceLine[]
+  arLines      ArInvoiceLine[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("gl_accounts")
+}
+
+model GlPeriod {
+  id         String   @id @default(uuid())
+  tenantId   String
+  companyId  String
+  fiscalYear Int
+  period     Int
+  name       String
+  startDate  DateTime
+  endDate    DateTime
+  status     String   @default("OPEN")
+
+  company  Company     @relation(fields: [companyId], references: [id])
+  journals GlJournal[]
+
+  @@unique([tenantId, companyId, fiscalYear, period])
+  @@index([tenantId, companyId])
+  @@map("gl_periods")
+}
+
+model GlJournal {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  periodId    String
+  number      String
+  date        DateTime
+  description String?
+  reference   String?
+  type        String    @default("MANUAL")
+  status      String    @default("DRAFT")
+  currency    String    @default("USD")
+  totalDebit  Decimal   @default(0) @db.Decimal(19, 4)
+  totalCredit Decimal   @default(0) @db.Decimal(19, 4)
+  createdBy   String
+  postedBy    String?
+  postedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company Company         @relation(fields: [companyId], references: [id])
+  period  GlPeriod        @relation(fields: [periodId], references: [id])
+  lines   GlJournalLine[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId, date])
+  @@map("gl_journals")
+}
+
+model GlJournalLine {
+  id           String  @id @default(uuid())
+  journalId    String
+  accountId    String
+  lineNumber   Int
+  description  String?
+  debit        Decimal @default(0) @db.Decimal(19, 4)
+  credit       Decimal @default(0) @db.Decimal(19, 4)
+  currency     String  @default("USD")
+  exchangeRate Decimal @default(1) @db.Decimal(19, 6)
+
+  journal GlJournal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  account GlAccount @relation(fields: [accountId], references: [id])
+
+  @@map("gl_journal_lines")
+}
+
+// ==========================================
+// ACCOUNTS PAYABLE
+// ==========================================
+
+model Vendor {
+  id           String   @id @default(uuid())
+  tenantId     String
+  companyId    String
+  code         String
+  name         String
+  legalName    String?
+  taxId        String?
+  email        String?
+  phone        String?
+  currency     String   @default("USD")
+  paymentTerms Int      @default(30)
+  address      Json?
+  bankDetails  Json?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company  Company     @relation(fields: [companyId], references: [id])
+  invoices ApInvoice[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("vendors")
+}
+
+model ApInvoice {
+  id           String    @id @default(uuid())
+  tenantId     String
+  companyId    String
+  vendorId     String
+  number       String
+  vendorRef    String?
+  date         DateTime
+  dueDate      DateTime
+  currency     String    @default("USD")
+  exchangeRate Decimal   @default(1) @db.Decimal(19, 6)
+  subtotal     Decimal   @default(0) @db.Decimal(19, 4)
+  taxAmount    Decimal   @default(0) @db.Decimal(19, 4)
+  total        Decimal   @default(0) @db.Decimal(19, 4)
+  paid         Decimal   @default(0) @db.Decimal(19, 4)
+  balance      Decimal   @default(0) @db.Decimal(19, 4)
+  status       String    @default("DRAFT")
+  notes        String?
+  createdBy    String
+  approvedBy   String?
+  approvedAt   DateTime?
+  postedBy     String?
+  postedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  vendor Vendor          @relation(fields: [vendorId], references: [id])
+  lines  ApInvoiceLine[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("ap_invoices")
+}
+
+model ApInvoiceLine {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  accountId   String
+  lineNumber  Int
+  description String
+  quantity    Decimal @default(1) @db.Decimal(19, 4)
+  unitPrice   Decimal @default(0) @db.Decimal(19, 4)
+  amount      Decimal @default(0) @db.Decimal(19, 4)
+  taxCode     String?
+  taxAmount   Decimal @default(0) @db.Decimal(19, 4)
+
+  invoice ApInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  account GlAccount @relation(fields: [accountId], references: [id])
+
+  @@map("ap_invoice_lines")
+}
+
+// ==========================================
+// ACCOUNTS RECEIVABLE
+// ==========================================
+
+model Customer {
+  id           String   @id @default(uuid())
+  tenantId     String
+  companyId    String
+  code         String
+  name         String
+  legalName    String?
+  taxId        String?
+  email        String?
+  phone        String?
+  currency     String   @default("USD")
+  paymentTerms Int      @default(30)
+  creditLimit  Decimal  @default(0) @db.Decimal(19, 4)
+  address      Json?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company  Company     @relation(fields: [companyId], references: [id])
+  invoices ArInvoice[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("customers")
+}
+
+model ArInvoice {
+  id           String    @id @default(uuid())
+  tenantId     String
+  companyId    String
+  customerId   String
+  number       String
+  date         DateTime
+  dueDate      DateTime
+  currency     String    @default("USD")
+  exchangeRate Decimal   @default(1) @db.Decimal(19, 6)
+  subtotal     Decimal   @default(0) @db.Decimal(19, 4)
+  taxAmount    Decimal   @default(0) @db.Decimal(19, 4)
+  total        Decimal   @default(0) @db.Decimal(19, 4)
+  paid         Decimal   @default(0) @db.Decimal(19, 4)
+  balance      Decimal   @default(0) @db.Decimal(19, 4)
+  status       String    @default("DRAFT")
+  notes        String?
+  createdBy    String
+  postedBy     String?
+  postedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  customer Customer       @relation(fields: [customerId], references: [id])
+  lines    ArInvoiceLine[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("ar_invoices")
+}
+
+model ArInvoiceLine {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  accountId   String
+  lineNumber  Int
+  description String
+  quantity    Decimal @default(1) @db.Decimal(19, 4)
+  unitPrice   Decimal @default(0) @db.Decimal(19, 4)
+  amount      Decimal @default(0) @db.Decimal(19, 4)
+  taxCode     String?
+  taxAmount   Decimal @default(0) @db.Decimal(19, 4)
+
+  invoice ArInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  account GlAccount @relation(fields: [accountId], references: [id])
+
+  @@map("ar_invoice_lines")
+}
