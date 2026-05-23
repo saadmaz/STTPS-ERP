@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authApi.logout();
     } finally {
       sessionStorage.clear();
+      document.cookie = "sttps_session=; path=/; max-age=0";
       setUser(null);
       setCompanies([]);
       setActiveCompany(null);
