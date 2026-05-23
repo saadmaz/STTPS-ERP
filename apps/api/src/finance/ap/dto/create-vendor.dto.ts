@@ -1,0 +1,13 @@
+import { IsString, IsOptional, IsInt, IsEmail, Min } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+
+export class CreateVendorDto {
+  @ApiProperty() @IsString() code: string;
+  @ApiProperty() @IsString() name: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() legalName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() taxId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsEmail() email?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() currency?: string;
+  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) paymentTerms?: number;
+}

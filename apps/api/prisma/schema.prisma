@@ -47,13 +47,16 @@ model Company {
 
   parent       Company?      @relation("CompanyHierarchy", fields: [parentId], references: [id])
   children     Company[]     @relation("CompanyHierarchy")
-  companyUsers CompanyUser[]
-  roles        Role[]
-  glAccounts   GlAccount[]
-  glPeriods    GlPeriod[]
-  glJournals   GlJournal[]
-  vendors      Vendor[]
-  customers    Customer[]
+  companyUsers  CompanyUser[]
+  roles         Role[]
+  glAccounts    GlAccount[]
+  glPeriods     GlPeriod[]
+  glJournals    GlJournal[]
+  vendors       Vendor[]
+  customers     Customer[]
+  bankAccounts  BankAccount[]
+  fixedAssets   FixedAsset[]
+  budgets       Budget[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -219,6 +222,8 @@ model GlAccount {
   journalLines GlJournalLine[]
   apLines      ApInvoiceLine[]
   arLines      ArInvoiceLine[]
+  bankAccounts BankAccount[]
+  budgetLines  BudgetLine[]
 
   @@unique([tenantId, companyId, code])
   @@index([tenantId, companyId])
@@ -449,4 +454,125 @@ model ArInvoiceLine {
   account GlAccount @relation(fields: [accountId], references: [id])
 
   @@map("ar_invoice_lines")
+}
+
+// ==========================================
+// BANK & CASH
+// ==========================================
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  tenantId      String
+  companyId     String
+  code          String
+  name          String
+  bankName      String?
+  accountNumber String?
+  currency      String   @default("USD")
+  glAccountId   String?
+  balance       Decimal  @default(0) @db.Decimal(19, 4)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company    Company        @relation(fields: [companyId], references: [id])
+  glAccount  GlAccount?     @relation(fields: [glAccountId], references: [id])
+  statements BankStatement[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("bank_accounts")
+}
+
+model BankStatement {
+  id            String   @id @default(uuid())
+  tenantId      String
+  companyId     String
+  bankAccountId String
+  date          DateTime
+  description   String?
+  debit         Decimal  @default(0) @db.Decimal(19, 4)
+  credit        Decimal  @default(0) @db.Decimal(19, 4)
+  balance       Decimal  @default(0) @db.Decimal(19, 4)
+  reference     String?
+  isReconciled  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, companyId])
+  @@map("bank_statements")
+}
+
+// ==========================================
+// FIXED ASSETS
+// ==========================================
+
+model FixedAsset {
+  id                   String    @id @default(uuid())
+  tenantId             String
+  companyId            String
+  code                 String
+  name                 String
+  category             String
+  acquisitionDate      DateTime
+  acquisitionCost      Decimal   @db.Decimal(19, 4)
+  depreciationMethod   String    @default("STRAIGHT_LINE")
+  usefulLifeMonths     Int       @default(60)
+  salvageValue         Decimal   @default(0) @db.Decimal(19, 4)
+  accumulatedDepr      Decimal   @default(0) @db.Decimal(19, 4)
+  netBookValue         Decimal   @default(0) @db.Decimal(19, 4)
+  status               String    @default("ACTIVE")
+  assetAccountId       String?
+  depreciationAcctId   String?
+  accumDeprAcctId      String?
+  disposalDate         DateTime?
+  disposalAmount       Decimal?  @db.Decimal(19, 4)
+  notes                String?
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("fixed_assets")
+}
+
+// ==========================================
+// BUDGETS
+// ==========================================
+
+model Budget {
+  id         String   @id @default(uuid())
+  tenantId   String
+  companyId  String
+  name       String
+  fiscalYear Int
+  status     String   @default("DRAFT")
+  notes      String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company Company      @relation(fields: [companyId], references: [id])
+  lines   BudgetLine[]
+
+  @@index([tenantId, companyId])
+  @@map("budgets")
+}
+
+model BudgetLine {
+  id        String  @id @default(uuid())
+  budgetId  String
+  accountId String
+  period    Int
+  amount    Decimal @default(0) @db.Decimal(19, 4)
+
+  budget  Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  account GlAccount @relation(fields: [accountId], references: [id])
+
+  @@unique([budgetId, accountId, period])
+  @@map("budget_lines")
 }
