@@ -98,9 +98,11 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-slate-100">
-        <p className="text-xs text-slate-500 text-center">
-          Demo credentials are pre-filled above
+      <div className="mt-6 pt-6 border-t border-slate-100 space-y-2 text-center">
+        <p className="text-xs text-slate-500">Demo credentials are pre-filled above</p>
+        <p className="text-sm text-slate-500">
+          New to STTPS?{" "}
+          <a href="/register" className="text-blue-600 hover:text-blue-700 font-medium">Create account</a>
         </p>
       </div>
     </div>
