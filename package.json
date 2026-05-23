@@ -1,0 +1,24 @@
+{
+  "name": "sttps",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "db:generate": "cd packages/prisma && pnpm prisma generate",
+    "db:push": "cd packages/prisma && pnpm prisma db push",
+    "db:migrate": "cd packages/prisma && pnpm prisma migrate dev",
+    "db:studio": "cd packages/prisma && pnpm prisma studio",
+    "db:seed": "cd packages/prisma && pnpm prisma db seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=22"
+  }
+}
