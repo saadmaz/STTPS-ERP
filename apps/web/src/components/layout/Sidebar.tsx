@@ -55,6 +55,9 @@ const navigation: NavItem[] = [
       { label: "Cash & Bank", href: "/finance/bank", icon: Banknote },
       { label: "Fixed Assets", href: "/finance/assets", icon: Building2 },
       { label: "Budgets", href: "/finance/budgets", icon: DollarSign },
+      { label: "P&L Report", href: "/finance/reports/pl", icon: BarChart3 },
+      { label: "Balance Sheet", href: "/finance/reports/balance-sheet", icon: BarChart3 },
+      { label: "Fiscal Periods", href: "/finance/periods", icon: ClipboardList },
     ],
   },
   {

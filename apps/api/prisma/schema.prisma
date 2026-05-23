@@ -545,16 +545,19 @@ model FixedAsset {
 // ==========================================
 
 model Budget {
-  id         String   @id @default(uuid())
-  tenantId   String
-  companyId  String
-  name       String
-  fiscalYear Int
-  status     String   @default("DRAFT")
-  notes      String?
-  createdBy  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  name        String
+  fiscalYear  Int
+  status      String    @default("DRAFT")
+  description String?
+  notes       String?
+  createdBy   String
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   company Company      @relation(fields: [companyId], references: [id])
   lines   BudgetLine[]
@@ -569,6 +572,7 @@ model BudgetLine {
   accountId String
   period    Int
   amount    Decimal @default(0) @db.Decimal(19, 4)
+  notes     String?
 
   budget  Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   account GlAccount @relation(fields: [accountId], references: [id])

@@ -139,3 +139,95 @@ export const glApi = {
       .get("/finance/gl/trial-balance", { params: { fiscalYear, period } })
       .then((r) => r.data),
 };
+
+// ─── Finance / AP ──────────────────────────────────────────────────────────
+
+export const apApi = {
+  vendors: {
+    list: (params?: { page?: number; limit?: number; search?: string }) =>
+      api.get("/finance/ap/vendors", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/finance/ap/vendors/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/finance/ap/vendors", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/finance/ap/vendors/${id}`, data).then((r) => r.data),
+  },
+  invoices: {
+    list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+      api.get("/finance/ap/invoices", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/finance/ap/invoices/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/finance/ap/invoices", data).then((r) => r.data),
+    approve: (id: string) => api.patch(`/finance/ap/invoices/${id}/approve`).then((r) => r.data),
+    post: (id: string) => api.patch(`/finance/ap/invoices/${id}/post`).then((r) => r.data),
+  },
+  aging: () => api.get("/finance/ap/aging").then((r) => r.data),
+};
+
+// ─── Finance / AR ──────────────────────────────────────────────────────────
+
+export const arApi = {
+  customers: {
+    list: (params?: { page?: number; limit?: number; search?: string }) =>
+      api.get("/finance/ar/customers", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/finance/ar/customers/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/finance/ar/customers", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/finance/ar/customers/${id}`, data).then((r) => r.data),
+  },
+  invoices: {
+    list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+      api.get("/finance/ar/invoices", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/finance/ar/invoices/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/finance/ar/invoices", data).then((r) => r.data),
+    post: (id: string) => api.patch(`/finance/ar/invoices/${id}/post`).then((r) => r.data),
+  },
+  aging: () => api.get("/finance/ar/aging").then((r) => r.data),
+};
+
+// ─── Finance / Reports ─────────────────────────────────────────────────────
+
+export const reportsApi = {
+  pl: (fiscalYear: number, fromPeriod = 1, toPeriod = 12) =>
+    api.get("/finance/reports/pl", { params: { fiscalYear, fromPeriod, toPeriod } }).then((r) => r.data),
+  balanceSheet: (fiscalYear: number, asOfPeriod = 12) =>
+    api.get("/finance/reports/balance-sheet", { params: { fiscalYear, asOfPeriod } }).then((r) => r.data),
+};
+
+// ─── Finance / Bank ────────────────────────────────────────────────────────
+
+export const bankApi = {
+  summary: () => api.get("/finance/bank/summary").then((r) => r.data),
+  accounts: {
+    list: (params?: { page?: number; limit?: number; search?: string }) =>
+      api.get("/finance/bank/accounts", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/finance/bank/accounts/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/finance/bank/accounts", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/finance/bank/accounts/${id}`, data).then((r) => r.data),
+    transactions: (id: string, params?: { page?: number; limit?: number }) =>
+      api.get(`/finance/bank/accounts/${id}/transactions`, { params }).then((r) => r.data),
+  },
+  createTransaction: (data: unknown) => api.post("/finance/bank/transactions", data).then((r) => r.data),
+};
+
+// ─── Finance / Fixed Assets ────────────────────────────────────────────────
+
+export const assetsApi = {
+  summary: () => api.get("/finance/assets/summary").then((r) => r.data),
+  list: (params?: { page?: number; limit?: number; search?: string; status?: string; category?: string }) =>
+    api.get("/finance/assets", { params }).then((r) => r.data),
+  get: (id: string) => api.get(`/finance/assets/${id}`).then((r) => r.data),
+  create: (data: unknown) => api.post("/finance/assets", data).then((r) => r.data),
+  update: (id: string, data: unknown) => api.put(`/finance/assets/${id}`, data).then((r) => r.data),
+  dispose: (id: string, data: { disposalDate: string; disposalAmount: number }) =>
+    api.patch(`/finance/assets/${id}/dispose`, data).then((r) => r.data),
+  runDepreciation: (asOfDate: string) =>
+    api.post("/finance/assets/depreciation/run", null, { params: { asOfDate } }).then((r) => r.data),
+};
+
+// ─── Finance / Budgets ─────────────────────────────────────────────────────
+
+export const budgetApi = {
+  list: (params?: { page?: number; limit?: number; fiscalYear?: number }) =>
+    api.get("/finance/budgets", { params }).then((r) => r.data),
+  get: (id: string) => api.get(`/finance/budgets/${id}`).then((r) => r.data),
+  create: (data: unknown) => api.post("/finance/budgets", data).then((r) => r.data),
+  approve: (id: string) => api.patch(`/finance/budgets/${id}/approve`).then((r) => r.data),
+  vsActual: (id: string) => api.get(`/finance/budgets/${id}/vs-actual`).then((r) => r.data),
+};
