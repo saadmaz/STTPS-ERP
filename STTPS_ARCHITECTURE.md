@@ -78,12 +78,12 @@ This lets you move fast early without the operational overhead of 40+ microservi
                           ┌─────────────────────┐
                           │   www.sttps.live    │
                           │   (Next.js Frontend)│
-                          │   CDN: CloudFront   │
+                          │   CDN: Cloud CDN    │
                           └──────────┬──────────┘
                                      │ HTTPS
                           ┌──────────▼──────────┐
                           │    API Gateway      │
-                          │    (Kong / AWS ALB) │
+                          │  (Kong / Cloud LB)  │
                           │  Rate Limiting, Auth│
                           │  Request Routing    │
                           └──────────┬───────────┘
@@ -101,7 +101,7 @@ This lets you move fast early without the operational overhead of 40+ microservi
                          │                           │
                ┌─────────▼──────────┐   ┌───────────▼──────────┐
                │   PostgreSQL 16    │   │   Redis Cluster       │
-               │   (RDS Multi-AZ)   │   │   Sessions / Cache    │
+               │  (Cloud SQL HA)    │   │   Sessions / Cache    │
                │   Schema-per-Tenant│   │   Job Queues (Bull)   │
                └────────────────────┘   └──────────────────────┘
                          │
@@ -114,7 +114,7 @@ This lets you move fast early without the operational overhead of 40+ microservi
           ┌──────────────┼───────────────┐
           │              │               │
    ┌──────▼──────┐  ┌────▼──────┐  ┌────▼──────────┐
-   │Elasticsearch│  │   S3      │  │  TimescaleDB  │
+   │Elasticsearch│  │   GCS     │  │  TimescaleDB  │
    │Search/Audit │  │Files/Docs │  │  IoT / Time   │
    └─────────────┘  └───────────┘  └───────────────┘
 ```
@@ -162,27 +162,27 @@ This lets you move fast early without the operational overhead of 40+ microservi
 | Caching | **Redis 7** (Cluster) | Sub-millisecond cache, pub/sub, BullMQ |
 | Search | **Elasticsearch 8** | Full-text search across all modules |
 | Time-series | **TimescaleDB** | IoT sensor data, predictive maintenance |
-| Document Store | **AWS S3** | Files, attachments, exports, backups |
+| Document Store | **Google Cloud Storage** | Files, attachments, exports, backups |
 | Analytics Store | **ClickHouse** (later phase) | OLAP queries for business intelligence |
 
 ### Infrastructure
 | Layer | Technology |
 |---|---|
-| Cloud | **AWS** (primary) |
-| Container Orchestration | **Kubernetes** (EKS) |
-| API Gateway | **Kong** or **AWS API Gateway** |
-| CDN | **CloudFront** |
-| Load Balancer | **AWS ALB** |
-| DNS | **Route 53** |
-| SSL | **AWS Certificate Manager** |
-| Secrets | **AWS Secrets Manager** |
-| Monitoring | **Grafana** + **Prometheus** |
+| Cloud | **GCP** (primary) |
+| Container Orchestration | **Kubernetes** (GKE) |
+| API Gateway | **Kong** or **Google Cloud API Gateway** |
+| CDN | **Google Cloud CDN** |
+| Load Balancer | **Google Cloud Load Balancing** |
+| DNS | **Google Cloud DNS** |
+| SSL | **Google-managed SSL Certificates** |
+| Secrets | **Google Secret Manager** |
+| Monitoring | **Grafana** + **Prometheus** + **Cloud Monitoring** |
 | Error Tracking | **Sentry** |
-| Logging | **AWS CloudWatch** + **ELK Stack** |
-| Email | **AWS SES** |
-| Storage | **AWS S3** |
-| Message Queue | **Apache Kafka** (MSK) |
-| VPN | **AWS Client VPN** |
+| Logging | **Google Cloud Logging** + **ELK Stack** |
+| Email | **SendGrid** (via GCP Marketplace) |
+| Storage | **Google Cloud Storage** |
+| Message Queue | **Apache Kafka** (Confluent on GCP) |
+| VPN | **Google Cloud VPN** |
 
 ### CI/CD & Development
 | Tool | Purpose |
@@ -310,16 +310,16 @@ User Login → Email/Password or SSO (SAML/OAuth)
 |---|---|
 | Transport | TLS 1.3 enforced, HSTS headers |
 | API | JWT validation on every request, API rate limiting (Kong) |
-| Database | VPC private subnet, no public access, RDS IAM auth |
-| Secrets | AWS Secrets Manager, no secrets in code/env files |
-| Data at rest | AES-256 encryption on S3, RDS encrypted volumes |
+| Database | VPC private subnet, no public access, Cloud SQL IAM auth |
+| Secrets | Google Secret Manager, no secrets in code/env files |
+| Data at rest | AES-256 encryption on GCS, Cloud SQL encrypted volumes |
 | Audit | Every write operation logged with user, IP, timestamp, before/after values |
-| WAF | AWS WAF — OWASP top 10 protection, SQL injection, XSS blocking |
+| WAF | Google Cloud Armor — OWASP top 10 protection, SQL injection, XSS blocking |
 | Pen Testing | Quarterly external penetration tests |
 | Compliance | SOC 2 Type II, GDPR, ISO 27001 roadmap |
 
 ### GDPR / Data Residency
-- Customers can choose AWS region (us-east-1, eu-west-1, ap-southeast-1) during onboarding
+- Customers can choose GCP region (us-central1, europe-west1, asia-southeast1) during onboarding
 - Data never leaves the selected region
 - Right to erasure: anonymization pipeline for deleted tenants
 - Data Processing Agreements (DPA) available
@@ -541,22 +541,22 @@ Installed for every tenant. Cannot be deactivated.
 
 ## 7. Infrastructure & DevOps
 
-### AWS Architecture
+### GCP Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ AWS Account: sttps-production                                   │
+│ GCP Project: sttps-production                                   │
 │                                                                 │
-│  Route 53 (sttps.live)                                          │
+│  Cloud DNS (sttps.live)                                         │
 │       │                                                         │
-│  CloudFront CDN ─────────────────────── S3 (static assets)     │
+│  Cloud CDN ─────────────────────── GCS (static assets)         │
 │       │                                                         │
-│  WAF (OWASP rules)                                              │
+│  Cloud Armor (OWASP rules)                                      │
 │       │                                                         │
-│  ALB (Application Load Balancer)                                │
+│  Cloud Load Balancing                                           │
 │       │                                                         │
 │  ┌────┴───────────────────────────────┐                         │
-│  │         EKS Cluster                │                         │
+│  │         GKE Cluster                │                         │
 │  │   ┌──────┐ ┌──────┐ ┌──────┐      │                         │
 │  │   │Core  │ │Finance│ │SCM   │ ...  │                         │
 │  │   │Pods  │ │Pods  │ │Pods  │      │                         │
@@ -567,14 +567,14 @@ Installed for every tenant. Cannot be deactivated.
 │  └────────────────────────────────────┘                         │
 │       │                                                         │
 │  ┌────┴─────────────────────────────────┐                       │
-│  │         Private Subnet                │                       │
-│  │  RDS PostgreSQL (Multi-AZ)            │                       │
-│  │  ElastiCache Redis (Cluster Mode)     │                       │
-│  │  MSK (Managed Kafka)                  │                       │
-│  │  OpenSearch (Elasticsearch)           │                       │
+│  │         Private VPC Subnet            │                       │
+│  │  Cloud SQL PostgreSQL (HA)            │                       │
+│  │  Memorystore Redis (Cluster Mode)     │                       │
+│  │  Confluent Kafka (on GCP)             │                       │
+│  │  Elasticsearch (on GKE)              │                       │
 │  └───────────────────────────────────────┘                      │
 │                                                                 │
-│  SES (Email) │ SNS (Notifications) │ CloudWatch │ Secrets Mgr  │
+│  SendGrid (Email) │ Cloud Pub/Sub │ Cloud Logging │ Secret Mgr  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -602,7 +602,7 @@ Push to branch →
   ├── Type Check (TypeScript)
   ├── Unit Tests (Jest)
   ├── Build Docker Image
-  └── Push to ECR (staging tag)
+  └── Push to Artifact Registry (staging tag)
 
 PR to main →
   ├── All above +
@@ -612,8 +612,8 @@ PR to main →
 
 Merge to main →
   ├── Build production Docker image
-  ├── Push to ECR (production tag)
-  ├── Helm upgrade (rolling deploy to EKS)
+  ├── Push to Artifact Registry (production tag)
+  ├── Helm upgrade (rolling deploy to GKE)
   ├── Smoke tests
   └── Slack notification
 ```
@@ -644,7 +644,7 @@ sttps/
 │   ├── config/                 # Shared ESLint, TS, Tailwind configs
 │   └── kafka/                  # Kafka producer/consumer helpers
 ├── infrastructure/
-│   ├── terraform/              # AWS infrastructure as code
+│   ├── terraform/              # GCP infrastructure as code
 │   ├── helm/                   # Kubernetes Helm charts
 │   └── docker/                 # Dockerfiles
 ├── scripts/
@@ -808,11 +808,11 @@ packages/ui/
 *Goal: Working platform shell with one complete module.*
 
 **Infrastructure:**
-- AWS account setup, VPC, EKS cluster, RDS, Redis, Kafka
+- GCP project setup, VPC, GKE cluster, Cloud SQL, Memorystore, Confluent Kafka
 - GitHub organization, monorepo setup with Turborepo
-- CI/CD pipeline (GitHub Actions → ECR → EKS)
-- Domain setup: sttps.live, DNS, SSL certificates
-- Monitoring: Grafana, Prometheus, Sentry
+- CI/CD pipeline (GitHub Actions → Artifact Registry → GKE)
+- Domain setup: sttps.live, Cloud DNS, SSL certificates
+- Monitoring: Grafana, Prometheus, Cloud Monitoring, Sentry
 
 **Platform Core:**
 - Tenant signup flow (create tenant → provision schema → send welcome email)
@@ -822,7 +822,7 @@ packages/ui/
 - Workflow engine: configurable approval rules (rule builder)
 - Notification service: in-app + email
 - Audit trail: every write logged
-- File upload service: S3-backed attachments
+- File upload service: GCS-backed attachments
 - Global settings: number formats, date formats, languages
 
 **Deliverable**: Tenant can sign up, configure their company, invite users, set permissions.
@@ -1058,7 +1058,7 @@ packages/ui/
 | Finance Backend Engineers | 2 | GL, AP, AR, tax engine |
 | SCM Backend Engineers | 2 | Inventory, procurement, warehouse |
 | Frontend Engineers | 3 | Next.js UI across all modules |
-| DevOps / Infrastructure | 1 | AWS, Kubernetes, CI/CD, monitoring |
+| DevOps / Infrastructure | 1 | GCP, Kubernetes, CI/CD, monitoring |
 | QA Engineer | 1 | Test automation, manual testing |
 | Product Manager | 1 | Feature prioritization, customer discovery |
 | UX Designer | 1 | Design system, screen designs |
@@ -1090,20 +1090,20 @@ Add:
 
 ## 12. Cost Estimates
 
-### AWS Infrastructure (Monthly, Production)
+### GCP Infrastructure (Monthly, Production)
 
 | Service | Estimated Cost (USD/month) |
 |---|---|
-| EKS (3 node groups, 6–12 nodes) | $1,500–$3,000 |
-| RDS PostgreSQL (Multi-AZ, r6g.2xlarge) | $800–$1,500 |
-| ElastiCache Redis (r6g.large × 3) | $500 |
-| MSK (Kafka) | $400 |
-| OpenSearch | $300 |
-| S3 (1 TB + transfer) | $100–$300 |
-| CloudFront | $100–$200 |
-| ALB, WAF, Route 53 | $200 |
-| SES, SNS, misc | $100 |
-| **Total Infrastructure** | **~$4,000–$7,000/month** |
+| GKE (3 node groups, 6–12 nodes) | $1,400–$2,800 |
+| Cloud SQL PostgreSQL (HA, n2-standard-8) | $750–$1,400 |
+| Memorystore Redis (M1 Standard × 3) | $450 |
+| Confluent Kafka (on GCP) | $400 |
+| Elasticsearch (on GKE) | $300 |
+| GCS (1 TB + transfer) | $80–$250 |
+| Cloud CDN | $80–$180 |
+| Cloud Load Balancing, Cloud Armor, Cloud DNS | $200 |
+| SendGrid, Cloud Pub/Sub, misc | $100 |
+| **Total Infrastructure** | **~$3,800–$6,800/month** |
 
 At scale (1,000+ tenants), this is <$10/tenant/month infrastructure cost.
 
@@ -1138,14 +1138,14 @@ Target: 100 paying customers at avg $1,000/month = $1.2M ARR to break even.
 
 ### Week 1: Foundation
 
-1. **Register the domain** `sttps.live` on Route 53 or Cloudflare
-2. **Create AWS Organization** with separate accounts: `dev`, `staging`, `production`
+1. **Register the domain** `sttps.live` on Google Domains or Cloudflare
+2. **Create GCP Organization** with separate projects: `sttps-dev`, `sttps-staging`, `sttps-production`
 3. **Initialize GitHub organization** `sttps-platform` with monorepo
 4. **Bootstrap the monorepo**:
    ```bash
    pnpm create turbo@latest sttps --template with-tailwind
    ```
-5. **Set up Terraform** for AWS infrastructure (VPC, EKS, RDS skeleton)
+5. **Set up Terraform** for GCP infrastructure (VPC, GKE, Cloud SQL skeleton)
 6. **Design the database schema** for: tenants, companies, users, roles, permissions
 7. **Build Auth first** — login, JWT, refresh token, MFA
 
@@ -1185,19 +1185,19 @@ This is infinitely more valuable than building 13 modules with no users.
 ## Summary: The Stack in One Page
 
 ```
-Domain:       sttps.live (Route 53 + CloudFront)
+Domain:       sttps.live (Cloud DNS + Cloud CDN)
 Frontend:     Next.js 15 + TypeScript + Tailwind + shadcn/ui
 Backend:      NestJS + TypeScript (modular monolith → microservices)
 ORM:          Prisma (schema-per-tenant multi-tenant)
-Database:     PostgreSQL 16 (RDS Multi-AZ)
-Cache:        Redis 7 (ElastiCache Cluster)
-Search:       Elasticsearch (OpenSearch)
-Queue:        Apache Kafka (MSK) + BullMQ
-Files:        AWS S3
+Database:     PostgreSQL 16 (Cloud SQL HA)
+Cache:        Redis 7 (Memorystore Cluster)
+Search:       Elasticsearch (on GKE)
+Queue:        Apache Kafka (Confluent on GCP) + BullMQ
+Files:        Google Cloud Storage
 Auth:         JWT + TOTP MFA + SAML SSO
-Infra:        EKS (Kubernetes) on AWS
-CI/CD:        GitHub Actions → ECR → Helm → EKS
-Monitoring:   Grafana + Prometheus + Sentry
+Infra:        GKE (Kubernetes) on GCP
+CI/CD:        GitHub Actions → Artifact Registry → Helm → GKE
+Monitoring:   Grafana + Prometheus + Cloud Monitoring + Sentry
 Monorepo:     Turborepo + pnpm
 ```
 
