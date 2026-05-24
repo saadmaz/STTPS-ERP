@@ -133,6 +133,7 @@ const navigation: NavItem[] = [
     label: "Asset Management",
     icon: Wrench,
     children: [
+      { label: "Overview", href: "/eam", icon: BarChart3 },
       { label: "Assets", href: "/eam/assets", icon: Building2 },
       { label: "Work Orders", href: "/eam/work-orders", icon: ClipboardList },
       { label: "Maintenance Plans", href: "/eam/plans", icon: Settings },
@@ -142,6 +143,7 @@ const navigation: NavItem[] = [
     label: "Field Service",
     icon: Truck,
     children: [
+      { label: "Overview", href: "/fsm", icon: BarChart3 },
       { label: "Service Orders", href: "/fsm/orders", icon: ClipboardList },
       { label: "Technicians", href: "/fsm/technicians", icon: Users },
       { label: "Contracts", href: "/fsm/contracts", icon: FileText },

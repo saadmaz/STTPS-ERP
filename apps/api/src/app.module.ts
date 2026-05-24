@@ -12,6 +12,8 @@ import { CrmModule } from "./crm/crm.module";
 import { SalesModule } from "./sales/sales.module";
 import { ManufacturingModule } from "./manufacturing/manufacturing.module";
 import { HrModule } from "./hr/hr.module";
+import { EamModule } from "./eam/eam.module";
+import { FsmModule } from "./fsm/fsm.module";
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { HrModule } from "./hr/hr.module";
     SalesModule,
     ManufacturingModule,
     HrModule,
+    EamModule,
+    FsmModule,
   ],
 })
 export class AppModule {}

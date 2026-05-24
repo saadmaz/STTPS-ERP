@@ -391,6 +391,80 @@ export const manufacturingApi = {
   },
 };
 
+// ─── EAM ───────────────────────────────────────────────────────────────────
+
+export const eamApi = {
+  dashboard: () => api.get("/eam/dashboard").then((r) => r.data),
+
+  categories: {
+    list: () => api.get("/eam/categories").then((r) => r.data),
+    create: (data: unknown) => api.post("/eam/categories", data).then((r) => r.data),
+  },
+
+  assets: {
+    list: (params?: { status?: string; categoryId?: string; page?: number; limit?: number }) =>
+      api.get("/eam/assets", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/eam/assets/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/eam/assets", data).then((r) => r.data),
+  },
+
+  plans: {
+    list: (params?: { assetId?: string; page?: number; limit?: number }) =>
+      api.get("/eam/plans", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/eam/plans", data).then((r) => r.data),
+    trigger: (id: string) => api.post(`/eam/plans/${id}/trigger`, {}).then((r) => r.data),
+  },
+
+  workOrders: {
+    list: (params?: { status?: string; assetId?: string; type?: string; page?: number; limit?: number }) =>
+      api.get("/eam/work-orders", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/eam/work-orders", data).then((r) => r.data),
+    start: (id: string) => api.post(`/eam/work-orders/${id}/start`, {}).then((r) => r.data),
+    complete: (id: string, data: unknown) => api.post(`/eam/work-orders/${id}/complete`, data).then((r) => r.data),
+  },
+
+  iot: {
+    devices: {
+      list: () => api.get("/eam/iot/devices").then((r) => r.data),
+      register: (data: unknown) => api.post("/eam/iot/devices", data).then((r) => r.data),
+      readings: (id: string, params?: { metric?: string; limit?: number }) =>
+        api.get(`/eam/iot/devices/${id}/readings`, { params }).then((r) => r.data),
+      record: (id: string, data: unknown) =>
+        api.post(`/eam/iot/devices/${id}/readings`, data).then((r) => r.data),
+    },
+  },
+};
+
+// ─── FSM ───────────────────────────────────────────────────────────────────
+
+export const fsmApi = {
+  dashboard: () => api.get("/fsm/dashboard").then((r) => r.data),
+
+  technicians: {
+    list: () => api.get("/fsm/technicians").then((r) => r.data),
+    create: (data: unknown) => api.post("/fsm/technicians", data).then((r) => r.data),
+    updateStatus: (id: string, status: string) =>
+      api.post(`/fsm/technicians/${id}/status`, { status }).then((r) => r.data),
+  },
+
+  contracts: {
+    list: (params?: { status?: string; customerId?: string; page?: number; limit?: number }) =>
+      api.get("/fsm/contracts", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/fsm/contracts", data).then((r) => r.data),
+  },
+
+  orders: {
+    list: (params?: { status?: string; technicianId?: string; type?: string; page?: number; limit?: number }) =>
+      api.get("/fsm/orders", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/fsm/orders/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/fsm/orders", data).then((r) => r.data),
+    assign: (id: string, data: unknown) => api.post(`/fsm/orders/${id}/assign`, data).then((r) => r.data),
+    start: (id: string) => api.post(`/fsm/orders/${id}/start`, {}).then((r) => r.data),
+    complete: (id: string, data: unknown) => api.post(`/fsm/orders/${id}/complete`, data).then((r) => r.data),
+    addNote: (id: string, data: unknown) => api.post(`/fsm/orders/${id}/notes`, data).then((r) => r.data),
+  },
+};
+
 // ─── HR ────────────────────────────────────────────────────────────────────
 
 export const hrApi = {
