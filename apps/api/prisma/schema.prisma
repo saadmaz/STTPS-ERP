@@ -79,6 +79,15 @@ model Company {
   routings              Routing[]
   productionOrders      ProductionOrder[]
   mrpPlans              MRPPlan[]
+  departments           Department[]
+  positions             Position[]
+  employees             Employee[]
+  leaveTypes            LeaveType[]
+  leaveRequests         LeaveRequest[]
+  payrollRuns           PayrollRun[]
+  payslips              Payslip[]
+  jobPostings           JobPosting[]
+  jobApplications       JobApplication[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
