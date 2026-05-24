@@ -65,6 +65,15 @@ model Company {
   purchaseRequisitions  PurchaseRequisition[]
   purchaseOrders        PurchaseOrder[]
   goodsReceipts         GoodsReceipt[]
+  crmLeads              Lead[]
+  crmAccounts           CrmAccount[]
+  crmContacts           CrmContact[]
+  opportunities         Opportunity[]
+  crmActivities         Activity[]
+  priceLists            PriceList[]
+  salesQuotes           SalesQuote[]
+  salesOrders           SalesOrder[]
+  deliveries            Delivery[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -410,8 +419,10 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  company  Company     @relation(fields: [companyId], references: [id])
-  invoices ArInvoice[]
+  company     Company      @relation(fields: [companyId], references: [id])
+  invoices    ArInvoice[]
+  salesQuotes SalesQuote[]
+  salesOrders SalesOrder[]
 
   @@unique([tenantId, companyId, code])
   @@index([tenantId, companyId])
@@ -648,6 +659,10 @@ model Item {
   poLines         POLine[]
   grnLines        GoodsReceiptLine[]
   stockCountLines StockCountLine[]
+  priceListItems  PriceListItem[]
+  quoteLines      QuoteLine[]
+  soLines         SOLine[]
+  deliveryLines   DeliveryLine[]
 
   @@unique([tenantId, companyId, code])
   @@index([tenantId, companyId])
@@ -670,6 +685,7 @@ model Warehouse {
   stockLevels      StockLevel[]
   stockMovements   StockMovement[]
   stockCounts      StockCount[]
+  deliveries       Delivery[]
 
   @@unique([tenantId, companyId, code])
   @@index([tenantId, companyId])
@@ -916,4 +932,335 @@ model GoodsReceiptLine {
   item Item         @relation(fields: [itemId], references: [id])
 
   @@map("goods_receipt_lines")
+}
+
+// ==========================================
+// CRM
+// ==========================================
+
+model Lead {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  company     String?
+  title       String?
+  source      String?
+  status      String    @default("NEW")
+  score       Int       @default(0)
+  ownerId     String?
+  notes       String?
+  convertedAt DateTime?
+  contactId   String?
+  accountId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  companyRel   Company      @relation(fields: [companyId], references: [id])
+  activities   Activity[]
+
+  @@index([tenantId, companyId])
+  @@map("crm_leads")
+}
+
+model CrmAccount {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String
+  name        String
+  industry    String?
+  website     String?
+  phone       String?
+  email       String?
+  address     Json?
+  ownerId     String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyRel   Company        @relation(fields: [companyId], references: [id])
+  contacts     CrmContact[]
+  opportunities Opportunity[]
+  activities   Activity[]
+
+  @@index([tenantId, companyId])
+  @@map("crm_accounts")
+}
+
+model CrmContact {
+  id         String   @id @default(uuid())
+  tenantId   String
+  companyId  String
+  accountId  String?
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String?
+  title      String?
+  ownerId    String?
+  notes      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  companyRel    Company      @relation(fields: [companyId], references: [id])
+  account       CrmAccount?  @relation(fields: [accountId], references: [id])
+  opportunities Opportunity[]
+  activities    Activity[]
+
+  @@index([tenantId, companyId])
+  @@map("crm_contacts")
+}
+
+model Opportunity {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  accountId   String?
+  contactId   String?
+  name        String
+  stage       String    @default("PROSPECTING")
+  amount      Decimal   @default(0) @db.Decimal(19, 4)
+  probability Int       @default(0)
+  closeDate   DateTime?
+  ownerId     String?
+  source      String?
+  notes       String?
+  status      String    @default("OPEN")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  companyRel Company     @relation(fields: [companyId], references: [id])
+  account    CrmAccount? @relation(fields: [accountId], references: [id])
+  contact    CrmContact? @relation(fields: [contactId], references: [id])
+  activities Activity[]
+  quotes     SalesQuote[]
+
+  @@index([tenantId, companyId])
+  @@map("opportunities")
+}
+
+model Activity {
+  id             String    @id @default(uuid())
+  tenantId       String
+  companyId      String
+  type           String
+  subject        String
+  description    String?
+  status         String    @default("PLANNED")
+  dueDate        DateTime?
+  completedAt    DateTime?
+  ownerId        String?
+  leadId         String?
+  accountId      String?
+  contactId      String?
+  opportunityId  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  companyRel   Company      @relation(fields: [companyId], references: [id])
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+  account      CrmAccount?  @relation(fields: [accountId], references: [id])
+  contact      CrmContact?  @relation(fields: [contactId], references: [id])
+  opportunity  Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([tenantId, companyId])
+  @@map("crm_activities")
+}
+
+// ==========================================
+// SALES
+// ==========================================
+
+model PriceList {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  currency    String   @default("USD")
+  isDefault   Boolean  @default(false)
+  validFrom   DateTime?
+  validTo     DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyRel Company         @relation(fields: [companyId], references: [id])
+  items      PriceListItem[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("price_lists")
+}
+
+model PriceListItem {
+  id          String  @id @default(uuid())
+  priceListId String
+  itemId      String
+  unitPrice   Decimal @db.Decimal(19, 4)
+  minQty      Decimal @default(0) @db.Decimal(19, 4)
+  uom         String  @default("EA")
+
+  priceList PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id])
+
+  @@unique([priceListId, itemId])
+  @@map("price_list_items")
+}
+
+model SalesQuote {
+  id             String    @id @default(uuid())
+  tenantId       String
+  companyId      String
+  customerId     String
+  opportunityId  String?
+  number         String
+  quoteDate      DateTime
+  validUntil     DateTime?
+  currency       String    @default("USD")
+  exchangeRate   Decimal   @default(1) @db.Decimal(19, 6)
+  subtotal       Decimal   @default(0) @db.Decimal(19, 4)
+  discountAmount Decimal   @default(0) @db.Decimal(19, 4)
+  taxAmount      Decimal   @default(0) @db.Decimal(19, 4)
+  total          Decimal   @default(0) @db.Decimal(19, 4)
+  status         String    @default("DRAFT")
+  notes          String?
+  createdBy      String
+  approvedBy     String?
+  approvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  companyRel  Company      @relation(fields: [companyId], references: [id])
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  lines       QuoteLine[]
+  salesOrders SalesOrder[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("sales_quotes")
+}
+
+model QuoteLine {
+  id          String  @id @default(uuid())
+  quoteId     String
+  itemId      String
+  description String?
+  qty         Decimal @db.Decimal(19, 4)
+  uom         String  @default("EA")
+  unitPrice   Decimal @default(0) @db.Decimal(19, 4)
+  discount    Decimal @default(0) @db.Decimal(19, 4)
+  taxCode     String?
+  taxAmount   Decimal @default(0) @db.Decimal(19, 4)
+  lineTotal   Decimal @default(0) @db.Decimal(19, 4)
+  lineNumber  Int
+
+  quote SalesQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  item  Item       @relation(fields: [itemId], references: [id])
+
+  @@map("quote_lines")
+}
+
+model SalesOrder {
+  id             String    @id @default(uuid())
+  tenantId       String
+  companyId      String
+  customerId     String
+  quoteId        String?
+  number         String
+  orderDate      DateTime
+  requestedDate  DateTime?
+  currency       String    @default("USD")
+  exchangeRate   Decimal   @default(1) @db.Decimal(19, 6)
+  subtotal       Decimal   @default(0) @db.Decimal(19, 4)
+  discountAmount Decimal   @default(0) @db.Decimal(19, 4)
+  taxAmount      Decimal   @default(0) @db.Decimal(19, 4)
+  total          Decimal   @default(0) @db.Decimal(19, 4)
+  status         String    @default("DRAFT")
+  notes          String?
+  createdBy      String
+  approvedBy     String?
+  approvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  companyRel Company     @relation(fields: [companyId], references: [id])
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  quote      SalesQuote? @relation(fields: [quoteId], references: [id])
+  lines      SOLine[]
+  deliveries Delivery[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("sales_orders")
+}
+
+model SOLine {
+  id           String  @id @default(uuid())
+  soId         String
+  itemId       String
+  description  String?
+  qty          Decimal @db.Decimal(19, 4)
+  qtyDelivered Decimal @default(0) @db.Decimal(19, 4)
+  qtyInvoiced  Decimal @default(0) @db.Decimal(19, 4)
+  uom          String  @default("EA")
+  unitPrice    Decimal @default(0) @db.Decimal(19, 4)
+  discount     Decimal @default(0) @db.Decimal(19, 4)
+  taxCode      String?
+  taxAmount    Decimal @default(0) @db.Decimal(19, 4)
+  lineTotal    Decimal @default(0) @db.Decimal(19, 4)
+  lineNumber   Int
+
+  so   SalesOrder @relation(fields: [soId], references: [id], onDelete: Cascade)
+  item Item       @relation(fields: [itemId], references: [id])
+
+  @@map("so_lines")
+}
+
+model Delivery {
+  id            String    @id @default(uuid())
+  tenantId      String
+  companyId     String
+  soId          String
+  warehouseId   String
+  number        String
+  deliveryDate  DateTime
+  status        String    @default("DRAFT")
+  notes         String?
+  createdBy     String
+  postedBy      String?
+  postedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  companyRel Company        @relation(fields: [companyId], references: [id])
+  so         SalesOrder     @relation(fields: [soId], references: [id])
+  warehouse  Warehouse      @relation(fields: [warehouseId], references: [id])
+  lines      DeliveryLine[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("deliveries")
+}
+
+model DeliveryLine {
+  id           String  @id @default(uuid())
+  deliveryId   String
+  itemId       String
+  soLineId     String?
+  qty          Decimal @db.Decimal(19, 4)
+  uom          String  @default("EA")
+  locationId   String?
+  lineNumber   Int
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("delivery_lines")
 }
