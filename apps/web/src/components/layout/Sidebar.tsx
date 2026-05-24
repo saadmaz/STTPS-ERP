@@ -26,6 +26,8 @@ import {
   Briefcase,
   ShieldCheck,
   Globe,
+  AlertTriangle,
+  HardHat,
 } from "lucide-react";
 
 interface NavItem {
@@ -153,7 +155,7 @@ const navigation: NavItem[] = [
     label: "Projects",
     icon: Globe,
     children: [
-      { label: "All Projects", href: "/projects", icon: Globe },
+      { label: "Overview", href: "/projects", icon: BarChart3 },
       { label: "Tasks", href: "/projects/tasks", icon: ClipboardList },
       { label: "Timesheets", href: "/projects/timesheets", icon: FileText },
     ],
@@ -162,9 +164,20 @@ const navigation: NavItem[] = [
     label: "Quality",
     icon: ShieldCheck,
     children: [
+      { label: "Overview", href: "/quality", icon: BarChart3 },
       { label: "Inspections", href: "/quality/inspections", icon: ClipboardList },
       { label: "Non-Conformances", href: "/quality/ncr", icon: ShieldCheck },
       { label: "Audits", href: "/quality/audits", icon: FileText },
+    ],
+  },
+  {
+    label: "EHS",
+    icon: HardHat,
+    children: [
+      { label: "Overview", href: "/ehs", icon: BarChart3 },
+      { label: "Incidents", href: "/ehs/incidents", icon: AlertTriangle },
+      { label: "Risk Assessments", href: "/ehs/risks", icon: ShieldCheck },
+      { label: "Permits to Work", href: "/ehs/permits", icon: FileText },
     ],
   },
   {
@@ -274,7 +287,7 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="border-t border-slate-800 p-3">
-        <p className="text-xs text-slate-600 text-center">v0.1.0 — Phase 0</p>
+        <p className="text-xs text-slate-600 text-center">v0.7.0 — Phase 7</p>
       </div>
     </aside>
   );

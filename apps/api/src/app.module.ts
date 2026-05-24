@@ -14,6 +14,9 @@ import { ManufacturingModule } from "./manufacturing/manufacturing.module";
 import { HrModule } from "./hr/hr.module";
 import { EamModule } from "./eam/eam.module";
 import { FsmModule } from "./fsm/fsm.module";
+import { QualityModule } from "./quality/quality.module";
+import { EhsModule } from "./ehs/ehs.module";
+import { ProjectsModule } from "./projects/projects.module";
 
 @Module({
   imports: [
@@ -32,6 +35,9 @@ import { FsmModule } from "./fsm/fsm.module";
     HrModule,
     EamModule,
     FsmModule,
+    QualityModule,
+    EhsModule,
+    ProjectsModule,
   ],
 })
 export class AppModule {}

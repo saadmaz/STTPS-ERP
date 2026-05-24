@@ -561,3 +561,101 @@ export const salesApi = {
     post: (id: string) => api.post(`/sales/deliveries/${id}/post`, {}).then((r) => r.data),
   },
 };
+
+// ─── Quality ────────────────────────────────────────────────────────────────
+
+export const qualityApi = {
+  dashboard: () => api.get("/quality/dashboard").then((r) => r.data),
+
+  templates: {
+    list: () => api.get("/quality/templates").then((r) => r.data),
+    create: (data: unknown) => api.post("/quality/templates", data).then((r) => r.data),
+  },
+
+  inspections: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get("/quality/inspections", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/quality/inspections/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/quality/inspections", data).then((r) => r.data),
+    complete: (id: string, data: unknown) => api.post(`/quality/inspections/${id}/complete`, data).then((r) => r.data),
+  },
+
+  ncr: {
+    list: (params?: { status?: string; severity?: string; page?: number; limit?: number }) =>
+      api.get("/quality/ncr", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/quality/ncr", data).then((r) => r.data),
+    addAction: (id: string, data: unknown) => api.post(`/quality/ncr/${id}/actions`, data).then((r) => r.data),
+    close: (id: string, data?: unknown) => api.post(`/quality/ncr/${id}/close`, data ?? {}).then((r) => r.data),
+  },
+
+  audits: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get("/quality/audits", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/quality/audits", data).then((r) => r.data),
+    start: (id: string) => api.post(`/quality/audits/${id}/start`, {}).then((r) => r.data),
+    complete: (id: string, data: unknown) => api.post(`/quality/audits/${id}/complete`, data).then((r) => r.data),
+  },
+};
+
+// ─── EHS ────────────────────────────────────────────────────────────────────
+
+export const ehsApi = {
+  dashboard: () => api.get("/ehs/dashboard").then((r) => r.data),
+
+  incidents: {
+    list: (params?: { status?: string; type?: string; page?: number; limit?: number }) =>
+      api.get("/ehs/incidents", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/ehs/incidents", data).then((r) => r.data),
+    investigate: (id: string, data: unknown) => api.post(`/ehs/incidents/${id}/investigate`, data).then((r) => r.data),
+    close: (id: string) => api.post(`/ehs/incidents/${id}/close`, {}).then((r) => r.data),
+  },
+
+  risks: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get("/ehs/risks", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/ehs/risks", data).then((r) => r.data),
+    activate: (id: string) => api.post(`/ehs/risks/${id}/activate`, {}).then((r) => r.data),
+  },
+
+  permits: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get("/ehs/permits", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/ehs/permits", data).then((r) => r.data),
+    approve: (id: string, data: unknown) => api.post(`/ehs/permits/${id}/approve`, data).then((r) => r.data),
+    close: (id: string) => api.post(`/ehs/permits/${id}/close`, {}).then((r) => r.data),
+  },
+};
+
+// ─── Projects ───────────────────────────────────────────────────────────────
+
+export const projectsApi = {
+  dashboard: () => api.get("/projects/dashboard").then((r) => r.data),
+
+  projects: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get("/projects", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/projects/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/projects", data).then((r) => r.data),
+    updateStatus: (id: string, status: string) => api.post(`/projects/${id}/status`, { status }).then((r) => r.data),
+  },
+
+  tasks: {
+    list: (params?: { projectId?: string; status?: string; assigneeId?: string; page?: number; limit?: number }) =>
+      api.get("/projects/tasks/list", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/projects/tasks", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/projects/tasks/${id}`, data).then((r) => r.data),
+  },
+
+  timesheets: {
+    list: (params?: { projectId?: string; employeeId?: string; status?: string; page?: number; limit?: number }) =>
+      api.get("/projects/timesheets/list", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/projects/timesheets", data).then((r) => r.data),
+    approve: (id: string, data: unknown) => api.post(`/projects/timesheets/${id}/approve`, data).then((r) => r.data),
+  },
+
+  billing: {
+    list: (projectId?: string) => api.get("/projects/billing/list", { params: projectId ? { projectId } : {} }).then((r) => r.data),
+    create: (data: unknown) => api.post("/projects/billing", data).then((r) => r.data),
+    invoice: (id: string) => api.post(`/projects/billing/${id}/invoice`, {}).then((r) => r.data),
+  },
+};
