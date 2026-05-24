@@ -122,9 +122,10 @@ const navigation: NavItem[] = [
     label: "Human Resources",
     icon: Users,
     children: [
+      { label: "Overview", href: "/hr", icon: BarChart3 },
       { label: "Employees", href: "/hr/employees", icon: Users },
-      { label: "Payroll", href: "/hr/payroll", icon: Banknote },
       { label: "Leave", href: "/hr/leave", icon: ClipboardList },
+      { label: "Payroll", href: "/hr/payroll", icon: Banknote },
       { label: "Recruitment", href: "/hr/recruitment", icon: Briefcase },
     ],
   },
