@@ -87,9 +87,11 @@ const navigation: NavItem[] = [
     label: "Manufacturing",
     icon: Factory,
     children: [
+      { label: "Overview", href: "/manufacturing", icon: BarChart3 },
       { label: "Production Orders", href: "/manufacturing/orders", icon: Factory },
       { label: "Bill of Materials", href: "/manufacturing/bom", icon: ClipboardList },
       { label: "Work Centers", href: "/manufacturing/work-centers", icon: Settings },
+      { label: "Routings", href: "/manufacturing/routings", icon: ClipboardList },
       { label: "MRP", href: "/manufacturing/mrp", icon: BarChart3 },
     ],
   },

@@ -351,6 +351,46 @@ export const crmApi = {
   },
 };
 
+// ─── Manufacturing ─────────────────────────────────────────────────────────
+
+export const manufacturingApi = {
+  dashboard: () => api.get("/manufacturing/dashboard").then((r) => r.data),
+
+  bom: {
+    list: (params?: { itemId?: string; status?: string; page?: number; limit?: number }) =>
+      api.get("/manufacturing/bom", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/manufacturing/bom/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/manufacturing/bom", data).then((r) => r.data),
+    activate: (id: string) => api.post(`/manufacturing/bom/${id}/activate`, {}).then((r) => r.data),
+  },
+
+  workCenters: {
+    list: () => api.get("/manufacturing/work-centers").then((r) => r.data),
+    create: (data: unknown) => api.post("/manufacturing/work-centers", data).then((r) => r.data),
+  },
+
+  routings: {
+    list: () => api.get("/manufacturing/routings").then((r) => r.data),
+    get: (id: string) => api.get(`/manufacturing/routings/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/manufacturing/routings", data).then((r) => r.data),
+  },
+
+  orders: {
+    list: (params?: { status?: string; itemId?: string; page?: number; limit?: number }) =>
+      api.get("/manufacturing/orders", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/manufacturing/orders/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/manufacturing/orders", data).then((r) => r.data),
+    release: (id: string) => api.post(`/manufacturing/orders/${id}/release`, {}).then((r) => r.data),
+    produce: (id: string, data: unknown) => api.post(`/manufacturing/orders/${id}/produce`, data).then((r) => r.data),
+  },
+
+  mrp: {
+    list: () => api.get("/manufacturing/mrp").then((r) => r.data),
+    get: (id: string) => api.get(`/manufacturing/mrp/${id}`).then((r) => r.data),
+    run: (data: unknown) => api.post("/manufacturing/mrp/run", data).then((r) => r.data),
+  },
+};
+
 // ─── Sales ─────────────────────────────────────────────────────────────────
 
 export const salesApi = {

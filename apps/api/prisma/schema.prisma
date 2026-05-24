@@ -74,6 +74,11 @@ model Company {
   salesQuotes           SalesQuote[]
   salesOrders           SalesOrder[]
   deliveries            Delivery[]
+  billsOfMaterials      BillOfMaterials[]
+  workCenters           WorkCenter[]
+  routings              Routing[]
+  productionOrders      ProductionOrder[]
+  mrpPlans              MRPPlan[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -659,10 +664,15 @@ model Item {
   poLines         POLine[]
   grnLines        GoodsReceiptLine[]
   stockCountLines StockCountLine[]
-  priceListItems  PriceListItem[]
-  quoteLines      QuoteLine[]
-  soLines         SOLine[]
-  deliveryLines   DeliveryLine[]
+  priceListItems      PriceListItem[]
+  quoteLines          QuoteLine[]
+  soLines             SOLine[]
+  deliveryLines       DeliveryLine[]
+  bomAsFinishedGood   BillOfMaterials[]           @relation("BOMFinishedGood")
+  bomComponents       BOMLine[]                   @relation("BOMComponent")
+  productionOrders    ProductionOrder[]            @relation("ProductionOrderItem")
+  productionComponents ProductionComponent[]       @relation("ProductionComponent")
+  plannedOrders       PlannedOrder[]               @relation("PlannedOrderItem")
 
   @@unique([tenantId, companyId, code])
   @@index([tenantId, companyId])
@@ -1263,4 +1273,223 @@ model DeliveryLine {
   item     Item     @relation(fields: [itemId], references: [id])
 
   @@map("delivery_lines")
+}
+
+// ==========================================
+// MANUFACTURING
+// ==========================================
+
+model BillOfMaterials {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  itemId      String
+  code        String
+  version     String    @default("1")
+  description String?
+  baseQty     Decimal   @default(1) @db.Decimal(19, 4)
+  uom         String    @default("EA")
+  status      String    @default("DRAFT")
+  isActive    Boolean   @default(true)
+  validFrom   DateTime?
+  validTo     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company          Company          @relation(fields: [companyId], references: [id])
+  item             Item             @relation("BOMFinishedGood", fields: [itemId], references: [id])
+  lines            BOMLine[]
+  productionOrders ProductionOrder[]
+
+  @@unique([tenantId, companyId, itemId, version])
+  @@index([tenantId, companyId])
+  @@map("bill_of_materials")
+}
+
+model BOMLine {
+  id          String  @id @default(uuid())
+  bomId       String
+  itemId      String
+  lineNumber  Int
+  description String?
+  qty         Decimal @db.Decimal(19, 4)
+  uom         String  @default("EA")
+  scrapPct    Decimal @default(0) @db.Decimal(5, 4)
+  isPhantom   Boolean @default(false)
+
+  bom  BillOfMaterials @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  item Item            @relation("BOMComponent", fields: [itemId], references: [id])
+
+  @@map("bom_lines")
+}
+
+model WorkCenter {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  description String?
+  type        String   @default("MACHINE")
+  capacity    Decimal  @default(1) @db.Decimal(19, 4)
+  efficiency  Decimal  @default(1) @db.Decimal(5, 4)
+  costRate    Decimal  @default(0) @db.Decimal(19, 4)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company            @relation(fields: [companyId], references: [id])
+  operations RoutingOperation[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("work_centers")
+}
+
+model Routing {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company            @relation(fields: [companyId], references: [id])
+  operations RoutingOperation[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("routings")
+}
+
+model RoutingOperation {
+  id           String  @id @default(uuid())
+  routingId    String
+  workCenterId String?
+  sequence     Int
+  code         String
+  description  String?
+  setupTime    Decimal @default(0) @db.Decimal(10, 2)
+  runTime      Decimal @default(0) @db.Decimal(10, 2)
+  queueTime    Decimal @default(0) @db.Decimal(10, 2)
+  uom          String  @default("MIN")
+
+  routing    Routing     @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  workCenter WorkCenter? @relation(fields: [workCenterId], references: [id])
+
+  @@map("routing_operations")
+}
+
+model ProductionOrder {
+  id           String    @id @default(uuid())
+  tenantId     String
+  companyId    String
+  itemId       String
+  bomId        String?
+  number       String
+  description  String?
+  plannedQty   Decimal   @db.Decimal(19, 4)
+  producedQty  Decimal   @default(0) @db.Decimal(19, 4)
+  scrapQty     Decimal   @default(0) @db.Decimal(19, 4)
+  uom          String    @default("EA")
+  status       String    @default("DRAFT")
+  priority     Int       @default(5)
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  actualStart  DateTime?
+  actualEnd    DateTime?
+  notes        String?
+  createdBy    String
+  releasedBy   String?
+  releasedAt   DateTime?
+  closedBy     String?
+  closedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  company    Company           @relation(fields: [companyId], references: [id])
+  item       Item              @relation("ProductionOrderItem", fields: [itemId], references: [id])
+  bom        BillOfMaterials?  @relation(fields: [bomId], references: [id])
+  components ProductionComponent[]
+  operations ProductionOperation[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("production_orders")
+}
+
+model ProductionComponent {
+  id          String  @id @default(uuid())
+  orderId     String
+  itemId      String
+  description String?
+  requiredQty Decimal @db.Decimal(19, 4)
+  issuedQty   Decimal @default(0) @db.Decimal(19, 4)
+  uom         String  @default("EA")
+  lineNumber  Int
+
+  order ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item  Item            @relation("ProductionComponent", fields: [itemId], references: [id])
+
+  @@map("production_components")
+}
+
+model ProductionOperation {
+  id           String    @id @default(uuid())
+  orderId      String
+  workCenterId String?
+  sequence     Int
+  code         String
+  description  String?
+  setupTime    Decimal   @default(0) @db.Decimal(10, 2)
+  runTime      Decimal   @default(0) @db.Decimal(10, 2)
+  status       String    @default("PENDING")
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  order ProductionOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("production_operations")
+}
+
+model MRPPlan {
+  id        String   @id @default(uuid())
+  tenantId  String
+  companyId String
+  reference String
+  runDate   DateTime
+  planType  String   @default("FULL")
+  status    String   @default("DRAFT")
+  notes     String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  company   Company        @relation(fields: [companyId], references: [id])
+  proposals PlannedOrder[]
+
+  @@index([tenantId, companyId])
+  @@map("mrp_plans")
+}
+
+model PlannedOrder {
+  id           String   @id @default(uuid())
+  mrpPlanId    String
+  tenantId     String
+  companyId    String
+  itemId       String
+  orderType    String
+  requiredQty  Decimal  @db.Decimal(19, 4)
+  plannedStart DateTime
+  plannedEnd   DateTime
+  status       String   @default("PROPOSED")
+  convertedId  String?
+
+  mrpPlan MRPPlan @relation(fields: [mrpPlanId], references: [id], onDelete: Cascade)
+  item    Item    @relation("PlannedOrderItem", fields: [itemId], references: [id])
+
+  @@index([tenantId, companyId])
+  @@map("planned_orders")
 }
