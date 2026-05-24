@@ -281,17 +281,10 @@ export class InventoryService {
   // ── Summary ──────────────────────────────────────────────────────────────────
 
   async getSummary(tenantId: string, companyId: string) {
-    const [totalItems, totalWarehouses, stockLevels, lowStockItems] = await Promise.all([
+    const [totalItems, totalWarehouses, stockLevels] = await Promise.all([
       this.prisma.item.count({ where: { tenantId, companyId, isActive: true } }),
       this.prisma.warehouse.count({ where: { tenantId, companyId, isActive: true } }),
       this.prisma.stockLevel.findMany({ where: { tenantId, companyId }, include: { item: true } }),
-      this.prisma.item.findMany({
-        where: {
-          tenantId, companyId, isActive: true, trackInventory: true,
-          stockLevels: { some: { qty: { lte: this.prisma.stockLevel.fields.reorderPoint } } },
-        },
-        take: 10,
-      }).catch(() => []),
     ]);
 
     const totalStockValue = stockLevels.reduce((sum, sl) => sum + Number(sl.qty) * Number(sl.avgCost), 0);

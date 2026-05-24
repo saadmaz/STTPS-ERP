@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Put, Param, Body, Query, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CompanyGuard } from '../auth/guards/company.guard';
+import { Controller, Get, Post, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CompanyId } from '../common/decorators/company.decorator';
 import { InventoryService } from './inventory.service';
 import {
   CreateItemDto,
@@ -11,31 +13,33 @@ import {
   CreateStockCountDto,
 } from './dto/create-item.dto';
 
+@ApiTags('Inventory')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('inventory')
-@UseGuards(JwtAuthGuard, CompanyGuard)
 export class InventoryController {
   constructor(private service: InventoryService) {}
 
   @Get('summary')
-  summary(@Req() req: any) {
-    return this.service.getSummary(req.tenantId, req.companyId);
+  summary(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string) {
+    return this.service.getSummary(tenantId, companyId);
   }
 
   // Categories
   @Get('categories')
-  getCategories(@Req() req: any) {
-    return this.service.getCategories(req.tenantId, req.companyId);
+  getCategories(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string) {
+    return this.service.getCategories(tenantId, companyId);
   }
 
   @Post('categories')
-  createCategory(@Req() req: any, @Body() dto: CreateItemCategoryDto) {
-    return this.service.createCategory(req.tenantId, req.companyId, req.user.id, dto);
+  createCategory(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreateItemCategoryDto) {
+    return this.service.createCategory(tenantId, companyId, userId, dto);
   }
 
   // Items
   @Get('items')
-  getItems(@Req() req: any, @Query() q: any) {
-    return this.service.getItems(req.tenantId, req.companyId, {
+  getItems(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getItems(tenantId, companyId, {
       page: Number(q.page) || 1,
       limit: Number(q.limit) || 25,
       search: q.search,
@@ -44,29 +48,29 @@ export class InventoryController {
   }
 
   @Get('items/:id')
-  getItem(@Req() req: any, @Param('id') id: string) {
-    return this.service.getItem(req.tenantId, req.companyId, id);
+  getItem(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Param('id') id: string) {
+    return this.service.getItem(tenantId, companyId, id);
   }
 
   @Post('items')
-  createItem(@Req() req: any, @Body() dto: CreateItemDto) {
-    return this.service.createItem(req.tenantId, req.companyId, req.user.id, dto);
+  createItem(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreateItemDto) {
+    return this.service.createItem(tenantId, companyId, userId, dto);
   }
 
   @Put('items/:id')
-  updateItem(@Req() req: any, @Param('id') id: string, @Body() dto: Partial<CreateItemDto>) {
-    return this.service.updateItem(req.tenantId, req.companyId, id, dto);
+  updateItem(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Param('id') id: string, @Body() dto: Partial<CreateItemDto>) {
+    return this.service.updateItem(tenantId, companyId, id, dto);
   }
 
   // Warehouses
   @Get('warehouses')
-  getWarehouses(@Req() req: any) {
-    return this.service.getWarehouses(req.tenantId, req.companyId);
+  getWarehouses(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string) {
+    return this.service.getWarehouses(tenantId, companyId);
   }
 
   @Post('warehouses')
-  createWarehouse(@Req() req: any, @Body() dto: CreateWarehouseDto) {
-    return this.service.createWarehouse(req.tenantId, req.companyId, dto);
+  createWarehouse(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Body() dto: CreateWarehouseDto) {
+    return this.service.createWarehouse(tenantId, companyId, dto);
   }
 
   @Post('warehouses/locations')
@@ -76,8 +80,8 @@ export class InventoryController {
 
   // Stock levels
   @Get('stock-levels')
-  getStockLevels(@Req() req: any, @Query() q: any) {
-    return this.service.getStockLevels(req.tenantId, req.companyId, {
+  getStockLevels(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getStockLevels(tenantId, companyId, {
       warehouseId: q.warehouseId,
       itemId: q.itemId,
     });
@@ -85,8 +89,8 @@ export class InventoryController {
 
   // Stock movements
   @Get('movements')
-  getMovements(@Req() req: any, @Query() q: any) {
-    return this.service.getMovements(req.tenantId, req.companyId, {
+  getMovements(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getMovements(tenantId, companyId, {
       itemId: q.itemId,
       warehouseId: q.warehouseId,
       page: Number(q.page) || 1,
@@ -95,28 +99,28 @@ export class InventoryController {
   }
 
   @Post('movements')
-  createMovement(@Req() req: any, @Body() dto: CreateStockMovementDto) {
-    return this.service.createMovement(req.tenantId, req.companyId, req.user.id, dto);
+  createMovement(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreateStockMovementDto) {
+    return this.service.createMovement(tenantId, companyId, userId, dto);
   }
 
   // Stock counts
   @Get('counts')
-  getStockCounts(@Req() req: any) {
-    return this.service.getStockCounts(req.tenantId, req.companyId);
+  getStockCounts(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string) {
+    return this.service.getStockCounts(tenantId, companyId);
   }
 
   @Get('counts/:id')
-  getStockCount(@Req() req: any, @Param('id') id: string) {
-    return this.service.getStockCount(req.tenantId, req.companyId, id);
+  getStockCount(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Param('id') id: string) {
+    return this.service.getStockCount(tenantId, companyId, id);
   }
 
   @Post('counts')
-  createStockCount(@Req() req: any, @Body() dto: CreateStockCountDto) {
-    return this.service.createStockCount(req.tenantId, req.companyId, req.user.id, dto);
+  createStockCount(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreateStockCountDto) {
+    return this.service.createStockCount(tenantId, companyId, userId, dto);
   }
 
   @Post('counts/:id/post')
-  postStockCount(@Req() req: any, @Param('id') id: string) {
-    return this.service.postStockCount(req.tenantId, req.companyId, req.user.id, id);
+  postStockCount(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Param('id') id: string) {
+    return this.service.postStockCount(tenantId, companyId, userId, id);
   }
 }

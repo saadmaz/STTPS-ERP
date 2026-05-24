@@ -1,22 +1,26 @@
-import { Controller, Get, Post, Put, Param, Body, Query, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CompanyGuard } from '../auth/guards/company.guard';
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CompanyId } from '../common/decorators/company.decorator';
 import { ProcurementService } from './procurement.service';
 import { CreatePRDto, CreatePODto, CreateGRNDto } from './dto/create-pr.dto';
 
+@ApiTags('Procurement')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('procurement')
-@UseGuards(JwtAuthGuard, CompanyGuard)
 export class ProcurementController {
   constructor(private service: ProcurementService) {}
 
   @Get('dashboard')
-  dashboard(@Req() req: any) {
-    return this.service.getDashboard(req.tenantId, req.companyId);
+  dashboard(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string) {
+    return this.service.getDashboard(tenantId, companyId);
   }
 
   @Get('vendors')
-  getVendors(@Req() req: any, @Query() q: any) {
-    return this.service.getVendors(req.tenantId, req.companyId, {
+  getVendors(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getVendors(tenantId, companyId, {
       search: q.search,
       page: Number(q.page) || 1,
       limit: Number(q.limit) || 25,
@@ -25,8 +29,8 @@ export class ProcurementController {
 
   // Purchase Requisitions
   @Get('requisitions')
-  getPRs(@Req() req: any, @Query() q: any) {
-    return this.service.getPRs(req.tenantId, req.companyId, {
+  getPRs(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getPRs(tenantId, companyId, {
       status: q.status,
       page: Number(q.page) || 1,
       limit: Number(q.limit) || 25,
@@ -34,24 +38,24 @@ export class ProcurementController {
   }
 
   @Get('requisitions/:id')
-  getPR(@Req() req: any, @Param('id') id: string) {
-    return this.service.getPR(req.tenantId, req.companyId, id);
+  getPR(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Param('id') id: string) {
+    return this.service.getPR(tenantId, companyId, id);
   }
 
   @Post('requisitions')
-  createPR(@Req() req: any, @Body() dto: CreatePRDto) {
-    return this.service.createPR(req.tenantId, req.companyId, req.user.id, dto);
+  createPR(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreatePRDto) {
+    return this.service.createPR(tenantId, companyId, userId, dto);
   }
 
   @Post('requisitions/:id/approve')
-  approvePR(@Req() req: any, @Param('id') id: string) {
-    return this.service.approvePR(req.tenantId, req.companyId, req.user.id, id);
+  approvePR(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Param('id') id: string) {
+    return this.service.approvePR(tenantId, companyId, userId, id);
   }
 
   // Purchase Orders
   @Get('orders')
-  getPOs(@Req() req: any, @Query() q: any) {
-    return this.service.getPOs(req.tenantId, req.companyId, {
+  getPOs(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getPOs(tenantId, companyId, {
       status: q.status,
       vendorId: q.vendorId,
       page: Number(q.page) || 1,
@@ -60,24 +64,24 @@ export class ProcurementController {
   }
 
   @Get('orders/:id')
-  getPO(@Req() req: any, @Param('id') id: string) {
-    return this.service.getPO(req.tenantId, req.companyId, id);
+  getPO(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Param('id') id: string) {
+    return this.service.getPO(tenantId, companyId, id);
   }
 
   @Post('orders')
-  createPO(@Req() req: any, @Body() dto: CreatePODto) {
-    return this.service.createPO(req.tenantId, req.companyId, req.user.id, dto);
+  createPO(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreatePODto) {
+    return this.service.createPO(tenantId, companyId, userId, dto);
   }
 
   @Post('orders/:id/approve')
-  approvePO(@Req() req: any, @Param('id') id: string) {
-    return this.service.approvePO(req.tenantId, req.companyId, req.user.id, id);
+  approvePO(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Param('id') id: string) {
+    return this.service.approvePO(tenantId, companyId, userId, id);
   }
 
   // Goods Receipts
   @Get('receipts')
-  getGRNs(@Req() req: any, @Query() q: any) {
-    return this.service.getGRNs(req.tenantId, req.companyId, {
+  getGRNs(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Query() q: any) {
+    return this.service.getGRNs(tenantId, companyId, {
       poId: q.poId,
       status: q.status,
       page: Number(q.page) || 1,
@@ -86,17 +90,17 @@ export class ProcurementController {
   }
 
   @Get('receipts/:id')
-  getGRN(@Req() req: any, @Param('id') id: string) {
-    return this.service.getGRN(req.tenantId, req.companyId, id);
+  getGRN(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @Param('id') id: string) {
+    return this.service.getGRN(tenantId, companyId, id);
   }
 
   @Post('receipts')
-  createGRN(@Req() req: any, @Body() dto: CreateGRNDto) {
-    return this.service.createGRN(req.tenantId, req.companyId, req.user.id, dto);
+  createGRN(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Body() dto: CreateGRNDto) {
+    return this.service.createGRN(tenantId, companyId, userId, dto);
   }
 
   @Post('receipts/:id/post')
-  postGRN(@Req() req: any, @Param('id') id: string) {
-    return this.service.postGRN(req.tenantId, req.companyId, req.user.id, id);
+  postGRN(@CurrentUser('tenantId') tenantId: string, @CompanyId() companyId: string, @CurrentUser('id') userId: string, @Param('id') id: string) {
+    return this.service.postGRN(tenantId, companyId, userId, id);
   }
 }

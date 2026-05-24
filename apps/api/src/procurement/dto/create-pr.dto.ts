@@ -1,58 +1,62 @@
 import { IsString, IsOptional, IsArray, ValidateNested, IsNumber, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PRLineDto {
-  @IsUUID() itemId: string;
-  @IsOptional() @IsString() description?: string;
-  @Type(() => Number) @IsNumber() qty: number;
-  @IsOptional() @IsString() uom?: string;
-  @IsOptional() @Type(() => Number) @IsNumber() estUnitCost?: number;
-  @IsNumber() lineNumber: number;
+  @ApiProperty() @IsUUID() itemId: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() qty: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() uom?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() estUnitCost?: number;
+  @ApiProperty() @IsNumber() lineNumber: number;
 }
 
 export class CreatePRDto {
-  @IsString() number: string;
-  @IsString() requestDate: string;
-  @IsOptional() @IsString() requiredDate?: string;
-  @IsOptional() @IsString() notes?: string;
+  @ApiProperty() @IsString() number: string;
+  @ApiProperty() @IsString() requestDate: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() requiredDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+  @ApiProperty({ type: [PRLineDto] })
   @IsArray() @ValidateNested({ each: true }) @Type(() => PRLineDto) lines: PRLineDto[];
 }
 
 export class POLineDto {
-  @IsUUID() itemId: string;
-  @IsOptional() @IsString() description?: string;
-  @Type(() => Number) @IsNumber() qty: number;
-  @IsOptional() @IsString() uom?: string;
-  @IsOptional() @Type(() => Number) @IsNumber() unitPrice?: number;
-  @IsOptional() @IsString() taxCode?: string;
-  @IsNumber() lineNumber: number;
+  @ApiProperty() @IsUUID() itemId: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() qty: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() uom?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() unitPrice?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() taxCode?: string;
+  @ApiProperty() @IsNumber() lineNumber: number;
 }
 
 export class CreatePODto {
-  @IsUUID() vendorId: string;
-  @IsOptional() @IsUUID() prId?: string;
-  @IsString() number: string;
-  @IsString() orderDate: string;
-  @IsOptional() @IsString() expectedDate?: string;
-  @IsOptional() @IsString() currency?: string;
-  @IsOptional() @IsString() notes?: string;
+  @ApiProperty() @IsUUID() vendorId: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() prId?: string;
+  @ApiProperty() @IsString() number: string;
+  @ApiProperty() @IsString() orderDate: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() expectedDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() currency?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+  @ApiProperty({ type: [POLineDto] })
   @IsArray() @ValidateNested({ each: true }) @Type(() => POLineDto) lines: POLineDto[];
 }
 
 export class GRNLineDto {
-  @IsUUID() itemId: string;
-  @IsOptional() @IsUUID() poLineId?: string;
-  @Type(() => Number) @IsNumber() qty: number;
-  @IsOptional() @Type(() => Number) @IsNumber() unitCost?: number;
-  @IsOptional() @IsUUID() locationId?: string;
-  @IsNumber() lineNumber: number;
+  @ApiProperty() @IsUUID() itemId: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() poLineId?: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() qty: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() unitCost?: number;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() locationId?: string;
+  @ApiProperty() @IsNumber() lineNumber: number;
 }
 
 export class CreateGRNDto {
-  @IsUUID() poId: string;
-  @IsUUID() warehouseId: string;
-  @IsString() number: string;
-  @IsString() receiptDate: string;
-  @IsOptional() @IsString() notes?: string;
+  @ApiProperty() @IsUUID() poId: string;
+  @ApiProperty() @IsUUID() warehouseId: string;
+  @ApiProperty() @IsString() number: string;
+  @ApiProperty() @IsString() receiptDate: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+  @ApiProperty({ type: [GRNLineDto] })
   @IsArray() @ValidateNested({ each: true }) @Type(() => GRNLineDto) lines: GRNLineDto[];
 }

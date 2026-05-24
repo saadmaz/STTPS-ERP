@@ -1,59 +1,60 @@
 import { IsString, IsOptional, IsBoolean, IsNumber, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateItemDto {
-  @IsString() code: string;
-  @IsString() name: string;
-  @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsString() uom?: string;
-  @IsOptional() @IsString() itemType?: string;
-  @IsOptional() @IsUUID() categoryId?: string;
-  @IsOptional() @IsBoolean() trackInventory?: boolean;
-  @IsOptional() @Type(() => Number) @IsNumber() reorderPoint?: number;
-  @IsOptional() @Type(() => Number) @IsNumber() reorderQty?: number;
-  @IsOptional() @Type(() => Number) @IsNumber() standardCost?: number;
-  @IsOptional() @Type(() => Number) @IsNumber() listPrice?: number;
-  @IsOptional() @IsUUID() inventoryAccountId?: string;
-  @IsOptional() @IsUUID() cogsAccountId?: string;
-  @IsOptional() @IsUUID() salesAccountId?: string;
+  @ApiProperty() @IsString() code: string;
+  @ApiProperty() @IsString() name: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() uom?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() itemType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() categoryId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() trackInventory?: boolean;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() reorderPoint?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() reorderQty?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() standardCost?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() listPrice?: number;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() inventoryAccountId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() cogsAccountId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() salesAccountId?: string;
 }
 
 export class CreateItemCategoryDto {
-  @IsString() code: string;
-  @IsString() name: string;
-  @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsUUID() parentId?: string;
+  @ApiProperty() @IsString() code: string;
+  @ApiProperty() @IsString() name: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() parentId?: string;
 }
 
 export class CreateWarehouseDto {
-  @IsString() code: string;
-  @IsString() name: string;
-  @IsOptional() address?: any;
+  @ApiProperty() @IsString() code: string;
+  @ApiProperty() @IsString() name: string;
+  @ApiPropertyOptional() @IsOptional() address?: any;
 }
 
 export class CreateStorageLocationDto {
-  @IsString() warehouseId: string;
-  @IsString() code: string;
-  @IsString() name: string;
-  @IsOptional() @IsString() zone?: string;
-  @IsOptional() @IsString() aisle?: string;
-  @IsOptional() @IsString() bin?: string;
+  @ApiProperty() @IsString() warehouseId: string;
+  @ApiProperty() @IsString() code: string;
+  @ApiProperty() @IsString() name: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() zone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() aisle?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bin?: string;
 }
 
 export class CreateStockMovementDto {
-  @IsUUID() itemId: string;
-  @IsUUID() warehouseId: string;
-  @IsString() movementType: string;
-  @IsOptional() @IsString() reference?: string;
-  @Type(() => Number) @IsNumber() qty: number;
-  @IsOptional() @Type(() => Number) @IsNumber() unitCost?: number;
-  @IsOptional() @IsString() notes?: string;
+  @ApiProperty() @IsUUID() itemId: string;
+  @ApiProperty() @IsUUID() warehouseId: string;
+  @ApiProperty() @IsString() movementType: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() reference?: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() qty: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() unitCost?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
 
 export class CreateStockCountDto {
-  @IsUUID() warehouseId: string;
-  @IsString() reference: string;
-  @IsString() countDate: string;
-  @IsOptional() @IsString() notes?: string;
-  lines: { itemId: string; countedQty: number; notes?: string }[];
+  @ApiProperty() @IsUUID() warehouseId: string;
+  @ApiProperty() @IsString() reference: string;
+  @ApiProperty() @IsString() countDate: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+  @ApiProperty() lines: { itemId: string; countedQty: number; notes?: string }[];
 }
