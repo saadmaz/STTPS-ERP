@@ -231,3 +231,77 @@ export const budgetApi = {
   approve: (id: string) => api.patch(`/finance/budgets/${id}/approve`).then((r) => r.data),
   vsActual: (id: string) => api.get(`/finance/budgets/${id}/vs-actual`).then((r) => r.data),
 };
+
+// ─── Inventory ─────────────────────────────────────────────────────────────
+
+export const inventoryApi = {
+  summary: () => api.get("/inventory/summary").then((r) => r.data),
+
+  categories: {
+    list: () => api.get("/inventory/categories").then((r) => r.data),
+    create: (data: unknown) => api.post("/inventory/categories", data).then((r) => r.data),
+  },
+
+  items: {
+    list: (params?: { page?: number; limit?: number; search?: string; categoryId?: string }) =>
+      api.get("/inventory/items", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/inventory/items/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/inventory/items", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/inventory/items/${id}`, data).then((r) => r.data),
+  },
+
+  warehouses: {
+    list: () => api.get("/inventory/warehouses").then((r) => r.data),
+    create: (data: unknown) => api.post("/inventory/warehouses", data).then((r) => r.data),
+    createLocation: (data: unknown) => api.post("/inventory/warehouses/locations", data).then((r) => r.data),
+  },
+
+  stockLevels: (params?: { warehouseId?: string; itemId?: string }) =>
+    api.get("/inventory/stock-levels", { params }).then((r) => r.data),
+
+  movements: {
+    list: (params?: { itemId?: string; warehouseId?: string; page?: number; limit?: number }) =>
+      api.get("/inventory/movements", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/inventory/movements", data).then((r) => r.data),
+  },
+
+  counts: {
+    list: () => api.get("/inventory/counts").then((r) => r.data),
+    get: (id: string) => api.get(`/inventory/counts/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/inventory/counts", data).then((r) => r.data),
+    post: (id: string) => api.post(`/inventory/counts/${id}/post`, {}).then((r) => r.data),
+  },
+};
+
+// ─── Procurement ───────────────────────────────────────────────────────────
+
+export const procurementApi = {
+  dashboard: () => api.get("/procurement/dashboard").then((r) => r.data),
+
+  vendors: (params?: { search?: string; page?: number; limit?: number }) =>
+    api.get("/procurement/vendors", { params }).then((r) => r.data),
+
+  requisitions: {
+    list: (params?: { status?: string; page?: number; limit?: number }) =>
+      api.get("/procurement/requisitions", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/procurement/requisitions/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/procurement/requisitions", data).then((r) => r.data),
+    approve: (id: string) => api.post(`/procurement/requisitions/${id}/approve`, {}).then((r) => r.data),
+  },
+
+  orders: {
+    list: (params?: { status?: string; vendorId?: string; page?: number; limit?: number }) =>
+      api.get("/procurement/orders", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/procurement/orders/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/procurement/orders", data).then((r) => r.data),
+    approve: (id: string) => api.post(`/procurement/orders/${id}/approve`, {}).then((r) => r.data),
+  },
+
+  receipts: {
+    list: (params?: { poId?: string; status?: string; page?: number; limit?: number }) =>
+      api.get("/procurement/receipts", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/procurement/receipts/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/procurement/receipts", data).then((r) => r.data),
+    post: (id: string) => api.post(`/procurement/receipts/${id}/post`, {}).then((r) => r.data),
+  },
+};

@@ -64,17 +64,21 @@ const navigation: NavItem[] = [
     label: "Procurement",
     icon: ShoppingCart,
     children: [
+      { label: "Overview", href: "/procurement", icon: BarChart3 },
+      { label: "Requisitions", href: "/procurement/requisitions", icon: ClipboardList },
       { label: "Purchase Orders", href: "/procurement/orders", icon: ShoppingCart },
+      { label: "Goods Receipts", href: "/procurement/receipts", icon: Truck },
       { label: "Suppliers", href: "/procurement/suppliers", icon: Truck },
-      { label: "Contracts", href: "/procurement/contracts", icon: FileText },
     ],
   },
   {
     label: "Inventory",
     icon: Package,
     children: [
+      { label: "Overview", href: "/inventory", icon: BarChart3 },
       { label: "Items", href: "/inventory/items", icon: Package },
       { label: "Warehouses", href: "/inventory/warehouses", icon: Building2 },
+      { label: "Stock Levels", href: "/inventory/stock-levels", icon: ClipboardList },
       { label: "Stock Movements", href: "/inventory/movements", icon: Truck },
       { label: "Stock Count", href: "/inventory/count", icon: ClipboardList },
     ],
