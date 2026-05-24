@@ -305,3 +305,86 @@ export const procurementApi = {
     post: (id: string) => api.post(`/procurement/receipts/${id}/post`, {}).then((r) => r.data),
   },
 };
+
+// ─── CRM ───────────────────────────────────────────────────────────────────
+
+export const crmApi = {
+  dashboard: () => api.get("/crm/dashboard").then((r) => r.data),
+
+  leads: {
+    list: (params?: { status?: string; search?: string; page?: number; limit?: number }) =>
+      api.get("/crm/leads", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/crm/leads/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/crm/leads", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/crm/leads/${id}`, data).then((r) => r.data),
+  },
+
+  accounts: {
+    list: (params?: { search?: string; page?: number; limit?: number }) =>
+      api.get("/crm/accounts", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/crm/accounts/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/crm/accounts", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/crm/accounts/${id}`, data).then((r) => r.data),
+  },
+
+  contacts: {
+    list: (params?: { accountId?: string; search?: string; page?: number; limit?: number }) =>
+      api.get("/crm/contacts", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/crm/contacts/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/crm/contacts", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/crm/contacts/${id}`, data).then((r) => r.data),
+  },
+
+  opportunities: {
+    list: (params?: { stage?: string; status?: string; accountId?: string; page?: number; limit?: number }) =>
+      api.get("/crm/opportunities", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/crm/opportunities/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/crm/opportunities", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/crm/opportunities/${id}`, data).then((r) => r.data),
+  },
+
+  activities: {
+    list: (params?: { status?: string; type?: string; page?: number; limit?: number }) =>
+      api.get("/crm/activities", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/crm/activities", data).then((r) => r.data),
+    complete: (id: string) => api.post(`/crm/activities/${id}/complete`, {}).then((r) => r.data),
+  },
+};
+
+// ─── Sales ─────────────────────────────────────────────────────────────────
+
+export const salesApi = {
+  dashboard: () => api.get("/sales/dashboard").then((r) => r.data),
+
+  priceLists: {
+    list: () => api.get("/sales/price-lists").then((r) => r.data),
+    get: (id: string) => api.get(`/sales/price-lists/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/sales/price-lists", data).then((r) => r.data),
+  },
+
+  quotes: {
+    list: (params?: { status?: string; customerId?: string; page?: number; limit?: number }) =>
+      api.get("/sales/quotes", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/sales/quotes/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/sales/quotes", data).then((r) => r.data),
+    approve: (id: string) => api.post(`/sales/quotes/${id}/approve`, {}).then((r) => r.data),
+    convert: (id: string, orderNumber: string) =>
+      api.post(`/sales/quotes/${id}/convert`, { orderNumber }).then((r) => r.data),
+  },
+
+  orders: {
+    list: (params?: { status?: string; customerId?: string; page?: number; limit?: number }) =>
+      api.get("/sales/orders", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/sales/orders/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/sales/orders", data).then((r) => r.data),
+    approve: (id: string) => api.post(`/sales/orders/${id}/approve`, {}).then((r) => r.data),
+  },
+
+  deliveries: {
+    list: (params?: { soId?: string; status?: string; page?: number; limit?: number }) =>
+      api.get("/sales/deliveries", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/sales/deliveries/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/sales/deliveries", data).then((r) => r.data),
+    post: (id: string) => api.post(`/sales/deliveries/${id}/post`, {}).then((r) => r.data),
+  },
+};

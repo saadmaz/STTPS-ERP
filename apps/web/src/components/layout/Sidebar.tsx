@@ -94,14 +94,26 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    label: "Sales & CRM",
-    icon: Briefcase,
+    label: "CRM",
+    icon: Users,
     children: [
+      { label: "Overview", href: "/crm", icon: BarChart3 },
       { label: "Leads", href: "/crm/leads", icon: Users },
       { label: "Opportunities", href: "/crm/opportunities", icon: BarChart3 },
-      { label: "Customers", href: "/crm/customers", icon: Users },
-      { label: "Sales Orders", href: "/crm/orders", icon: ClipboardList },
-      { label: "Quotations", href: "/crm/quotes", icon: FileText },
+      { label: "Accounts", href: "/crm/accounts", icon: Building2 },
+      { label: "Contacts", href: "/crm/contacts", icon: Users },
+      { label: "Activities", href: "/crm/activities", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Sales",
+    icon: Briefcase,
+    children: [
+      { label: "Overview", href: "/sales", icon: BarChart3 },
+      { label: "Quotations", href: "/sales/quotes", icon: FileText },
+      { label: "Sales Orders", href: "/sales/orders", icon: ClipboardList },
+      { label: "Deliveries", href: "/sales/deliveries", icon: Truck },
+      { label: "Price Lists", href: "/sales/price-lists", icon: DollarSign },
     ],
   },
   {
