@@ -96,6 +96,16 @@ model Company {
   serviceContracts      ServiceContract[]
   serviceOrders         ServiceOrder[]
   iotDevices            IoTDevice[]
+  inspectionTemplates   InspectionTemplate[]
+  inspections           Inspection[]
+  nonConformances       NonConformance[]
+  audits                Audit[]
+  incidents             Incident[]
+  riskAssessments       RiskAssessment[]
+  permitsToWork         PermitToWork[]
+  projects              Project[]
+  timesheets            Timesheet[]
+  projectBillings       ProjectBilling[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -2051,4 +2061,379 @@ model IoTReading {
 
   @@index([deviceId, timestamp])
   @@map("iot_readings")
+}
+
+// ==========================================
+// QUALITY MANAGEMENT
+// ==========================================
+
+model InspectionTemplate {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  category    String   @default("GENERAL")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company                  @relation(fields: [companyId], references: [id])
+  items       InspectionTemplateItem[]
+  inspections Inspection[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("inspection_templates")
+}
+
+model InspectionTemplateItem {
+  id          String   @id @default(uuid())
+  templateId  String
+  sequence    Int
+  question    String
+  itemType    String   @default("PASS_FAIL")
+  options     Json?
+  isRequired  Boolean  @default(true)
+
+  template    InspectionTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  responses   InspectionResponse[]
+
+  @@map("inspection_template_items")
+}
+
+model Inspection {
+  id             String    @id @default(uuid())
+  tenantId       String
+  companyId      String
+  templateId     String
+  number         String
+  title          String
+  status         String    @default("SCHEDULED")
+  referenceType  String?
+  referenceId    String?
+  scheduledAt    DateTime?
+  conductedAt    DateTime?
+  conductedBy    String?
+  findings       String?
+  overallResult  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company   Company              @relation(fields: [companyId], references: [id])
+  template  InspectionTemplate   @relation(fields: [templateId], references: [id])
+  responses InspectionResponse[]
+  ncrs      NonConformance[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("inspections")
+}
+
+model InspectionResponse {
+  id           String   @id @default(uuid())
+  inspectionId String
+  itemId       String
+  result       String?
+  numericValue Decimal? @db.Decimal(15, 4)
+  textValue    String?
+  notes        String?
+  hasDefect    Boolean  @default(false)
+
+  inspection Inspection             @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  item       InspectionTemplateItem @relation(fields: [itemId], references: [id])
+
+  @@map("inspection_responses")
+}
+
+model NonConformance {
+  id           String    @id @default(uuid())
+  tenantId     String
+  companyId    String
+  number       String
+  title        String
+  description  String
+  source       String    @default("INTERNAL")
+  severity     String    @default("MEDIUM")
+  status       String    @default("OPEN")
+  raisedBy     String
+  raisedAt     DateTime  @default(now())
+  dueDate      DateTime?
+  closedAt     DateTime?
+  inspectionId String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  inspection Inspection? @relation(fields: [inspectionId], references: [id])
+  actions    NCRAction[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("non_conformances")
+}
+
+model NCRAction {
+  id          String    @id @default(uuid())
+  ncrId       String
+  actionType  String    @default("CORRECTIVE")
+  description String
+  assignedTo  String
+  dueDate     DateTime?
+  completedAt DateTime?
+  status      String    @default("OPEN")
+
+  ncr NonConformance @relation(fields: [ncrId], references: [id], onDelete: Cascade)
+
+  @@map("ncr_actions")
+}
+
+model Audit {
+  id             String    @id @default(uuid())
+  tenantId       String
+  companyId      String
+  number         String
+  title          String
+  auditType      String    @default("INTERNAL")
+  standard       String?
+  scope          String?
+  leadAuditor    String
+  status         String    @default("PLANNED")
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  findings       String?
+  result         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company  Company        @relation(fields: [companyId], references: [id])
+  findings_ AuditFinding[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("audits")
+}
+
+model AuditFinding {
+  id             String  @id @default(uuid())
+  auditId        String
+  findingType    String  @default("OBSERVATION")
+  description    String
+  clause         String?
+  requiresAction Boolean @default(false)
+
+  audit Audit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@map("audit_findings")
+}
+
+// ==========================================
+// EHS — Environment, Health & Safety
+// ==========================================
+
+model Incident {
+  id                String    @id @default(uuid())
+  tenantId          String
+  companyId         String
+  number            String
+  title             String
+  incidentType      String    @default("NEAR_MISS")
+  severity          String    @default("LOW")
+  status            String    @default("REPORTED")
+  reportedBy        String
+  reportedAt        DateTime  @default(now())
+  occurredAt        DateTime
+  location          String?
+  description       String
+  injuries          String?
+  witnesses         String?
+  rootCause         String?
+  preventiveActions String?
+  closedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("incidents")
+}
+
+model RiskAssessment {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  number      String
+  title       String
+  assessedBy  String
+  assessedAt  DateTime  @default(now())
+  reviewDue   DateTime
+  status      String    @default("DRAFT")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company Company     @relation(fields: [companyId], references: [id])
+  hazards RiskHazard[]
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("risk_assessments")
+}
+
+model RiskHazard {
+  id                  String  @id @default(uuid())
+  riskId              String
+  hazard              String
+  category            String  @default("GENERAL")
+  likelihood          Int     @default(3)
+  severity            Int     @default(3)
+  riskScore           Int     @default(9)
+  controls            String?
+  residualLikelihood  Int?
+  residualSeverity    Int?
+  residualScore       Int?
+
+  assessment RiskAssessment @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  @@map("risk_hazards")
+}
+
+model PermitToWork {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  number      String
+  permitType  String    @default("GENERAL")
+  title       String
+  location    String?
+  requestedBy String
+  approvedBy  String?
+  status      String    @default("PENDING")
+  validFrom   DateTime
+  validTo     DateTime
+  conditions  String?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("permits_to_work")
+}
+
+// ==========================================
+// PROJECT MANAGEMENT
+// ==========================================
+
+model Project {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  description String?
+  status      String    @default("PLANNING")
+  priority    String    @default("NORMAL")
+  managerId   String
+  customerId  String?
+  budget      Decimal?  @db.Decimal(19, 4)
+  actualCost  Decimal   @default(0) @db.Decimal(19, 4)
+  startDate   DateTime
+  endDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company    Company          @relation(fields: [companyId], references: [id])
+  tasks      WBSTask[]
+  timesheets Timesheet[]
+  billings   ProjectBilling[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("projects")
+}
+
+model WBSTask {
+  id             String    @id @default(uuid())
+  tenantId       String
+  companyId      String
+  projectId      String
+  parentId       String?
+  code           String
+  title          String
+  description    String?
+  status         String    @default("TODO")
+  priority       String    @default("NORMAL")
+  assigneeId     String?
+  estimatedHours Decimal?  @db.Decimal(8, 2)
+  actualHours    Decimal   @default(0) @db.Decimal(8, 2)
+  plannedStart   DateTime?
+  plannedEnd     DateTime?
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  progress       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent     WBSTask?    @relation("WBSHierarchy", fields: [parentId], references: [id])
+  children   WBSTask[]   @relation("WBSHierarchy")
+  timesheets Timesheet[]
+
+  @@index([tenantId, companyId, projectId])
+  @@map("wbs_tasks")
+}
+
+model Timesheet {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  employeeId  String?
+  projectId   String
+  taskId      String?
+  date        DateTime  @db.Date
+  hours       Decimal   @db.Decimal(5, 2)
+  description String?
+  billable    Boolean   @default(true)
+  status      String    @default("DRAFT")
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id])
+  project Project  @relation(fields: [projectId], references: [id])
+  task    WBSTask? @relation(fields: [taskId], references: [id])
+
+  @@index([tenantId, companyId, projectId])
+  @@map("timesheets")
+}
+
+model ProjectBilling {
+  id        String    @id @default(uuid())
+  tenantId  String
+  companyId String
+  projectId String
+  number    String
+  billType  String    @default("MILESTONE")
+  amount    Decimal   @db.Decimal(19, 4)
+  status    String    @default("DRAFT")
+  billedAt  DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@unique([tenantId, companyId, number])
+  @@index([tenantId, companyId])
+  @@map("project_billings")
 }
