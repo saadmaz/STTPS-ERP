@@ -1502,3 +1502,254 @@ model PlannedOrder {
   @@index([tenantId, companyId])
   @@map("planned_orders")
 }
+
+// ==========================================
+// PHASE 5 — HUMAN CAPITAL MANAGEMENT
+// ==========================================
+
+model Department {
+  id          String   @id @default(uuid())
+  tenantId    String
+  companyId   String
+  code        String
+  name        String
+  description String?
+  parentId    String?
+  managerId   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company      @relation(fields: [companyId], references: [id])
+  parent     Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children   Department[] @relation("DeptHierarchy")
+  positions  Position[]
+  employees  Employee[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("departments")
+}
+
+model Position {
+  id           String   @id @default(uuid())
+  tenantId     String
+  companyId    String
+  departmentId String
+  code         String
+  title        String
+  description  String?
+  minSalary    Decimal? @db.Decimal(19, 4)
+  maxSalary    Decimal? @db.Decimal(19, 4)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  department Department @relation(fields: [departmentId], references: [id])
+  employees  Employee[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("positions")
+}
+
+model Employee {
+  id              String    @id @default(uuid())
+  tenantId        String
+  companyId       String
+  employeeNumber  String
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  departmentId    String?
+  positionId      String?
+  managerId       String?
+  employmentType  String    @default("FULL_TIME")
+  status          String    @default("ACTIVE")
+  hireDate        DateTime
+  terminationDate DateTime?
+  salary          Decimal?  @db.Decimal(19, 4)
+  payFrequency    String    @default("MONTHLY")
+  bankAccount     String?
+  taxId           String?
+  nationality     String?
+  dateOfBirth     DateTime?
+  address         Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  department   Department?   @relation(fields: [departmentId], references: [id])
+  position     Position?     @relation(fields: [positionId], references: [id])
+  manager      Employee?     @relation("ManagerSubordinate", fields: [managerId], references: [id])
+  subordinates Employee[]    @relation("ManagerSubordinate")
+  leaveRequests LeaveRequest[]
+  payslips     Payslip[]
+
+  @@unique([tenantId, companyId, employeeNumber])
+  @@index([tenantId, companyId])
+  @@map("employees")
+}
+
+model LeaveType {
+  id           String   @id @default(uuid())
+  tenantId     String
+  companyId    String
+  code         String
+  name         String
+  daysPerYear  Decimal  @default(20) @db.Decimal(5, 2)
+  isPaid       Boolean  @default(true)
+  carryForward Boolean  @default(false)
+  maxCarryDays Decimal? @db.Decimal(5, 2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  leaveRequests LeaveRequest[]
+
+  @@unique([tenantId, companyId, code])
+  @@index([tenantId, companyId])
+  @@map("leave_types")
+}
+
+model LeaveRequest {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  employeeId  String
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  days        Decimal   @db.Decimal(5, 2)
+  reason      String?
+  status      String    @default("PENDING")
+  approvedBy  String?
+  approvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company   Company   @relation(fields: [companyId], references: [id])
+  employee  Employee  @relation(fields: [employeeId], references: [id])
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  @@index([tenantId, companyId])
+  @@map("leave_requests")
+}
+
+model PayrollRun {
+  id          String    @id @default(uuid())
+  tenantId    String
+  companyId   String
+  reference   String
+  periodStart DateTime
+  periodEnd   DateTime
+  payDate     DateTime
+  status      String    @default("DRAFT")
+  notes       String?
+  totalGross  Decimal   @default(0) @db.Decimal(19, 4)
+  totalNet    Decimal   @default(0) @db.Decimal(19, 4)
+  totalTax    Decimal   @default(0) @db.Decimal(19, 4)
+  createdBy   String
+  approvedBy  String?
+  approvedAt  DateTime?
+  postedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  payslips Payslip[]
+
+  @@unique([tenantId, companyId, reference])
+  @@index([tenantId, companyId])
+  @@map("payroll_runs")
+}
+
+model Payslip {
+  id              String   @id @default(uuid())
+  tenantId        String
+  companyId       String
+  payrollRunId    String
+  employeeId      String
+  grossPay        Decimal  @default(0) @db.Decimal(19, 4)
+  totalDeductions Decimal  @default(0) @db.Decimal(19, 4)
+  taxAmount       Decimal  @default(0) @db.Decimal(19, 4)
+  netPay          Decimal  @default(0) @db.Decimal(19, 4)
+  status          String   @default("DRAFT")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+  lines      PayslipLine[]
+
+  @@unique([payrollRunId, employeeId])
+  @@index([tenantId, companyId])
+  @@map("payslips")
+}
+
+model PayslipLine {
+  id          String  @id @default(uuid())
+  payslipId   String
+  type        String
+  code        String
+  description String
+  amount      Decimal @db.Decimal(19, 4)
+  sequence    Int
+
+  payslip Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+
+  @@map("payslip_lines")
+}
+
+model JobPosting {
+  id           String    @id @default(uuid())
+  tenantId     String
+  companyId    String
+  positionId   String?
+  departmentId String?
+  title        String
+  description  String?
+  requirements String?
+  location     String?
+  jobType      String    @default("FULL_TIME")
+  salaryMin    Decimal?  @db.Decimal(19, 4)
+  salaryMax    Decimal?  @db.Decimal(19, 4)
+  status       String    @default("DRAFT")
+  postedAt     DateTime?
+  closingDate  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  company      Company          @relation(fields: [companyId], references: [id])
+  applications JobApplication[]
+
+  @@index([tenantId, companyId])
+  @@map("job_postings")
+}
+
+model JobApplication {
+  id           String   @id @default(uuid())
+  tenantId     String
+  companyId    String
+  jobPostingId String
+  firstName    String
+  lastName     String
+  email        String
+  phone        String?
+  resumeUrl    String?
+  stage        String   @default("APPLIED")
+  rating       Int?
+  notes        String?
+  appliedAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id])
+
+  @@index([tenantId, companyId])
+  @@map("job_applications")
+}

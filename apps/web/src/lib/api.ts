@@ -391,6 +391,65 @@ export const manufacturingApi = {
   },
 };
 
+// ─── HR ────────────────────────────────────────────────────────────────────
+
+export const hrApi = {
+  dashboard: () => api.get("/hr/dashboard").then((r) => r.data),
+
+  departments: {
+    list: () => api.get("/hr/departments").then((r) => r.data),
+    create: (data: unknown) => api.post("/hr/departments", data).then((r) => r.data),
+  },
+
+  positions: {
+    list: () => api.get("/hr/positions").then((r) => r.data),
+    create: (data: unknown) => api.post("/hr/positions", data).then((r) => r.data),
+  },
+
+  employees: {
+    list: (params?: { status?: string; departmentId?: string; page?: number; limit?: number }) =>
+      api.get("/hr/employees", { params }).then((r) => r.data),
+    get: (id: string) => api.get(`/hr/employees/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/hr/employees", data).then((r) => r.data),
+    update: (id: string, data: unknown) => api.put(`/hr/employees/${id}`, data).then((r) => r.data),
+  },
+
+  leaveTypes: {
+    list: () => api.get("/hr/leave-types").then((r) => r.data),
+    create: (data: unknown) => api.post("/hr/leave-types", data).then((r) => r.data),
+  },
+
+  leave: {
+    list: (params?: { status?: string; employeeId?: string; page?: number; limit?: number }) =>
+      api.get("/hr/leave", { params }).then((r) => r.data),
+    create: (data: unknown) => api.post("/hr/leave", data).then((r) => r.data),
+    process: (id: string, data: unknown) => api.post(`/hr/leave/${id}/process`, data).then((r) => r.data),
+  },
+
+  payroll: {
+    list: () => api.get("/hr/payroll").then((r) => r.data),
+    get: (id: string) => api.get(`/hr/payroll/${id}`).then((r) => r.data),
+    create: (data: unknown) => api.post("/hr/payroll", data).then((r) => r.data),
+    approve: (id: string) => api.post(`/hr/payroll/${id}/approve`, {}).then((r) => r.data),
+  },
+
+  recruitment: {
+    postings: {
+      list: (params?: { status?: string; page?: number; limit?: number }) =>
+        api.get("/hr/recruitment/postings", { params }).then((r) => r.data),
+      create: (data: unknown) => api.post("/hr/recruitment/postings", data).then((r) => r.data),
+      publish: (id: string) => api.post(`/hr/recruitment/postings/${id}/publish`, {}).then((r) => r.data),
+    },
+    applications: {
+      list: (params?: { jobPostingId?: string; stage?: string; page?: number; limit?: number }) =>
+        api.get("/hr/recruitment/applications", { params }).then((r) => r.data),
+      create: (data: unknown) => api.post("/hr/recruitment/applications", data).then((r) => r.data),
+      updateStage: (id: string, data: unknown) =>
+        api.put(`/hr/recruitment/applications/${id}/stage`, data).then((r) => r.data),
+    },
+  },
+};
+
 // ─── Sales ─────────────────────────────────────────────────────────────────
 
 export const salesApi = {
