@@ -267,7 +267,7 @@ export class EamService {
   // ─── IoT Devices ─────────────────────────────────────────────────────────────
 
   async getIoTDevices(tenantId: string, companyId: string) {
-    return this.prisma.IoTDevice.findMany({
+    return this.prisma.ioTDevice.findMany({
       where: { tenantId, companyId },
       include: {
         asset: { select: { code: true, name: true } },
@@ -278,28 +278,28 @@ export class EamService {
   }
 
   async registerDevice(tenantId: string, companyId: string, dto: RegisterIoTDeviceDto) {
-    return this.prisma.IoTDevice.create({ data: { tenantId, companyId, ...dto } });
+    return this.prisma.ioTDevice.create({ data: { tenantId, companyId, ...dto } });
   }
 
   async recordReading(tenantId: string, deviceId: string, dto: RecordIoTReadingDto) {
-    const device = await this.prisma.IoTDevice.findFirst({ where: { id: deviceId, tenantId } });
+    const device = await this.prisma.ioTDevice.findFirst({ where: { id: deviceId, tenantId } });
     if (!device) throw new NotFoundException('Device not found');
 
-    await this.prisma.IoTDevice.update({ where: { id: deviceId }, data: { lastSeenAt: new Date() } });
+    await this.prisma.ioTDevice.update({ where: { id: deviceId }, data: { lastSeenAt: new Date() } });
 
-    return this.prisma.IoTReading.create({
+    return this.prisma.ioTReading.create({
       data: { deviceId, metric: dto.metric, value: dto.value, unit: dto.unit, isAlert: dto.isAlert ?? false },
     });
   }
 
   async getDeviceReadings(tenantId: string, deviceId: string, params: { metric?: string; limit: number }) {
-    const device = await this.prisma.IoTDevice.findFirst({ where: { id: deviceId, tenantId } });
+    const device = await this.prisma.ioTDevice.findFirst({ where: { id: deviceId, tenantId } });
     if (!device) throw new NotFoundException('Device not found');
 
     const where: any = { deviceId };
     if (params.metric) where.metric = params.metric;
 
-    return this.prisma.IoTReading.findMany({
+    return this.prisma.ioTReading.findMany({
       where,
       orderBy: { timestamp: 'desc' },
       take: params.limit,
