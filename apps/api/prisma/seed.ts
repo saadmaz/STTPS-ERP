@@ -49,7 +49,7 @@ async function seedPlatformAdmin() {
   const passwordHash = await bcrypt.hash("Platform@123", 12);
   const platformAdmin = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: platformTenant.id, email: "admin@sttps.com" } },
-    update: {},
+    update: { isPlatformAdmin: true, isSuperAdmin: true, isActive: true, passwordHash },
     create: {
       tenantId: platformTenant.id,
       email: "admin@sttps.com",
