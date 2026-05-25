@@ -25,7 +25,7 @@ export class AdminService {
   async getDashboardStats() {
     const [tenants, users, companies] = await Promise.all([
       this.prisma.tenant.count({ where: { slug: { not: "_platform" } } }),
-      this.prisma.user.count({ where: { isPlatformAdmin: false } }),
+      this.prisma.user.count({ where: { isPlatformAdmin: { not: true } } }),
       this.prisma.company.count({ where: { tenant: { slug: { not: "_platform" } } } }),
     ]);
     const recentTenants = await this.prisma.tenant.findMany({
@@ -57,7 +57,7 @@ export class AdminService {
       include: {
         companies: { orderBy: { createdAt: "asc" } },
         users: {
-          where: { isPlatformAdmin: false },
+          where: { isPlatformAdmin: { not: true } },
           select: {
             id: true, email: true, firstName: true, lastName: true,
             isActive: true, isSuperAdmin: true, lastLoginAt: true, createdAt: true,

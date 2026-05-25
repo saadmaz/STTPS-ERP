@@ -31,7 +31,6 @@ export class AuthService {
           take: 1,
         },
       },
-      // isPlatformAdmin is already on the User model
     });
 
     if (!user) {
@@ -219,6 +218,7 @@ export class AuthService {
         avatar: true,
         tenantId: true,
         isSuperAdmin: true,
+        isPlatformAdmin: true,
         mfaEnabled: true,
         lastLoginAt: true,
         createdAt: true,
@@ -242,13 +242,13 @@ export class AuthService {
     return user;
   }
 
-  private async generateTokens(user: { id: string; email: string; tenantId: string; isSuperAdmin: boolean; isPlatformAdmin: boolean }) {
+  private async generateTokens(user: { id: string; email: string; tenantId: string; isSuperAdmin: boolean; isPlatformAdmin?: boolean | null }) {
     const payload = {
       sub: user.id,
       email: user.email,
       tenantId: user.tenantId,
       isSuperAdmin: user.isSuperAdmin,
-      isPlatformAdmin: user.isPlatformAdmin,
+      isPlatformAdmin: user.isPlatformAdmin ?? false,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

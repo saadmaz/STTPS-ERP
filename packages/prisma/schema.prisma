@@ -22,6 +22,9 @@ model Tenant {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  companies  Company[]
+  users      User[]
+
   @@map("tenants")
 }
 
@@ -32,6 +35,7 @@ model Tenant {
 model Company {
   id              String    @id @default(uuid())
   tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name            String
   code            String
   legalName       String?
@@ -64,6 +68,7 @@ model Company {
 model User {
   id           String    @id @default(uuid())
   tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   email        String
   firstName    String
   lastName     String
