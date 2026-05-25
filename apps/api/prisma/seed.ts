@@ -3,8 +3,77 @@ import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+const MODULES = ["finance", "inventory", "procurement", "sales", "manufacturing", "crm", "hr", "eam", "fsm", "quality", "ehs", "projects"];
+const ACTIONS = ["view", "create", "edit", "delete", "approve", "export"];
+
+async function seedPermissions() {
+  const permissions = MODULES.flatMap((module) =>
+    ACTIONS.map((action) => ({
+      code: `${module}.${action}`,
+      name: `${action.charAt(0).toUpperCase() + action.slice(1)} ${module.charAt(0).toUpperCase() + module.slice(1)}`,
+      module,
+      action,
+    }))
+  );
+
+  for (const perm of permissions) {
+    await prisma.permission.upsert({
+      where: { code: perm.code },
+      update: {},
+      create: perm,
+    });
+  }
+  console.log(`Permissions: ${permissions.length} seeded`);
+}
+
+async function seedPlatformAdmin() {
+  const platformTenant = await prisma.tenant.upsert({
+    where: { slug: "_platform" },
+    update: {},
+    create: { name: "STTPS Platform", slug: "_platform", plan: "platform", status: "active" },
+  });
+
+  const platformCompany = await prisma.company.upsert({
+    where: { tenantId_code: { tenantId: platformTenant.id, code: "PLAT" } },
+    update: {},
+    create: {
+      tenantId: platformTenant.id,
+      name: "STTPS Platform",
+      code: "PLAT",
+      currency: "USD",
+      timezone: "UTC",
+      fiscalYearStart: 1,
+    },
+  });
+
+  const passwordHash = await bcrypt.hash("Platform@123", 12);
+  const platformAdmin = await prisma.user.upsert({
+    where: { tenantId_email: { tenantId: platformTenant.id, email: "admin@sttps.com" } },
+    update: {},
+    create: {
+      tenantId: platformTenant.id,
+      email: "admin@sttps.com",
+      firstName: "Platform",
+      lastName: "Admin",
+      passwordHash,
+      isActive: true,
+      isSuperAdmin: true,
+      isPlatformAdmin: true,
+    },
+  });
+
+  await prisma.companyUser.upsert({
+    where: { userId_companyId: { userId: platformAdmin.id, companyId: platformCompany.id } },
+    update: {},
+    create: { userId: platformAdmin.id, companyId: platformCompany.id, isDefault: true },
+  });
+
+  console.log(`Platform admin: ${platformAdmin.email} / Platform@123`);
+  return { platformTenant, platformAdmin };
+}
+
 async function main() {
-  console.log("🌱 Seeding STTPS database...\n");
+  console.log("Seeding STTPS database...\n");
 
   const tenant = await prisma.tenant.upsert({
     where: { slug: "demo" },
@@ -195,7 +264,10 @@ async function main() {
     }
   }
 
-  console.log("\n🎉 Seed complete!");
+  await seedPermissions();
+  await seedPlatformAdmin();
+
+  console.log("\nSeed complete!");
   console.log("─────────────────────────");
   console.log("Login credentials:");
   console.log("  URL:      http://localhost:3000");

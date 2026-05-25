@@ -17,6 +17,7 @@ import { FsmModule } from "./fsm/fsm.module";
 import { QualityModule } from "./quality/quality.module";
 import { EhsModule } from "./ehs/ehs.module";
 import { ProjectsModule } from "./projects/projects.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ProjectsModule } from "./projects/projects.module";
     QualityModule,
     EhsModule,
     ProjectsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

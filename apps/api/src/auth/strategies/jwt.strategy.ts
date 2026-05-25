@@ -9,6 +9,7 @@ export interface JwtPayload {
   email: string;
   tenantId: string;
   isSuperAdmin: boolean;
+  isPlatformAdmin: boolean;
 }
 
 @Injectable()
@@ -35,6 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         tenantId: true,
         isActive: true,
         isSuperAdmin: true,
+        isPlatformAdmin: true,
       },
     });
 
