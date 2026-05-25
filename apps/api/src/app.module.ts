@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
+import { RequirePermissionGuard } from "./common/guards/require-permission.guard";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { TenantModule } from "./tenant/tenant.module";
@@ -40,6 +42,9 @@ import { AdminModule } from "./admin/admin.module";
     EhsModule,
     ProjectsModule,
     AdminModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: RequirePermissionGuard },
   ],
 })
 export class AppModule {}

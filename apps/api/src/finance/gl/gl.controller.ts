@@ -9,6 +9,7 @@ import { PaginationDto } from "../../common/dto/pagination.dto";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CompanyId } from "../../common/decorators/company.decorator";
+import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 
 @ApiTags("Finance — General Ledger")
 @ApiBearerAuth()
@@ -19,6 +20,7 @@ export class GlController {
 
   // Dashboard
   @Get("dashboard")
+  @RequirePermission("finance.view")
   @ApiOperation({ summary: "Finance dashboard stats" })
   getDashboard(
     @CurrentUser("tenantId") tenantId: string,
@@ -30,6 +32,7 @@ export class GlController {
   // ─── Chart of Accounts ────────────────────────────────────────
 
   @Get("accounts")
+  @RequirePermission("finance.view")
   @ApiOperation({ summary: "List all GL accounts" })
   getAccounts(
     @CurrentUser("tenantId") tenantId: string,
@@ -44,6 +47,7 @@ export class GlController {
   }
 
   @Post("accounts")
+  @RequirePermission("finance.create")
   createAccount(
     @Body() dto: CreateAccountDto,
     @CurrentUser("tenantId") tenantId: string,
@@ -53,6 +57,7 @@ export class GlController {
   }
 
   @Put("accounts/:id")
+  @RequirePermission("finance.edit")
   updateAccount(
     @Param("id") id: string,
     @Body() dto: Partial<CreateAccountDto>,
@@ -64,6 +69,7 @@ export class GlController {
   // ─── Periods ──────────────────────────────────────────────────
 
   @Get("periods")
+  @RequirePermission("finance.view")
   @ApiOperation({ summary: "List fiscal periods" })
   @ApiQuery({ name: "fiscalYear", required: false, type: Number })
   getPeriods(
@@ -77,6 +83,7 @@ export class GlController {
   // ─── Journal Entries ──────────────────────────────────────────
 
   @Get("journals")
+  @RequirePermission("finance.view")
   @ApiOperation({ summary: "List journal entries" })
   getJournals(
     @CurrentUser("tenantId") tenantId: string,
@@ -92,6 +99,7 @@ export class GlController {
   }
 
   @Post("journals")
+  @RequirePermission("finance.create")
   @ApiOperation({ summary: "Create a journal entry" })
   createJournal(
     @Body() dto: CreateJournalDto,
@@ -103,6 +111,7 @@ export class GlController {
   }
 
   @Patch("journals/:id/post")
+  @RequirePermission("finance.approve")
   @ApiOperation({ summary: "Post a draft journal entry" })
   postJournal(
     @Param("id") id: string,
@@ -113,6 +122,7 @@ export class GlController {
   }
 
   @Patch("journals/:id/void")
+  @RequirePermission("finance.approve")
   @ApiOperation({ summary: "Void a posted journal entry" })
   voidJournal(
     @Param("id") id: string,
@@ -125,6 +135,7 @@ export class GlController {
   // ─── Trial Balance ────────────────────────────────────────────
 
   @Get("trial-balance")
+  @RequirePermission("finance.view")
   @ApiOperation({ summary: "Get trial balance" })
   @ApiQuery({ name: "fiscalYear", required: true, type: Number })
   @ApiQuery({ name: "period", required: false, type: Number })
