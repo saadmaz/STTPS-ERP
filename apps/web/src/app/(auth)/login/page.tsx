@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,11 +17,28 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+/** Validate the ?next= param to prevent open-redirect attacks. */
+function getSafeNext(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  // Must be an internal absolute path (starts with /) and not a protocol-relative URL (//)
+  if (raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/\\")) {
+    return raw;
+  }
+  return "/dashboard";
+}
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect already-authenticated users away from the login page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace(getSafeNext(searchParams.get("next")));
+    }
+  }, [isAuthenticated, isLoading, router, searchParams]);
 
   const {
     register,
@@ -37,8 +54,7 @@ export default function LoginPage() {
       await login(data.email, data.password);
       // Set session cookie so middleware knows user is logged in
       document.cookie = "sttps_session=1; path=/; max-age=2592000; SameSite=Lax";
-      const next = searchParams.get("next") || "/dashboard";
-      router.push(next);
+      router.push(getSafeNext(searchParams.get("next")));
       toast.success("Welcome back!");
     } catch (err: any) {
       const message = err?.response?.data?.message || "Invalid email or password";

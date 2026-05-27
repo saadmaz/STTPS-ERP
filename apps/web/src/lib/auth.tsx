@@ -8,6 +8,7 @@ interface Company {
   name: string;
   code: string;
   currency: string;
+  timezone?: string;
   logoUrl?: string;
 }
 
@@ -16,12 +17,14 @@ interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  role?: string;
   tenantId: string;
   isSuperAdmin: boolean;
   defaultCompanyId?: string;
   defaultCompanyName?: string;
   companyUsers?: Array<{
     companyId: string;
+    role?: string;
     isDefault: boolean;
     company: Company;
   }>;

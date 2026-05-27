@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { authApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 const registerSchema = z.object({
   organizationName: z.string().min(2, "Organization name required"),
@@ -27,7 +28,15 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect already-authenticated users away from the register page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const {
     register,
