@@ -287,7 +287,7 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="border-t border-slate-800 p-3">
-        <p className="text-xs text-slate-600 text-center">v0.7.0 — Phase 7</p>
+        <p className="text-xs text-slate-600 text-center">v0.8.0 — Phase 8</p>
       </div>
     </aside>
   );

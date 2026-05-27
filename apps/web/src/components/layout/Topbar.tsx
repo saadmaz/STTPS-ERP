@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Building2, ChevronDown, LogOut, Settings, User, Bell } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 export function Topbar({ title }: { title?: string }) {
   const { user, companies, activeCompany, switchCompany, logout } = useAuth();
@@ -104,14 +105,22 @@ export function Topbar({ title }: { title?: string }) {
                 <p className="text-xs text-slate-500 mt-0.5">{user?.email}</p>
               </div>
               <div className="py-1">
-                <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                <Link
+                  href="/settings/users"
+                  onClick={() => setUserOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                >
                   <User size={15} className="text-slate-400" />
                   My Profile
-                </button>
-                <button className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                </Link>
+                <Link
+                  href="/settings/system"
+                  onClick={() => setUserOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                >
                   <Settings size={15} className="text-slate-400" />
                   Settings
-                </button>
+                </Link>
               </div>
               <div className="border-t border-slate-100 py-1">
                 <button
