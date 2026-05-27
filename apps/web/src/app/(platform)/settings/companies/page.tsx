@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { companiesApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Building2, MapPin, DollarSign, Globe, CheckCircle2, Loader2 } from "lucide-react";
+import { Building2, MapPin, DollarSign, Globe, CheckCircle2 } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { clsx } from "clsx";
 
 export default function CompaniesSettingsPage() {
@@ -30,9 +31,7 @@ export default function CompaniesSettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="animate-spin text-blue-600" size={28} />
-        </div>
+        <PageLoader />
       ) : list.length === 0 ? (
         <div className="card p-12 text-center">
           <Building2 size={36} className="mx-auto mb-3 text-slate-300" />
@@ -138,3 +137,5 @@ export default function CompaniesSettingsPage() {
     </div>
   );
 }
+
+

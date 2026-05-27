@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { qualityApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ShieldCheck, ClipboardList, FileText, AlertTriangle } from "lucide-react";
+import { ShieldCheck, ClipboardList, FileText, AlertTriangle } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 import { clsx } from "clsx";
 
@@ -25,9 +26,7 @@ export default function QualityOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -102,3 +101,5 @@ export default function QualityOverviewPage() {
     </div>
   );
 }
+
+

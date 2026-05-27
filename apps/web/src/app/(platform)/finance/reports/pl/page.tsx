@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { reportsApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
-import { Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
 const currentYear = new Date().getFullYear();
@@ -73,7 +74,7 @@ export default function PlReportPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-blue-600" size={32} /></div>
+        <PageLoader />
       ) : (
         <div className="space-y-4">
           {/* Summary Cards */}
@@ -189,3 +190,5 @@ export default function PlReportPage() {
     </div>
   );
 }
+
+

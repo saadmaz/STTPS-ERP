@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { procurementApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Loader2, ShoppingCart, ClipboardList, Truck, FileText } from "lucide-react";
+import { ShoppingCart, ClipboardList, Truck, FileText } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 
 export default function ProcurementOverviewPage() {
@@ -17,9 +18,7 @@ export default function ProcurementOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -53,3 +52,5 @@ export default function ProcurementOverviewPage() {
     </div>
   );
 }
+
+

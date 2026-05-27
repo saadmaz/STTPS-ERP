@@ -79,6 +79,15 @@
   .badge-red    { @apply badge bg-red-100 text-red-800; }
   .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
   .badge-slate  { @apply badge bg-slate-100 text-slate-700; }
+  /* Aliases & additional variants */
+  .badge-gray   { @apply badge bg-slate-100 text-slate-700; }
+  .badge-orange { @apply badge bg-orange-100 text-orange-800; }
+  .badge-purple { @apply badge bg-purple-100 text-purple-800; }
+  .badge-teal   { @apply badge bg-teal-100 text-teal-800; }
+  .badge-violet { @apply badge bg-violet-100 text-violet-800; }
+  .badge-pink   { @apply badge bg-pink-100 text-pink-800; }
+  .badge-cyan   { @apply badge bg-cyan-100 text-cyan-800; }
+  .badge-indigo { @apply badge bg-indigo-100 text-indigo-800; }
 
   .table-base {
     @apply w-full text-sm text-left;

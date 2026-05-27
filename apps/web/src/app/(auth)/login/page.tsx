@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 
@@ -102,7 +103,7 @@ export default function LoginPage() {
         <p className="text-xs text-slate-500">Demo credentials are pre-filled above</p>
         <p className="text-sm text-slate-500">
           New to STTPS?{" "}
-          <a href="/register" className="text-blue-600 hover:text-blue-700 font-medium">Create account</a>
+          <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">Create account</Link>
         </p>
       </div>
     </div>

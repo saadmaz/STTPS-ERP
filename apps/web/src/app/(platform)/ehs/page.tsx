@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { ehsApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Loader2, AlertTriangle, ShieldCheck, FileText, HardHat } from "lucide-react";
+import { AlertTriangle, ShieldCheck, FileText, HardHat } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 import { clsx } from "clsx";
 
@@ -23,7 +24,7 @@ export default function EhsOverviewPage() {
     enabled: !!activeCompany,
   });
 
-  if (isLoading) return <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
+  if (isLoading) return <PageLoader />;
 
   const cards = [
     { label: "Open Incidents", value: data?.openIncidents ?? 0, sub: "not yet closed", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50", href: "/ehs/incidents" },
@@ -94,3 +95,5 @@ export default function EhsOverviewPage() {
     </div>
   );
 }
+
+

@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { apApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { format } from "date-fns";
 import { clsx } from "clsx";
 import Link from "next/link";
@@ -34,7 +35,7 @@ export default function ApAgingPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-24"><Loader2 className="animate-spin text-blue-600" size={32} /></div>
+        <PageLoader />
       ) : (
         <>
           {/* Buckets */}
@@ -107,3 +108,5 @@ export default function ApAgingPage() {
     </div>
   );
 }
+
+

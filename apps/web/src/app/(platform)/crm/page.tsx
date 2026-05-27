@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { crmApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Loader2, Users, BarChart3, Building2, Activity } from "lucide-react";
+import { Users, BarChart3, Building2, Activity } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
@@ -19,9 +20,7 @@ export default function CrmOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -101,3 +100,5 @@ export default function CrmOverviewPage() {
     </div>
   );
 }
+
+

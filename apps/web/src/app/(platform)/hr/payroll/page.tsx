@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { hrApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useForm } from "react-hook-form";
 import { Loader2, Plus, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { clsx } from "clsx";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -76,9 +77,7 @@ export default function PayrollPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -224,3 +223,4 @@ export default function PayrollPage() {
     </div>
   );
 }
+

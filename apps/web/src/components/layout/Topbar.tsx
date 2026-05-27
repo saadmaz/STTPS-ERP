@@ -12,7 +12,11 @@ export function Topbar({ title }: { title?: string }) {
   const [userOpen, setUserOpen] = useState(false);
 
   const initials = user
-    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    ? (
+        `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
+        user.email?.[0]?.toUpperCase() ||
+        "U"
+      )
     : "?";
 
   return (
@@ -53,7 +57,7 @@ export function Topbar({ title }: { title?: string }) {
                     )}
                   >
                     <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center text-xs font-bold text-blue-700">
-                      {company.code.slice(0, 2)}
+                      {(company.code ?? company.name ?? "??").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-medium text-slate-800">{company.name}</p>
