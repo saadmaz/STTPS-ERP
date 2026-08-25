@@ -8,11 +8,8 @@ on:
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch:
 
-# Shared across all three deploy-*.yml workflows: this shared cPanel host's
-# resource limiter (CloudLinux LVE) kills concurrent npm ci/build processes
-# under contention — SIGKILL, not a normal failure — when web/admin/api
-# deploys land close together. Serializing across the whole group (not just
-# this workflow) is what actually prevents that, not just self-concurrency.
+# Shared across all three deploy-*.yml workflows so they never hit this
+# host's resources at the same time.
 concurrency:
   group: sttps-erp-server-deploy
   cancel-in-progress: false
@@ -32,19 +29,26 @@ jobs:
           cache: npm
           cache-dependency-path: api/package-lock.json
 
-      # npm ci also runs `postinstall: prisma generate` (see package.json) —
-      # `prisma` lives in dependencies, not devDependencies, specifically so
-      # this still works on the server too.
       - name: Install dependencies
         run: npm ci
 
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Build (validation gate — the real build runs on the server)
+      # This IS the production build (not just a validation gate): the
+      # target server is too resource-constrained (tight disk quota, slow
+      # CPU, drops long SSH sessions) to reliably `npm ci`+`nest build`
+      # itself — see git history for what that cost us (17-minute installs,
+      # quota exhaustion, connections dropped mid-build). Compiling here
+      # means the server only ever needs a lean --omit=dev install to run
+      # the already-built dist/, not the full webpack/@nestjs-cli toolchain.
+      - name: Build production dist/
         run: npm run build
 
-      - name: Deploy over SSH (launch detached, poll for completion)
+      - name: Package artifact
+        run: tar czf ../api-deploy.tar.gz dist package.json package-lock.json prisma/schema.prisma deploy.sh
+
+      - name: Ship to server (wipe + re-extract, keeping .env)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -56,43 +60,65 @@ jobs:
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # This must exactly match cPanel's actual document root for this
+          # subdomain (a fixed, separate setting from Node.js Selector's own
+          # "app-root" bookkeeping -- the two are NOT the same thing, learned
+          # the hard way: see git history). Verify via `uapi DomainInfo
+          # domains_data` if this subdomain is ever recreated.
+          APP_DIR="/home/$SSH_USER/api.erp.sttps.co"
           SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
-          APP_DIR="${REPO_DIR}-api"
+
+          # Wipe everything except .env (never in git, holds the Firebase
+          # credentials) before re-extracting — earlier deploy attempts left
+          # a full source checkout + its own devDependency-heavy
+          # node_modules here, and this account's disk quota is razor-thin.
+          $SSH "$SSH_USER@$SSH_HOST" "
+            set -e
+            mkdir -p '$APP_DIR'
+            [ -f '$APP_DIR/.env' ] && cp '$APP_DIR/.env' /tmp/sttps-api-env-backup || true
+            rm -rf '$APP_DIR'
+            mkdir -p '$APP_DIR'
+            [ -f /tmp/sttps-api-env-backup ] && mv /tmp/sttps-api-env-backup '$APP_DIR/.env' || true
+          "
+          cat ../api-deploy.tar.gz | $SSH "$SSH_USER@$SSH_HOST" "tar xzf - -C '$APP_DIR' && echo EXTRACTED"
+
+      - name: Install prod deps + restart on server (detached, polled)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+          REPO_DIR: ${{ secrets.SERVER_REPO_DIR }}
+        run: |
+          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          # This must exactly match cPanel's actual document root for this
+          # subdomain (a fixed, separate setting from Node.js Selector's own
+          # "app-root" bookkeeping -- the two are NOT the same thing, learned
+          # the hard way: see git history). Verify via `uapi DomainInfo
+          # domains_data` if this subdomain is ever recreated.
+          APP_DIR="/home/$SSH_USER/api.erp.sttps.co"
 
           # This host regularly drops long-lived SSH sessions mid-build
           # ("client_loop: send disconnect: Broken pipe" after several
           # minutes) — a known issue on this same host, documented in a
-          # sibling project too. The actual build (npm ci + nest build,
-          # which can take 10+ minutes here) runs detached on the server
-          # via nohup, decoupled from this connection's lifetime; git
-          # operations happen in this short launcher call, which is fast
-          # enough to not be at risk. We then poll for completion with
-          # separate short-lived connections instead of holding one open.
-          $SSH "$SSH_USER@$SSH_HOST" bash -s -- "$APP_DIR" <<'LAUNCH'
-          set -e
-          APP_DIR="$1"
-          cd "$APP_DIR"
-          git fetch origin main
-          git reset --hard origin/main
-          cd api
-          rm -f deploy.exit deploy.log
-          nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo $? > deploy.exit' >/dev/null 2>&1 &
-          disown
-          echo LAUNCHED
-          LAUNCH
+          # sibling project too. Even a lean prod-only install (firebase-admin
+          # pulls a real dependency tree) runs detached via nohup, decoupled
+          # from this connection's lifetime; we poll for completion with
+          # short separate connections instead of holding one open.
+          $SSH "$SSH_USER@$SSH_HOST" "cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; echo LAUNCHED"
 
-          echo "Build launched on the server, polling for completion (this host is slow, can take 10+ min)..."
+          echo "Prod install launched on the server, polling for completion..."
           for i in $(seq 1 80); do
-            sleep 15
-            RESULT=$($SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/api/deploy.exit' 2>/dev/null || true")
+            sleep 10
+            RESULT=$($SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.exit' 2>/dev/null || true")
             if [ -n "$RESULT" ]; then
-              echo "--- remote build log ---"
-              $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/api/deploy.log'"
+              echo "--- remote install log ---"
+              $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.log'"
               echo "--- exit code: $RESULT ---"
               exit "$RESULT"
             fi
-            echo "still running (~$((i * 15))s elapsed)..."
+            echo "still running (~$((i * 10))s elapsed)..."
           done
-          echo "Timed out after 20 minutes waiting for the server build to finish"
-          $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/api/deploy.log'" || true
+          echo "Timed out after ~13 minutes waiting for the server install to finish"
+          $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.log'" || true
           exit 1

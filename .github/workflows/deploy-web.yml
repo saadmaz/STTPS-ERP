@@ -8,11 +8,8 @@ on:
       - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
-# Shared across all three deploy-*.yml workflows: this shared cPanel host's
-# resource limiter (CloudLinux LVE) kills concurrent npm ci/build processes
-# under contention — SIGKILL, not a normal failure — when web/admin/api
-# deploys land close together. Serializing across the whole group (not just
-# this workflow) is what actually prevents that, not just self-concurrency.
+# Shared across all three deploy-*.yml workflows so they never hit this
+# host's resources at the same time.
 concurrency:
   group: sttps-erp-server-deploy
   cancel-in-progress: false
@@ -38,64 +35,51 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      # Build here is a validation gate only — it never touches the server.
-      # The real production build (below) runs on the server itself so
-      # NEXT_PUBLIC_* values match whatever is actually configured there.
-      - name: Build (validation gate)
+      # This IS the production build (not just a validation gate): the
+      # target server is too resource-constrained (tight disk quota, slow
+      # CPU, drops long SSH sessions) to reliably `npm ci`+build itself —
+      # see git history for what that cost us. Building here, on the
+      # runner's real resources, and shipping only the finished
+      # self-contained `.next/standalone` output (its own minimal
+      # node_modules, no devDependencies needed on the server at all)
+      # sidesteps every one of those constraints at once.
+      - name: Build production standalone output
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.WEB_NEXT_PUBLIC_API_URL }}
         run: npm run build
 
-      - name: Deploy over SSH (launch detached, poll for completion)
+      - name: Package artifact
+        run: |
+          rm -rf .next/standalone/.next/static
+          cp -r .next/static .next/standalone/.next/static
+          tar czf ../web-deploy.tar.gz -C .next/standalone .
+
+      - name: Ship to server and restart
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
           REPO_DIR: ${{ secrets.SERVER_REPO_DIR }}
-          WEB_NEXT_PUBLIC_API_URL: ${{ secrets.WEB_NEXT_PUBLIC_API_URL }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
-          APP_DIR="${REPO_DIR}-web"
+          # This must exactly match cPanel's actual document root for this
+          # subdomain (a fixed, separate setting from Node.js Selector's own
+          # "app-root" bookkeeping — the two are NOT the same thing, learned
+          # the hard way: see git history). Verify via `uapi DomainInfo
+          # domains_data` if this subdomain is ever recreated.
+          APP_DIR="/home/$SSH_USER/erp.sttps.co"
 
-          # This host regularly drops long-lived SSH sessions mid-build
-          # ("client_loop: send disconnect: Broken pipe" after several
-          # minutes) — a known issue on this same host, documented in a
-          # sibling project too. The actual build (npm ci + next build,
-          # which can take 10+ minutes here) runs detached on the server
-          # via nohup, decoupled from this connection's lifetime; git
-          # operations happen in this short launcher call, which is fast
-          # enough to not be at risk. We then poll for completion with
-          # separate short-lived connections instead of holding one open.
-          $SSH "$SSH_USER@$SSH_HOST" bash -s -- "$APP_DIR" "$WEB_NEXT_PUBLIC_API_URL" <<'LAUNCH'
-          set -e
-          APP_DIR="$1"
-          cd "$APP_DIR"
-          git fetch origin main
-          git reset --hard origin/main
-          cd web
-          rm -f deploy.exit deploy.log
-          NEXT_PUBLIC_API_URL="$2" nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo $? > deploy.exit' >/dev/null 2>&1 &
-          disown
-          echo LAUNCHED
-          LAUNCH
+          # Wipe and re-extract rather than merge: earlier deploy attempts
+          # left a full source checkout + its own node_modules in this
+          # directory, and mixing that with the standalone artifact's own
+          # traced node_modules would waste this account's (very tight)
+          # disk quota and risk stale files lingering.
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            "$SSH_USER@$SSH_HOST" "rm -rf '$APP_DIR' && mkdir -p '$APP_DIR'"
 
-          echo "Build launched on the server, polling for completion (this host is slow, can take 10+ min)..."
-          for i in $(seq 1 80); do
-            sleep 15
-            RESULT=$($SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/web/deploy.exit' 2>/dev/null || true")
-            if [ -n "$RESULT" ]; then
-              echo "--- remote build log ---"
-              $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/web/deploy.log'"
-              echo "--- exit code: $RESULT ---"
-              exit "$RESULT"
-            fi
-            echo "still running (~$((i * 15))s elapsed)..."
-          done
-          echo "Timed out after 20 minutes waiting for the server build to finish"
-          $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/web/deploy.log'" || true
-          exit 1
+          cat ../web-deploy.tar.gz | ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o ConnectTimeout=20 \
+            "$SSH_USER@$SSH_HOST" "tar xzf - -C '$APP_DIR' && mkdir -p '$APP_DIR/tmp' && date > '$APP_DIR/tmp/restart.txt' && echo DEPLOYED"
