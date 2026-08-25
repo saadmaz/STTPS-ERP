@@ -73,13 +73,16 @@ jobs:
           # domains_data` if this subdomain is ever recreated.
           APP_DIR="/home/$SSH_USER/erp.sttps.co"
 
-          # Wipe and re-extract rather than merge: earlier deploy attempts
-          # left a full source checkout + its own node_modules in this
-          # directory, and mixing that with the standalone artifact's own
-          # traced node_modules would waste this account's (very tight)
-          # disk quota and risk stale files lingering.
+          # Remove only what the standalone artifact replaces, NOT the whole
+          # directory: `rm -rf "$APP_DIR"` here once wiped .htaccess (the
+          # Passenger routing config cPanel writes into this exact
+          # directory, not somewhere separate) along with everything else,
+          # silently turning every deploy into a 500 until someone noticed
+          # and manually recreated the Node app registration. cgi-bin,
+          # php.ini, .user.ini, .well-known, and tmp/ are cPanel-managed —
+          # leave them alone too.
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
-            "$SSH_USER@$SSH_HOST" "rm -rf '$APP_DIR' && mkdir -p '$APP_DIR'"
+            "$SSH_USER@$SSH_HOST" "mkdir -p '$APP_DIR' && rm -rf '$APP_DIR/.next' '$APP_DIR/node_modules' '$APP_DIR/server.js' '$APP_DIR/package.json'"
 
           cat ../web-deploy.tar.gz | ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o ConnectTimeout=20 \
             "$SSH_USER@$SSH_HOST" "tar xzf - -C '$APP_DIR' && mkdir -p '$APP_DIR/tmp' && date > '$APP_DIR/tmp/restart.txt' && echo DEPLOYED"
