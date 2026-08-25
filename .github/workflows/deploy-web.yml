@@ -44,21 +44,28 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
           REPO_DIR: ${{ secrets.SERVER_REPO_DIR }}
+          WEB_NEXT_PUBLIC_API_URL: ${{ secrets.WEB_NEXT_PUBLIC_API_URL }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$SSH_USER@$SSH_HOST" "
-            set -e
-            cd '$REPO_DIR'
-            git fetch origin main
-            git reset --hard origin/main
-            cd web
-            source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
-            npm ci --omit=dev
-            npm run build
-            mkdir -p tmp
-            date > tmp/restart.txt
-          "
+            "$SSH_USER@$SSH_HOST" bash -s -- "$REPO_DIR" "$WEB_NEXT_PUBLIC_API_URL" <<'REMOTE'
+          set -e
+          REPO_DIR="$1"
+          export NEXT_PUBLIC_API_URL="$2"
+          cd "$REPO_DIR"
+          git fetch origin main
+          git reset --hard origin/main
+          cd web
+          source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
+          # Full install, not --omit=dev: `next build` needs typescript,
+          # tailwindcss/postcss/autoprefixer from devDependencies to run at
+          # all, not just the eventual runtime.
+          npm ci
+          npm run build
+          mkdir -p tmp
+          date > tmp/restart.txt
+          REMOTE

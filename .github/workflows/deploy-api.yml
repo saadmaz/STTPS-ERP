@@ -47,16 +47,24 @@ jobs:
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # A heredoc passed via stdin to a remote `bash -s`, with the
+          # variable given as a positional arg, avoids the quoting hazards
+          # of building one giant interpolated string for `ssh host "..."`.
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$SSH_USER@$SSH_HOST" "
-            set -e
-            cd '$REPO_DIR'
-            git fetch origin main
-            git reset --hard origin/main
-            cd api
-            source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
-            npm ci --omit=dev
-            npm run build
-            mkdir -p tmp
-            date > tmp/restart.txt
-          "
+            "$SSH_USER@$SSH_HOST" bash -s -- "$REPO_DIR" <<'REMOTE'
+          set -e
+          REPO_DIR="$1"
+          cd "$REPO_DIR"
+          git fetch origin main
+          git reset --hard origin/main
+          cd api
+          source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
+          # Full install, not --omit=dev: `nest build` itself lives in the
+          # @nestjs/cli devDependency, so omitting dev deps breaks the build
+          # step, not just the eventual runtime.
+          npm ci
+          npm run build
+          mkdir -p tmp
+          date > tmp/restart.txt
+          REMOTE
