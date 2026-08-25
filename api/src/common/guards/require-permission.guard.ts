@@ -1,11 +1,13 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PERMISSION_KEY } from "../decorators/require-permission.decorator";
-import { PrismaService } from "../../prisma/prisma.service";
+import { FirestoreService } from "../../firestore/firestore.service";
+import { COLLECTIONS } from "../../firestore/collections";
+import { CompanyUserDoc } from "../../firestore/models";
 
 @Injectable()
 export class RequirePermissionGuard implements CanActivate {
-  constructor(private reflector: Reflector, private prisma: PrismaService) {}
+  constructor(private reflector: Reflector, private firestore: FirestoreService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride<string>(PERMISSION_KEY, [
@@ -24,34 +26,19 @@ export class RequirePermissionGuard implements CanActivate {
     const companyId = request.headers["x-company-id"] as string;
     if (!companyId) throw new ForbiddenException("Company context required");
 
-    const [module, action] = required.split(".");
+    // No join needed: permissionCodes is the pre-flattened union of every
+    // role assigned to this CompanyUser, kept in sync by PermissionSyncService.
+    const doc = await this.firestore
+      .collection<CompanyUserDoc>(COLLECTIONS.companyUsers)
+      .doc(`${user.id}_${companyId}`)
+      .get();
 
-    const companyUser = await this.prisma.companyUser.findFirst({
-      where: { userId: user.id, companyId },
-      include: {
-        userRoles: {
-          include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: { permission: true },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    if (!doc.exists) throw new ForbiddenException("User not assigned to this company");
 
-    if (!companyUser) throw new ForbiddenException("User not assigned to this company");
-
-    const hasPermission = companyUser.userRoles.some((ur) =>
-      ur.role.rolePermissions.some(
-        (rp) => rp.permission.module === module && rp.permission.action === action
-      )
-    );
-
-    if (!hasPermission) throw new ForbiddenException(`Permission required: ${required}`);
+    const companyUser = doc.data()!;
+    if (!companyUser.permissionCodes.includes(required)) {
+      throw new ForbiddenException(`Permission required: ${required}`);
+    }
     return true;
   }
 }

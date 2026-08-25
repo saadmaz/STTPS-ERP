@@ -35,7 +35,7 @@ jobs:
       - name: Build (validation gate — the real build runs on the server)
         run: npm run build
 
-      - name: Deploy over SSH (git pull + migrate + build on the server)
+      - name: Deploy over SSH (git pull + build on the server)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -56,7 +56,6 @@ jobs:
             cd api
             source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
             npm ci --omit=dev
-            npx prisma migrate deploy
             npm run build
             mkdir -p tmp
             date > tmp/restart.txt
