@@ -48,7 +48,7 @@ jobs:
       - name: Package artifact
         run: tar czf ../api-deploy.tar.gz dist package.json package-lock.json prisma/schema.prisma deploy.sh
 
-      - name: Ship to server (wipe + re-extract, keeping .env)
+      - name: Ship to server (replace app files only, leave cPanel config alone)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -68,18 +68,14 @@ jobs:
           APP_DIR="/home/$SSH_USER/api.erp.sttps.co"
           SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
 
-          # Wipe everything except .env (never in git, holds the Firebase
-          # credentials) before re-extracting — earlier deploy attempts left
-          # a full source checkout + its own devDependency-heavy
-          # node_modules here, and this account's disk quota is razor-thin.
-          $SSH "$SSH_USER@$SSH_HOST" "
-            set -e
-            mkdir -p '$APP_DIR'
-            [ -f '$APP_DIR/.env' ] && cp '$APP_DIR/.env' /tmp/sttps-api-env-backup || true
-            rm -rf '$APP_DIR'
-            mkdir -p '$APP_DIR'
-            [ -f /tmp/sttps-api-env-backup ] && mv /tmp/sttps-api-env-backup '$APP_DIR/.env' || true
-          "
+          # Remove only what the packaged artifact replaces, NOT the whole
+          # directory: a blind `rm -rf "$APP_DIR"` here once wiped .htaccess
+          # (the Passenger routing config cPanel writes into this exact
+          # directory, not somewhere separate) along with everything else,
+          # silently turning every deploy into a 500 until someone noticed
+          # and manually recreated the Node app registration. .env,
+          # cgi-bin, php.ini, .user.ini, .well-known are all left alone.
+          $SSH "$SSH_USER@$SSH_HOST" "mkdir -p '$APP_DIR' && rm -rf '$APP_DIR/dist' '$APP_DIR/node_modules' '$APP_DIR/package.json' '$APP_DIR/package-lock.json' '$APP_DIR/prisma' '$APP_DIR/deploy.sh'"
           cat ../api-deploy.tar.gz | $SSH "$SSH_USER@$SSH_HOST" "tar xzf - -C '$APP_DIR' && echo EXTRACTED"
 
       - name: Install prod deps + restart on server (detached, polled)
