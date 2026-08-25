@@ -7,5 +7,5 @@ dist
 .turbo
 *.log
 coverage
-prisma/migrations
+*.tsbuildinfo
 .DS_Store
