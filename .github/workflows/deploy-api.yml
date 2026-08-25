@@ -94,27 +94,35 @@ jobs:
           # domains_data` if this subdomain is ever recreated.
           APP_DIR="/home/$SSH_USER/api.erp.sttps.co"
 
-          # This host regularly drops long-lived SSH sessions mid-build
-          # ("client_loop: send disconnect: Broken pipe" after several
-          # minutes) — a known issue on this same host, documented in a
-          # sibling project too. Even a lean prod-only install (firebase-admin
-          # pulls a real dependency tree) runs detached via nohup, decoupled
-          # from this connection's lifetime; we poll for completion with
-          # short separate connections instead of holding one open.
-          $SSH "$SSH_USER@$SSH_HOST" "cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; echo LAUNCHED"
+          # This host regularly drops SSH sessions ("client_loop: send
+          # disconnect: Broken pipe") — not just long-lived ones during a
+          # build, but even quick individual commands at random. The actual
+          # install runs detached via nohup, decoupled from any one
+          # connection's lifetime; we poll with short separate connections,
+          # and — critically — a poll attempt that itself fails to connect
+          # is treated as "try again", not as the deploy failing. Losing
+          # that distinction is what silently turned a fine, still-running
+          # server-side install into a failed GitHub Actions run before.
+          for attempt in 1 2 3 4 5; do
+            if $SSH "$SSH_USER@$SSH_HOST" "cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; echo LAUNCHED"; then
+            break
+          fi
+            echo "Launch attempt $attempt failed to connect, retrying..."
+            sleep 5
+          done
 
           echo "Prod install launched on the server, polling for completion..."
-          for i in $(seq 1 80); do
+          for i in $(seq 1 120); do
             sleep 10
-            RESULT=$($SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.exit' 2>/dev/null || true")
+            RESULT=$($SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.exit' 2>/dev/null" || true)
             if [ -n "$RESULT" ]; then
               echo "--- remote install log ---"
-              $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.log'"
+              $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.log'" || true
               echo "--- exit code: $RESULT ---"
               exit "$RESULT"
             fi
-            echo "still running (~$((i * 10))s elapsed)..."
+            echo "still running or poll connection blipped (~$((i * 10))s elapsed)..."
           done
-          echo "Timed out after ~13 minutes waiting for the server install to finish"
+          echo "Timed out after 20 minutes waiting for the server install to finish"
           $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/deploy.log'" || true
           exit 1
