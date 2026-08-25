@@ -1,0 +1,4 @@
+# Shell scripts run on the Linux server — CRLF line endings would break
+# them there (`$'\r': command not found`), regardless of the OS this repo
+# is checked out/edited on.
+*.sh text eol=lf

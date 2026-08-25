@@ -34,7 +34,7 @@ jobs:
 
       # npm ci also runs `postinstall: prisma generate` (see package.json) —
       # `prisma` lives in dependencies, not devDependencies, specifically so
-      # this still works on the server with --omit=dev (§6 of DEPLOYMENT.md).
+      # this still works on the server too.
       - name: Install dependencies
         run: npm ci
 
@@ -44,7 +44,7 @@ jobs:
       - name: Build (validation gate — the real build runs on the server)
         run: npm run build
 
-      - name: Deploy over SSH (git pull + build on the server)
+      - name: Deploy over SSH (launch detached, poll for completion)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -56,27 +56,43 @@ jobs:
           echo "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          APP_DIR="${REPO_DIR}-api"
 
-          # A heredoc passed via stdin to a remote `bash -s`, with the
-          # variable given as a positional arg, avoids the quoting hazards
-          # of building one giant interpolated string for `ssh host "..."`.
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$SSH_USER@$SSH_HOST" bash -s -- "${REPO_DIR}-api" <<'REMOTE'
+          # This host regularly drops long-lived SSH sessions mid-build
+          # ("client_loop: send disconnect: Broken pipe" after several
+          # minutes) — a known issue on this same host, documented in a
+          # sibling project too. The actual build (npm ci + nest build,
+          # which can take 10+ minutes here) runs detached on the server
+          # via nohup, decoupled from this connection's lifetime; git
+          # operations happen in this short launcher call, which is fast
+          # enough to not be at risk. We then poll for completion with
+          # separate short-lived connections instead of holding one open.
+          $SSH "$SSH_USER@$SSH_HOST" bash -s -- "$APP_DIR" <<'LAUNCH'
           set -e
-          # Each app has its OWN clone (not a shared one) specifically so
-          # concurrent web/admin/api deploys can never race on the same
-          # .git ref locks.
           APP_DIR="$1"
           cd "$APP_DIR"
           git fetch origin main
           git reset --hard origin/main
           cd api
-          source "$HOME/nodevenv/$(basename "$APP_DIR")/22/bin/activate"
-          # Full install, not --omit=dev: `nest build` itself lives in the
-          # @nestjs/cli devDependency, so omitting dev deps breaks the build
-          # step, not just the eventual runtime.
-          npm ci
-          npm run build
-          mkdir -p tmp
-          date > tmp/restart.txt
-          REMOTE
+          rm -f deploy.exit deploy.log
+          nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo $? > deploy.exit' >/dev/null 2>&1 &
+          disown
+          echo LAUNCHED
+          LAUNCH
+
+          echo "Build launched on the server, polling for completion (this host is slow, can take 10+ min)..."
+          for i in $(seq 1 80); do
+            sleep 15
+            RESULT=$($SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/api/deploy.exit' 2>/dev/null || true")
+            if [ -n "$RESULT" ]; then
+              echo "--- remote build log ---"
+              $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/api/deploy.log'"
+              echo "--- exit code: $RESULT ---"
+              exit "$RESULT"
+            fi
+            echo "still running (~$((i * 15))s elapsed)..."
+          done
+          echo "Timed out after 20 minutes waiting for the server build to finish"
+          $SSH "$SSH_USER@$SSH_HOST" "cat '$APP_DIR/api/deploy.log'" || true
+          exit 1
