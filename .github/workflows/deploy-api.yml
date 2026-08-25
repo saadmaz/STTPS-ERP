@@ -8,6 +8,15 @@ on:
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch:
 
+# Shared across all three deploy-*.yml workflows: this shared cPanel host's
+# resource limiter (CloudLinux LVE) kills concurrent npm ci/build processes
+# under contention — SIGKILL, not a normal failure — when web/admin/api
+# deploys land close together. Serializing across the whole group (not just
+# this workflow) is what actually prevents that, not just self-concurrency.
+concurrency:
+  group: sttps-erp-server-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
