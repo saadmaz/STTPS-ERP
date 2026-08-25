@@ -2,7 +2,9 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "../../prisma/prisma.service";
+import { FirestoreService } from "../../firestore/firestore.service";
+import { COLLECTIONS } from "../../firestore/collections";
+import { UserDoc } from "../../firestore/models";
 
 export interface JwtPayload {
   sub: string;
@@ -16,7 +18,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
-    private prisma: PrismaService,
+    private firestore: FirestoreService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -26,24 +28,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        tenantId: true,
-        isActive: true,
-        isSuperAdmin: true,
-        isPlatformAdmin: true,
-      },
-    });
+    const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(payload.sub).get();
+    const user = doc.data();
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException("User not found or inactive");
     }
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      tenantId: user.tenantId,
+      isActive: user.isActive,
+      isSuperAdmin: user.isSuperAdmin,
+      isPlatformAdmin: user.isPlatformAdmin,
+    };
   }
 }

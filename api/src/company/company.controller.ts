@@ -4,6 +4,7 @@ import { CompanyService } from "./company.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { RequirePermission } from "../common/decorators/require-permission.decorator";
 
 @ApiTags("Companies")
 @ApiBearerAuth()
@@ -29,6 +30,8 @@ export class CompanyController {
   }
 
   @Put(":id")
+  @RequirePermission("company.edit")
+  @ApiOperation({ summary: "Update a company (requires company.edit permission)" })
   update(
     @Param("id") id: string,
     @Body() dto: Partial<CreateCompanyDto>,

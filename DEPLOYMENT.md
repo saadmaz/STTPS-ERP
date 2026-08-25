@@ -2,6 +2,16 @@
 
 Target: **erp.sttps.co**, hosted on **Zircon Hosting (cPanel)**, same hosting provider as `pos.polishstation.lk`. This guide follows that project's proven pattern, adapted for three apps instead of one.
 
+**Live server details** (cPanel user `[cpanel-user]`, host `[server-ip]`, SSH port `[ssh-port]`, key `[deploy-key]`):
+
+| App     | Subdomain             | Status |
+| ------- | ---------------------- | ------ |
+| `web`   | `erp.sttps.co`          | ✅ live (Node.js Selector app created, `.next/standalone` build shipped) |
+| `admin` | `admin.erp.sttps.co`    | ✅ live |
+| `api`   | `api.erp.sttps.co`      | Node.js Selector app created; code not deployed yet — needs Firestore credentials first (see §2) |
+
+SSL is already issued for all three (AutoSSL/Let's Encrypt, confirmed via `uapi SSL installed_hosts` — a `*.erp.sttps.co` wildcard plus a dedicated `erp.sttps.co` cert). Nothing to do there.
+
 ## 1. Architecture
 
 Three independent, standalone apps — no monorepo tooling, no shared packages. Each has its own `package.json`, lockfile, and deploy pipeline, so a broken build in one never blocks the others.
@@ -10,21 +20,18 @@ Three independent, standalone apps — no monorepo tooling, no shared packages. 
 | ------- | ----------------------- | --------------------- | ---------- |
 | `web/`  | Next.js 15 (App Router) | `erp.sttps.co`         | 3000       |
 | `admin/`| Next.js 15 (App Router) | `admin.erp.sttps.co`   | 3002       |
-| `api/`  | NestJS 10 + Prisma      | `api.erp.sttps.co`     | 3001       |
+| `api/`  | NestJS 10 + Firestore   | `api.erp.sttps.co`     | 3001       |
 
-Database: **PostgreSQL** only (`api/prisma/schema.prisma`). Redis, GCS, and SendGrid appear in old planning docs but are not wired into any code yet — don't provision them until a feature actually needs them.
+**Database: Firestore, not PostgreSQL.** This cPanel plan has no PostgreSQL at all (confirmed via `uapi Postgresql list_databases` → "This server does not support this functionality", only MySQL is offered) — the API was migrated from Prisma/Postgres to Firebase Firestore to match `polish-station-pos`'s proven stack on this same host. `api/prisma/schema.prisma` is kept on disk as the reference data model for the ~70 not-yet-migrated ERP modules (see the migration plan referenced below) but is not connected to anything live. Redis, GCS, and SendGrid appear in old planning docs but were never wired into any code — don't provision them until a feature actually needs them.
+
+Only the platform/identity layer (auth, tenants, companies, users, roles/permissions, the admin console) is live on Firestore today. The other 12 ERP domain modules (finance, inventory, procurement, sales/CRM, manufacturing, HR, EAM, FSM, quality, EHS, projects) are deliberately commented out of `api/src/app.module.ts` pending a documented Phase 2 backlog — `web`'s pages for those modules will show empty/error states until each is ported, which is expected mid-migration, not a bug.
 
 ## 2. What you (the user) need to do first
 
-These are things only you can do — account access, DNS, and secrets:
-
-1. **Confirm Zircon plan capabilities.** Log into cPanel and check:
-   - **Setup Node.js App** icon exists (CloudLinux NodeJS Selector) — required for Passenger to run these apps.
-   - **PostgreSQL Databases** icon exists. Many shared cPanel plans only offer MySQL/MariaDB. If Postgres isn't available, use a managed external Postgres instead (e.g. Neon or Supabase free tier) and just point `DATABASE_URL` at it — nothing else changes.
-   - **SSH Access** is enabled for the account (cPanel → Security → SSH Access). If Zircon doesn't grant real shell access, see §9 (FTP fallback).
-2. **DNS**: create `A` records pointing `erp.sttps.co`, `api.erp.sttps.co`, and `admin.erp.sttps.co` at the Zircon server's IP (wherever `sttps.co`'s nameservers are managed).
-3. **Give me** (once you have them): the cPanel username, the server hostname/IP for SSH, and confirmation of which of the above is available. I can't proceed with the actual server setup without these — nothing else in this repo needed them until now.
-4. **Generate production secrets** (or ask me to generate them): `JWT_SECRET` (32+ random chars — `openssl rand -base64 48`), and the production `DATABASE_URL`.
+1. **Create a dedicated Firebase project** for STTPS-ERP at console.firebase.google.com (confirmed: not sharing `polish-station-pos`'s project). Enable **Firestore in Native mode**, pick a region.
+2. **Project Settings → Service Accounts → Generate new private key** → gives `project_id` / `client_email` / `private_key`.
+3. **Hand me those three values** (or the downloaded JSON) so I can write `api/.env` on the already-provisioned `api.erp.sttps.co` server over SSH — this is the one remaining blocker before `api` can go live.
+4. Once live: `firebase deploy --only firestore:rules,firestore:indexes` (from repo root, needs `firebase login` once) to push `firestore.rules`/`firestore.indexes.json` — without the indexes, several admin-console list endpoints will throw a Firestore error on first use (with a direct console link to auto-create the missing index, as a fallback).
 
 ## 3. One-time cPanel setup (per app)
 
@@ -66,13 +73,12 @@ npm run build
 mkdir -p tmp && touch tmp/restart.txt   # tells Passenger to (re)load the app
 ```
 
-For `api`, also run once (and after any schema change):
+For `api`, also run once, after `.env` is uploaded (§5):
 
 ```bash
 cd ~/sttps-erp/api
-npx prisma migrate deploy   # once migrations exist — see §7
-# or, until migrations are set up: npx prisma db push
-npx prisma db seed          # first deploy only, seeds permissions/roles
+npm run seed:firestore   # first deploy only — seeds the permission catalog,
+                          # the platform tenant/admin, and a demo tenant/admin
 ```
 
 ## 5. Environment variables
@@ -83,7 +89,7 @@ None of the three apps' `.env` files are committed (see each app's `.env.example
 chmod 600 ~/sttps-erp/api/.env
 ```
 
-- `api/.env`: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT` (Passenger sets this — leave unset in `.env` or let it be overridden), `NODE_ENV=production`, `FRONTEND_URL=https://erp.sttps.co`, `ADMIN_URL=https://admin.erp.sttps.co`.
+- `api/.env`: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (§2), `JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT` (Passenger sets this — leave unset in `.env` or let it be overridden), `NODE_ENV=production`, `FRONTEND_URL=https://erp.sttps.co`, `ADMIN_URL=https://admin.erp.sttps.co`, plus the inert `DATABASE_URL` placeholder from `.env.example` (needed only so `prisma generate` succeeds at install time — never actually connected to).
 - `web/.env` and `admin/.env`: only `NEXT_PUBLIC_API_URL=https://api.erp.sttps.co`. **This is baked in at build time**, not read at runtime — if you change it, you must rebuild (`npm run build`), not just restart.
 
 Passenger does not source `.env` files itself. `web/start.mjs` and `admin/start.mjs` already `import "dotenv/config"` as their first line; NestJS's `ConfigModule.forRoot({ isGlobal: true })` loads `.env` internally, so `api` needs no equivalent change.
@@ -106,17 +112,15 @@ Passenger does not source `.env` files itself. `web/start.mjs` and `admin/start.
 
 Generate a dedicated SSH keypair for this (don't reuse your personal one) — `ssh-keygen -t ed25519 -f sttps_ci_deploy -C "sttps-erp CI"`, add the `.pub` half to the server's `~/.ssh/authorized_keys`, and put the private half in `SSH_DEPLOY_KEY`.
 
-## 7. Database migrations
+## 7. Firestore schema changes
 
-The schema currently has no `prisma/migrations` folder — the team has been using `prisma db push` (fine for early development, risky for production: no history, no rollback). Before the first real production deploy, generate an initial migration locally against a throwaway database:
+There's no migration system to run — Firestore is schemaless. "Schema changes" here means:
 
-```bash
-cd api
-npx prisma migrate dev --name init
-git add prisma/migrations && git commit
-```
+- **Document shape changes**: edit the relevant interface in `api/src/firestore/models.ts` and the service methods that read/write it. No backfill mechanism exists yet; for now, handle missing fields defensively in code (`?? default`) rather than assuming every existing doc has every field.
+- **New composite indexes**: add to `firestore.indexes.json`, then `firebase deploy --only firestore:indexes`. Firestore also surfaces a direct console link to auto-create a missing index the first time an unindexed query runs, as a fallback if one is forgotten.
+- **Seed data changes**: edit `api/scripts/seed-firestore.ts` (idempotent — re-running it skips anything that already exists via the `tenantSlugIndex`/`emailIndex` lookups, safe to run again).
 
-From then on, use `npx prisma migrate deploy` on the server (§4) instead of `db push`, and commit every new migration the same way.
+See the Firestore migration plan (Phase 1 complete: platform/auth/admin console; Phase 2 backlog: the 12 remaining ERP modules, ported module-by-module following the same pattern) for the full data-model rationale.
 
 ## 8. Rollback
 

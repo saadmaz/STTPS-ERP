@@ -1,88 +1,130 @@
 import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { FirestoreService } from "../firestore/firestore.service";
+import { COLLECTIONS } from "../firestore/collections";
+import { CompanyDoc, CompanyUserDoc, RoleDoc, UserDoc, UserRoleDoc } from "../firestore/models";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcryptjs";
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private firestore: FirestoreService) {}
 
   async findAll(tenantId: string) {
-    return this.prisma.user.findMany({
-      where: { tenantId },
-      select: {
-        id: true, email: true, firstName: true, lastName: true,
-        phone: true, avatar: true, isActive: true, isSuperAdmin: true,
-        lastLoginAt: true, createdAt: true,
-        companyUsers: {
-          include: {
-            company: { select: { id: true, name: true, code: true } },
-            userRoles: { include: { role: { select: { id: true, name: true } } } },
-          },
-        },
-      },
-      orderBy: { firstName: "asc" },
-    });
+    const snap = await this.firestore
+      .collection<UserDoc>(COLLECTIONS.users)
+      .where("tenantId", "==", tenantId)
+      .orderBy("firstName", "asc")
+      .get();
+
+    return Promise.all(snap.docs.map((d) => this.toListShape(d.data())));
   }
 
   async findById(id: string, tenantId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { id, tenantId },
-      select: {
-        id: true, email: true, firstName: true, lastName: true,
-        phone: true, avatar: true, isActive: true, isSuperAdmin: true,
-        mfaEnabled: true, lastLoginAt: true, createdAt: true, updatedAt: true,
-        companyUsers: {
-          include: {
-            company: { select: { id: true, name: true, code: true } },
-            userRoles: { include: { role: { select: { id: true, name: true } } } },
-          },
-        },
-      },
-    });
-    if (!user) throw new NotFoundException("User not found");
-    return user;
+    const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).get();
+    const user = doc.data();
+    if (!user || user.tenantId !== tenantId) throw new NotFoundException("User not found");
+
+    const companyUsers = await this.getCompanyUsersDetail(id);
+    return {
+      id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
+      phone: user.phone, avatar: user.avatar, isActive: user.isActive, isSuperAdmin: user.isSuperAdmin,
+      mfaEnabled: user.mfaEnabled, lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt, updatedAt: user.updatedAt,
+      companyUsers,
+    };
   }
 
   async create(dto: CreateUserDto, tenantId: string) {
-    const existing = await this.prisma.user.findUnique({
-      where: { tenantId_email: { tenantId, email: dto.email } },
-    });
-    if (existing) throw new ConflictException("Email already exists in this organization");
+    const emailLower = dto.email.toLowerCase();
+    const indexRef = this.firestore.collection(COLLECTIONS.emailIndex).doc(`${tenantId}_${emailLower}`);
+    const existing = await indexRef.get();
+    if (existing.exists) throw new ConflictException("Email already exists in this organization");
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    return this.prisma.user.create({
-      data: {
-        tenantId,
-        email: dto.email,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        passwordHash,
-        phone: dto.phone,
-        isActive: true,
-      },
-      select: {
-        id: true, email: true, firstName: true, lastName: true,
-        phone: true, isActive: true, createdAt: true,
-      },
+    const now = new Date().toISOString();
+    const id = this.firestore.newId(COLLECTIONS.users);
+    const user: UserDoc = {
+      id, tenantId, email: dto.email, emailLower,
+      firstName: dto.firstName, lastName: dto.lastName, passwordHash,
+      phone: dto.phone ?? null, avatar: null, isActive: true,
+      isSuperAdmin: false, isPlatformAdmin: false, mfaEnabled: false, mfaSecret: null,
+      lastLoginAt: null, createdAt: now, updatedAt: now,
+    };
+
+    await this.firestore.runTransaction(async (tx) => {
+      tx.create(indexRef, { userId: id });
+      tx.set(this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id), user);
     });
+
+    return {
+      id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
+      phone: user.phone, isActive: user.isActive, createdAt: user.createdAt,
+    };
   }
 
   async update(id: string, tenantId: string, data: Partial<CreateUserDto>) {
     await this.findById(id, tenantId);
-    const updateData: any = { ...data };
+    const update: Record<string, unknown> = { ...data, updatedAt: new Date().toISOString() };
     if (data.password) {
-      updateData.passwordHash = await bcrypt.hash(data.password, 12);
-      delete updateData.password;
+      update.passwordHash = await bcrypt.hash(data.password, 12);
+      delete update.password;
     }
-    return this.prisma.user.update({ where: { id }, data: updateData });
+    await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).update(update);
+    const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).get();
+    return doc.data();
   }
 
   async deactivate(id: string, tenantId: string) {
     await this.findById(id, tenantId);
-    return this.prisma.user.update({
-      where: { id },
-      data: { isActive: false },
+    await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).update({
+      isActive: false,
+      updatedAt: new Date().toISOString(),
     });
+    const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).get();
+    return doc.data();
+  }
+
+  private async toListShape(user: UserDoc) {
+    const companyUsers = await this.getCompanyUsersDetail(user.id);
+    return {
+      id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
+      phone: user.phone, avatar: user.avatar, isActive: user.isActive, isSuperAdmin: user.isSuperAdmin,
+      lastLoginAt: user.lastLoginAt, createdAt: user.createdAt,
+      companyUsers,
+    };
+  }
+
+  private async getCompanyUsersDetail(userId: string) {
+    const cuSnap = await this.firestore
+      .collection<CompanyUserDoc>(COLLECTIONS.companyUsers)
+      .where("userId", "==", userId)
+      .get();
+
+    return Promise.all(
+      cuSnap.docs.map(async (doc) => {
+        const cu = doc.data();
+        const companyDoc = await this.firestore.collection<CompanyDoc>(COLLECTIONS.companies).doc(cu.companyId).get();
+        const company = companyDoc.data();
+
+        const urSnap = await this.firestore
+          .collection<UserRoleDoc>(COLLECTIONS.userRoles)
+          .where("companyUserId", "==", cu.id)
+          .get();
+        const userRoles = await Promise.all(
+          urSnap.docs.map(async (urDoc) => {
+            const ur = urDoc.data();
+            const roleDoc = await this.firestore.collection<RoleDoc>(COLLECTIONS.roles).doc(ur.roleId).get();
+            const role = roleDoc.data();
+            return { id: ur.id, role: role ? { id: role.id, name: role.name } : null };
+          }),
+        );
+
+        return {
+          id: cu.id,
+          company: company ? { id: company.id, name: company.name, code: company.code } : null,
+          userRoles,
+        };
+      }),
+    );
   }
 }
