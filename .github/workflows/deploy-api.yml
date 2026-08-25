@@ -1,0 +1,63 @@
+name: Deploy api
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      # npm ci also runs `postinstall: prisma generate` (see package.json) —
+      # `prisma` lives in dependencies, not devDependencies, specifically so
+      # this still works on the server with --omit=dev (§6 of DEPLOYMENT.md).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build (validation gate — the real build runs on the server)
+        run: npm run build
+
+      - name: Deploy over SSH (git pull + migrate + build on the server)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+          REPO_DIR: ${{ secrets.SERVER_REPO_DIR }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
+            "$SSH_USER@$SSH_HOST" "
+            set -e
+            cd '$REPO_DIR'
+            git fetch origin main
+            git reset --hard origin/main
+            cd api
+            source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
+            npm ci --omit=dev
+            npx prisma migrate deploy
+            npm run build
+            mkdir -p tmp
+            date > tmp/restart.txt
+          "
