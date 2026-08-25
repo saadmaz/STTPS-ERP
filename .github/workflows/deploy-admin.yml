@@ -52,15 +52,18 @@ jobs:
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$SSH_USER@$SSH_HOST" bash -s -- "$REPO_DIR" "$ADMIN_NEXT_PUBLIC_API_URL" <<'REMOTE'
+            "$SSH_USER@$SSH_HOST" bash -s -- "${REPO_DIR}-admin" "$ADMIN_NEXT_PUBLIC_API_URL" <<'REMOTE'
           set -e
-          REPO_DIR="$1"
+          # Each app has its OWN clone (not a shared one) specifically so
+          # concurrent web/admin/api deploys can never race on the same
+          # .git ref locks.
+          APP_DIR="$1"
           export NEXT_PUBLIC_API_URL="$2"
-          cd "$REPO_DIR"
+          cd "$APP_DIR"
           git fetch origin main
           git reset --hard origin/main
           cd admin
-          source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
+          source "$HOME/nodevenv/$(basename "$APP_DIR")/22/bin/activate"
           # Full install, not --omit=dev: `next build` needs typescript,
           # tailwindcss/postcss/autoprefixer from devDependencies to run at
           # all, not just the eventual runtime.

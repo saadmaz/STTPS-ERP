@@ -52,14 +52,17 @@ jobs:
           # variable given as a positional arg, avoids the quoting hazards
           # of building one giant interpolated string for `ssh host "..."`.
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$SSH_USER@$SSH_HOST" bash -s -- "$REPO_DIR" <<'REMOTE'
+            "$SSH_USER@$SSH_HOST" bash -s -- "${REPO_DIR}-api" <<'REMOTE'
           set -e
-          REPO_DIR="$1"
-          cd "$REPO_DIR"
+          # Each app has its OWN clone (not a shared one) specifically so
+          # concurrent web/admin/api deploys can never race on the same
+          # .git ref locks.
+          APP_DIR="$1"
+          cd "$APP_DIR"
           git fetch origin main
           git reset --hard origin/main
           cd api
-          source ~/nodevenv/*/22/bin/activate 2>/dev/null || true
+          source "$HOME/nodevenv/$(basename "$APP_DIR")/22/bin/activate"
           # Full install, not --omit=dev: `nest build` itself lives in the
           # @nestjs/cli devDependency, so omitting dev deps breaks the build
           # step, not just the eventual runtime.
