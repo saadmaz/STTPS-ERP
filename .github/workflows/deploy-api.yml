@@ -103,13 +103,24 @@ jobs:
           # is treated as "try again", not as the deploy failing. Losing
           # that distinction is what silently turned a fine, still-running
           # server-side install into a failed GitHub Actions run before.
-          # pkill first, unconditionally, every attempt (including the
-          # first): a "failed" launch can still have started the remote
-          # command before the connection dropped on its way back — only
-          # the LAUNCHED confirmation was lost, not the launch. Retrying
-          # without this killed-any-prior-instance step once produced two
+          # Kill any prior instance first, unconditionally, every attempt
+          # (including the first): a "failed" launch can still have started
+          # the remote command before the connection dropped on its way
+          # back — only the LAUNCHED confirmation was lost, not the launch.
+          # Retrying without killing any prior instance once produced two
           # concurrent `npm ci` processes fighting over the same tight
           # memory budget, and the LVE limiter killed both.
+          #
+          # This kills by PID (from a pidfile written at launch time), NOT
+          # `pkill -f 'bash deploy.sh'` — that pattern is a literal
+          # substring of THIS SCRIPT'S OWN command line (it appears later
+          # in the very same remote command, inside the nohup invocation),
+          # and pgrep/pkill only exempt their own PID from a -f match, not
+          # ancestor shells — so it was killing the bash process running
+          # this remote command itself, instantly and silently, before any
+          # output could be produced. That was the actual cause of every
+          # "empty output, exit 255" failure above.
+          #
           # Absolute paths throughout, and the cd+launch done inside its own
           # `( ... & )` subshell: backgrounding a `cd && rm && nohup` chain
           # with a bare trailing `&` backgrounds the cd along with it, so
@@ -119,7 +130,7 @@ jobs:
           # below look at the wrong place entirely.
           LAUNCH_OK=false
           for attempt in 1 2 3 4 5 6 7 8; do
-            OUT=$($SSH "$SSH_USER@$SSH_HOST" "pkill -f 'bash deploy.sh' 2>/dev/null; pkill -f 'npm ci --omit=dev --ignore-scripts' 2>/dev/null; rm -f '$APP_DIR/deploy.exit' '$APP_DIR/deploy.log'; ( cd '$APP_DIR' && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & ); disown; sleep 1; if [ ! -f '$APP_DIR/deploy.exit' ]; then echo LAUNCH_VERIFIED; else echo 'VERIFY_FAILED: deploy.exit reappeared immediately'; fi" 2>&1) || true
+            OUT=$($SSH "$SSH_USER@$SSH_HOST" "if [ -f '$APP_DIR/deploy.pid' ]; then kill -9 \$(cat '$APP_DIR/deploy.pid') 2>/dev/null; fi; rm -f '$APP_DIR/deploy.exit' '$APP_DIR/deploy.log' '$APP_DIR/deploy.pid'; ( cd '$APP_DIR' && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & echo \$! > '$APP_DIR/deploy.pid' ); disown; sleep 1; if [ ! -f '$APP_DIR/deploy.exit' ]; then echo LAUNCH_VERIFIED; else echo 'VERIFY_FAILED: deploy.exit reappeared immediately'; fi" 2>&1) || true
             echo "$OUT"
             if echo "$OUT" | grep -q LAUNCH_VERIFIED; then
               LAUNCH_OK=true
