@@ -66,7 +66,7 @@ jobs:
           # the hard way: see git history). Verify via `uapi DomainInfo
           # domains_data` if this subdomain is ever recreated.
           APP_DIR="/home/$SSH_USER/api.erp.sttps.co"
-          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=25 -o ConnectionAttempts=3 -o ServerAliveInterval=5 -o ServerAliveCountMax=3"
 
           # Remove only what the packaged artifact replaces, NOT the whole
           # directory: a blind `rm -rf "$APP_DIR"` here once wiped .htaccess
@@ -86,7 +86,7 @@ jobs:
           SSH_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
           REPO_DIR: ${{ secrets.SERVER_REPO_DIR }}
         run: |
-          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH="ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=25 -o ConnectionAttempts=3 -o ServerAliveInterval=5 -o ServerAliveCountMax=3"
           # This must exactly match cPanel's actual document root for this
           # subdomain (a fixed, separate setting from Node.js Selector's own
           # "app-root" bookkeeping -- the two are NOT the same thing, learned
@@ -110,13 +110,22 @@ jobs:
           # without this killed-any-prior-instance step once produced two
           # concurrent `npm ci` processes fighting over the same tight
           # memory budget, and the LVE limiter killed both.
+          # Absolute paths throughout, and the cd+launch done inside its own
+          # `( ... & )` subshell: backgrounding a `cd && rm && nohup` chain
+          # with a bare trailing `&` backgrounds the cd along with it, so
+          # anything checked afterward in the *outer* command runs from
+          # whatever directory the shell started in, not $APP_DIR — a
+          # latent bug that could make the deploy.exit existence check
+          # below look at the wrong place entirely.
           LAUNCH_OK=false
           for attempt in 1 2 3 4 5 6 7 8; do
-            if $SSH "$SSH_USER@$SSH_HOST" "pkill -f 'bash deploy.sh' 2>/dev/null; pkill -f 'npm ci --omit=dev --ignore-scripts' 2>/dev/null; cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; sleep 1; [ ! -f deploy.exit ] && echo LAUNCH_VERIFIED"; then
+            OUT=$($SSH "$SSH_USER@$SSH_HOST" "pkill -f 'bash deploy.sh' 2>/dev/null; pkill -f 'npm ci --omit=dev --ignore-scripts' 2>/dev/null; rm -f '$APP_DIR/deploy.exit' '$APP_DIR/deploy.log'; ( cd '$APP_DIR' && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & ); disown; sleep 1; if [ ! -f '$APP_DIR/deploy.exit' ]; then echo LAUNCH_VERIFIED; else echo 'VERIFY_FAILED: deploy.exit reappeared immediately'; fi" 2>&1)
+            echo "$OUT"
+            if echo "$OUT" | grep -q LAUNCH_VERIFIED; then
               LAUNCH_OK=true
               break
             fi
-            echo "Launch attempt $attempt failed to connect or verify, retrying in $((attempt * 5))s..."
+            echo "Launch attempt $attempt did not verify, retrying in $((attempt * 5))s..."
             sleep $((attempt * 5))
           done
 
