@@ -110,13 +110,24 @@ jobs:
           # without this killed-any-prior-instance step once produced two
           # concurrent `npm ci` processes fighting over the same tight
           # memory budget, and the LVE limiter killed both.
-          for attempt in 1 2 3 4 5; do
-            if $SSH "$SSH_USER@$SSH_HOST" "pkill -f 'bash deploy.sh' 2>/dev/null; pkill -f 'npm ci --omit=dev --ignore-scripts' 2>/dev/null; cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; echo LAUNCHED"; then
-            break
-          fi
-            echo "Launch attempt $attempt failed to connect, retrying..."
-            sleep 5
+          LAUNCH_OK=false
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if $SSH "$SSH_USER@$SSH_HOST" "pkill -f 'bash deploy.sh' 2>/dev/null; pkill -f 'npm ci --omit=dev --ignore-scripts' 2>/dev/null; cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; sleep 1; [ ! -f deploy.exit ] && echo LAUNCH_VERIFIED"; then
+              LAUNCH_OK=true
+              break
+            fi
+            echo "Launch attempt $attempt failed to connect or verify, retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
           done
+
+          # Do NOT fall through to polling on an unverified launch: the
+          # previous version of this script did exactly that once, and the
+          # poll loop happily read a stale deploy.exit left over from an
+          # entirely different, hours-old run, reporting a false result.
+          if [ "$LAUNCH_OK" != "true" ]; then
+            echo "Could not verify a fresh launch after 8 attempts — treating this as a real failure rather than guessing from stale files."
+            exit 1
+          fi
 
           echo "Prod install launched on the server, polling for completion..."
           for i in $(seq 1 120); do
