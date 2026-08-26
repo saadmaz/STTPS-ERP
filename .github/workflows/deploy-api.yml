@@ -103,8 +103,15 @@ jobs:
           # is treated as "try again", not as the deploy failing. Losing
           # that distinction is what silently turned a fine, still-running
           # server-side install into a failed GitHub Actions run before.
+          # pkill first, unconditionally, every attempt (including the
+          # first): a "failed" launch can still have started the remote
+          # command before the connection dropped on its way back — only
+          # the LAUNCHED confirmation was lost, not the launch. Retrying
+          # without this killed-any-prior-instance step once produced two
+          # concurrent `npm ci` processes fighting over the same tight
+          # memory budget, and the LVE limiter killed both.
           for attempt in 1 2 3 4 5; do
-            if $SSH "$SSH_USER@$SSH_HOST" "cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; echo LAUNCHED"; then
+            if $SSH "$SSH_USER@$SSH_HOST" "pkill -f 'bash deploy.sh' 2>/dev/null; pkill -f 'npm ci --omit=dev --ignore-scripts' 2>/dev/null; cd '$APP_DIR' && rm -f deploy.exit deploy.log && nohup bash -c 'bash deploy.sh > deploy.log 2>&1; echo \$? > deploy.exit' >/dev/null 2>&1 & disown; echo LAUNCHED"; then
             break
           fi
             echo "Launch attempt $attempt failed to connect, retrying..."
