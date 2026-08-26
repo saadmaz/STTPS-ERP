@@ -10,6 +10,12 @@ cd "$(dirname "$0")"
 # this subdomain, api.erp.sttps.co) — no subfolder nesting to climb out of.
 APP_DIR=$(pwd)
 source "$HOME/nodevenv/$(basename "$APP_DIR")/22/bin/activate"
-npm ci --omit=dev
+# --ignore-scripts, then prisma generate as its own separate step: this
+# account's LVE resource limiter SIGABRT-killed firebase-admin's postinstall
+# script (a memory-cgroup kill, confirmed against `ulimit -a` showing no
+# visible limit) when npm ran every package's postinstall hook together.
+# Running just the one hook we actually need, in isolation, avoided it.
+npm ci --omit=dev --ignore-scripts
+npx prisma generate
 mkdir -p tmp
 date > tmp/restart.txt
