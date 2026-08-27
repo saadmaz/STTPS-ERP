@@ -75,7 +75,20 @@ jobs:
           # silently turning every deploy into a 500 until someone noticed
           # and manually recreated the Node app registration. .env,
           # cgi-bin, php.ini, .user.ini, .well-known are all left alone.
-          $SSH "$SSH_USER@$SSH_HOST" "mkdir -p '$APP_DIR' && rm -rf '$APP_DIR/dist' '$APP_DIR/node_modules' '$APP_DIR/package.json' '$APP_DIR/package-lock.json' '$APP_DIR/prisma' '$APP_DIR/deploy.sh'"
+          #
+          # Deliberately NOT node_modules here: the still-running old
+          # Passenger process has files under it open (e.g. deep in
+          # firebase-admin/google-gax's dependency tree), and this host's
+          # NFS-backed home directory silly-renames a file deleted while
+          # still open instead of actually removing it -- so a plain
+          # `rm -rf` here intermittently died with "Directory not empty"
+          # (confirmed: killed an otherwise-good deploy of the very commit
+          # that fixed the launch script). `npm ci` in deploy.sh already
+          # deletes and rebuilds node_modules from scratch on every run --
+          # doing it a second time here, earlier, only adds a race with no
+          # benefit, so leave it for npm ci to handle once the old process
+          # is closer to being replaced.
+          $SSH "$SSH_USER@$SSH_HOST" "mkdir -p '$APP_DIR' && rm -rf '$APP_DIR/dist' '$APP_DIR/package.json' '$APP_DIR/package-lock.json' '$APP_DIR/prisma' '$APP_DIR/deploy.sh'"
           cat ../api-deploy.tar.gz | $SSH "$SSH_USER@$SSH_HOST" "tar xzf - -C '$APP_DIR' && echo EXTRACTED"
 
       - name: Install prod deps + restart on server (detached, polled)
