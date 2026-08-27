@@ -37,6 +37,16 @@ if [ "$NPM_CI_OK" != "true" ]; then
   echo "npm ci failed after 3 attempts, giving up."
   exit 1
 fi
-npx prisma generate
+# No `prisma generate` here: PrismaModule is never imported by AppModule
+# (api/src/app.module.ts) -- every module that used it is commented out
+# pending the Firestore migration (see DEPLOYMENT.md), so nothing in the
+# live app's module graph ever requires @prisma/client at runtime. Running
+# codegen for a client nothing loads was pure wasted risk: it just SIGABRT
+# ("JavaScript heap out of memory", exit 134) under this account's LVE
+# cap on the very next deploy after npm ci itself stopped getting killed.
+# The CI runner's build step still runs it via postinstall (unconstrained
+# there) so `tsc`/`nest build` type-check fine against the generated
+# client -- this is only about skipping the redundant, resource-hungry
+# re-generation on the tightly-capped server.
 mkdir -p tmp
 date > tmp/restart.txt
