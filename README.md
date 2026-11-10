@@ -1213,4 +1213,3 @@ Monorepo:     Turborepo + pnpm
 ---
 
 *Document version 1.0 — STTPS Platform Architecture*
-*Created: 2026-05-24*
