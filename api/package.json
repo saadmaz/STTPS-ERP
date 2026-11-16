@@ -1,6 +1,14 @@
 {
   "name": "sttps-api",
   "version": "0.1.0",
+  "description": "STTPS ERP API: authentication, multi-tenancy and ERP domain services (NestJS, Firestore)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saadmaz/STTPS-ERP.git",
+    "directory": "api"
+  },
+  "author": "Saad Mazhar (https://github.com/saadmaz)",
+  "license": "UNLICENSED",
   "private": true,
   "main": "dist/main.js",
   "engines": {

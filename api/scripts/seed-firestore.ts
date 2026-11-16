@@ -1,6 +1,6 @@
 // Firestore-native replacement for prisma/seed.ts (Phase 1 scope only — no
 // GL/chart-of-accounts seeding since Finance isn't wired into app.module.ts
-// yet, see the Phase 2 backlog in DEPLOYMENT.md's migration plan).
+// yet, see the Phase 2 backlog in docs/DEPLOYMENT.md's migration plan).
 //
 // Run once against the live project: `npx tsx scripts/seed-firestore.ts`
 // (needs FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY in the environment).

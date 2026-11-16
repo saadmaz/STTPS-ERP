@@ -1,6 +1,14 @@
 {
   "name": "sttps-admin",
   "version": "0.1.0",
+  "description": "STTPS ERP platform admin console: tenants, companies, users and roles (Next.js)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saadmaz/STTPS-ERP.git",
+    "directory": "admin"
+  },
+  "author": "Saad Mazhar (https://github.com/saadmaz)",
+  "license": "UNLICENSED",
   "private": true,
   "main": "start.mjs",
   "engines": {

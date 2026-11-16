@@ -1,6 +1,14 @@
 {
   "name": "sttps-web",
   "version": "0.1.0",
+  "description": "STTPS ERP staff application: dashboard and ERP domain modules (Next.js)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saadmaz/STTPS-ERP.git",
+    "directory": "web"
+  },
+  "author": "Saad Mazhar (https://github.com/saadmaz)",
+  "license": "UNLICENSED",
   "private": true,
   "main": "start.mjs",
   "engines": {
