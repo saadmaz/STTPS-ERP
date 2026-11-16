@@ -1481,7 +1481,7 @@ A feature or phase is **Done** when all of the following are true:
 ### API Contracts
 - [ ] New endpoints have `@ApiOperation`, `@ApiResponse`, and `@ApiBearerAuth` decorators
 - [ ] Request DTOs validated with `class-validator`
-- [ ] Response shape documented in Backend-Schema.md if new fields introduced
+- [ ] Response shape documented in BACKEND-SCHEMA.md if new fields introduced
 
 ### Security
 - [ ] New endpoints protected by `JwtAuthGuard`

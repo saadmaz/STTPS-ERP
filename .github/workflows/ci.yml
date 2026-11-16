@@ -1,9 +1,10 @@
+# Continuous integration: the merge gate for every pull request into main.
+# Production deployment is handled separately (see docs/DEPLOYMENT.md).
 name: CI
 
-# Production deploys run from the deploy-*.yml workflows on push to main.
-# This workflow is the merge gate for pull requests.
-
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -17,7 +18,7 @@ permissions:
 
 jobs:
   verify:
-    name: ${{ matrix.app }}
+    name: Verify (${{ matrix.app }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -45,7 +46,7 @@ jobs:
         run: npm ci
 
       - name: Type check
-        run: npm run type-check
+        run: npm run typecheck
 
       - name: Build
         run: npm run build

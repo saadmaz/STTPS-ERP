@@ -10,16 +10,16 @@
   "author": "Saad Mazhar (https://github.com/saadmaz)",
   "license": "UNLICENSED",
   "private": true,
-  "main": "start.mjs",
   "engines": {
     "node": ">=22.0.0"
   },
+  "main": "start.mjs",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "node start.mjs",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

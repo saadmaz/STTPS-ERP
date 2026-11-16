@@ -19,9 +19,10 @@ First pre-production release. The platform and identity layer is complete; domai
 - **admin:** platform admin console for tenants, companies, users and roles.
 - Firestore security rules and composite indexes.
 - Independent deploy pipelines per app, building on GitHub Actions and shipping standalone artefacts to Passenger.
-- Pull request CI: type check and production build for every app.
+- Continuous integration on every push and pull request: type check and production build for every app.
 - Product, technical, flow, schema, design and implementation documentation under `docs/`.
 - Project governance: proprietary licence, security policy, contribution guidelines, code of conduct, issue forms, pull request template, CODEOWNERS and Dependabot.
+- Standard documentation layout shared by every STTPS repository: architecture, configuration, deployment, decision records (ADRs) and release and rollback runbooks, indexed in `docs/README.md`.
 
 ### Changed
 

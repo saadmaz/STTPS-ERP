@@ -6,12 +6,12 @@
 
 One platform for identity, companies, finance, inventory, procurement, sales, manufacturing, HR, assets, field service, quality, EHS and projects across every STTPS business.
 
-[![Deploy web](https://github.com/saadmaz/STTPS-ERP/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/saadmaz/STTPS-ERP/actions/workflows/deploy-web.yml)
-[![Deploy admin](https://github.com/saadmaz/STTPS-ERP/actions/workflows/deploy-admin.yml/badge.svg)](https://github.com/saadmaz/STTPS-ERP/actions/workflows/deploy-admin.yml)
+[![App](https://img.shields.io/badge/app-erp.sttps.co-374151?style=flat-square&labelColor=111827)](https://erp.sttps.co)
 [![CI](https://github.com/saadmaz/STTPS-ERP/actions/workflows/ci.yml/badge.svg)](https://github.com/saadmaz/STTPS-ERP/actions/workflows/ci.yml)
-![License](https://img.shields.io/badge/license-proprietary-000000?style=flat-square)
+[![Version](https://img.shields.io/badge/version-v0.1.0-374151?style=flat-square&labelColor=111827)](https://github.com/saadmaz/STTPS-ERP/releases)
+![License](https://img.shields.io/badge/license-proprietary-374151?style=flat-square&labelColor=111827)
 
-[Deployment guide](docs/DEPLOYMENT.md) · [Product requirements](docs/PRD.md) · [Architecture plan](docs/ARCHITECTURE-PLAN.md)
+[**erp.sttps.co**](https://erp.sttps.co) · [Documentation](docs/README.md) · [Report a bug](https://github.com/saadmaz/STTPS-ERP/issues/new?template=bug_report.yml) · [Request a change](https://github.com/saadmaz/STTPS-ERP/issues/new?template=feature_request.yml)
 
 </div>
 
@@ -20,10 +20,11 @@ One platform for identity, companies, finance, inventory, procurement, sales, ma
 ## Contents
 
 - [About](#about)
-- [Status](#status)
+- [Features](#features)
 - [Architecture](#architecture)
 - [Tech stack](#tech-stack)
 - [Getting started](#getting-started)
+- [Configuration](#configuration)
 - [Project structure](#project-structure)
 - [Quality checks](#quality-checks)
 - [Deployment](#deployment)
@@ -40,35 +41,27 @@ STTPS ERP is the operating platform for the STTPS group of companies. It is mult
 | | |
 | --- | --- |
 | **Organisation** | STTPS (Pvt) Ltd |
-| **Application** | [erp.sttps.co](https://erp.sttps.co) |
+| **Status** | Pre-production: platform layer built, domain modules being ported |
+| **Production** | [erp.sttps.co](https://erp.sttps.co) |
 | **Admin console** | [admin.erp.sttps.co](https://admin.erp.sttps.co) |
 | **API** | `api.erp.sttps.co` |
 | **Contact** | [hello@sttps.co](mailto:hello@sttps.co) |
 | **Maintainer** | [Saad Mazhar](https://github.com/saadmaz) |
 
-## Status
+## Features
 
-| Area | State |
-| --- | --- |
-| Platform and identity: authentication, tenants, companies, users, roles and permissions, admin console | Built on Firestore |
-| `web` and `admin` | Live |
-| `api` | Provisioned; goes live once its Firebase service account is configured ([prerequisites](docs/DEPLOYMENT.md#2-prerequisites-before-the-api-goes-live)) |
-| Domain modules: finance, inventory, procurement, sales and CRM, manufacturing, HR, EAM, FSM, quality, EHS, projects | Screens built; API modules being ported to Firestore (Phase 2) |
-
-Until a domain module is ported, its screens in `web` show empty states. That is expected, not a fault.
+- **Multi-tenancy:** tenants, companies within them, and per-company scoping of every user, role and permission.
+- **Identity and access:** short-lived JWT access tokens with refresh sessions stored in Firestore, roles and fine-grained permissions enforced by API guards.
+- **Admin console:** platform administration of tenants, companies, users and roles.
+- **Domain modules:** finance, inventory, procurement, sales and CRM, manufacturing, HR, enterprise asset management, field service, quality, EHS and projects, with screens in the staff application and APIs being ported to Firestore.
+- **API documentation:** Swagger, generated from the NestJS controllers.
+- **Independent delivery:** each application builds, deploys and rolls back on its own.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  Users(["Staff"]) --> Web["web<br/>erp.sttps.co"]
-  Admins(["Platform admins"]) --> Admin["admin<br/>admin.erp.sttps.co"]
-  Web -- REST + JWT --> API["api<br/>api.erp.sttps.co"]
-  Admin -- REST + JWT --> API
-  API -- firebase-admin --> Firestore[("Cloud Firestore")]
-```
+Three standalone applications: a NestJS API on Cloud Firestore, a Next.js staff application and a Next.js admin console. Each has its own lockfile and deploy pipeline, so a failure in one never blocks the others.
 
-Three independent, standalone apps with no shared packages or monorepo tooling. Each has its own `package.json`, lockfile and deploy pipeline, so a broken build in one never blocks the others. The long-term target architecture is described in [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md); treat it as a roadmap, not as-built documentation.
+The full picture, with diagrams, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Significant decisions are recorded as [ADRs](docs/adr/README.md).
 
 ## Tech stack
 
@@ -97,11 +90,11 @@ git clone https://github.com/saadmaz/STTPS-ERP.git
 cd STTPS-ERP
 
 cd api   && npm ci && cp .env.example .env && npm run dev    # http://localhost:3001
-cd ../web   && npm ci && cp .env.example .env && npm run dev # http://localhost:3000
-cd ../admin && npm ci && cp .env.example .env && npm run dev # http://localhost:3002
+cd ../web   && npm ci && cp .env.example .env.local && npm run dev # http://localhost:3000
+cd ../admin && npm ci && cp .env.example .env.local && npm run dev # http://localhost:3002
 ```
 
-Fill in each `.env` from its `.env.example`. Seed a development Firestore project with `npm run seed:firestore` in `api/`.
+Fill in each file from its `.env.example`. Seed a development Firestore project with `npm run seed:firestore` in `api/`.
 
 ### Scripts
 
@@ -110,8 +103,14 @@ Fill in each `.env` from its `.env.example`. Seed a development Firestore projec
 | `npm run dev` | NestJS in watch mode | Next.js dev server |
 | `npm run build` | Compile to `dist/` | Standalone production build |
 | `npm start` | Run the compiled API | Run the production server (`start.mjs`) |
-| `npm run type-check` | `tsc --noEmit` | `tsc --noEmit` |
+| `npm run typecheck` | `tsc --noEmit` | `tsc --noEmit` |
 | `npm run seed:firestore` | Seed Firestore with platform data | |
+
+## Configuration
+
+`api` reads its Firebase service account, JWT secret and CORS origins from `api/.env`; `web` and `admin` need only `NEXT_PUBLIC_API_URL`, which is compiled in at build time.
+
+Every variable, where it is set and which are secret: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Project structure
 
@@ -124,41 +123,42 @@ Fill in each `.env` from its `.env.example`. Seed a development Firestore projec
 │   └── deploy.sh          # Server-side deploy script
 ├── web/                   # Staff application: dashboard and every domain module
 ├── admin/                 # Platform admin console: tenants, companies, users and roles
-├── docs/                  # Requirements, design, schema, plans and deployment guide
+├── docs/                  # Architecture, configuration, deployment, ADRs, runbooks and product docs
 ├── firestore.rules        # Firestore security rules
 └── firestore.indexes.json # Composite indexes required by the admin console
 ```
 
 ## Quality checks
 
-Pull requests into `main` run the [CI workflow](.github/workflows/ci.yml): a type check and production build for `api`, `web` and `admin`. Run the same checks in each app before opening a pull request:
+Every push and pull request to `main` runs the [CI workflow](.github/workflows/ci.yml): a type check and production build for `api`, `web` and `admin`. Run the same checks locally before opening a pull request:
 
 ```sh
-npm run type-check && npm run build
+npm run typecheck && npm run build  # in each of api/, web/ and admin/
 ```
 
 ## Deployment
 
-Each app deploys independently on push to `main` when its own folder changes: [`deploy-web.yml`](.github/workflows/deploy-web.yml), [`deploy-admin.yml`](.github/workflows/deploy-admin.yml) and [`deploy-api.yml`](.github/workflows/deploy-api.yml). The build runs on GitHub Actions (the host is too constrained to build reliably), and the artefact is shipped over SSH and restarted under Passenger. The three workflows share a concurrency group so they never compete for the host.
+Each app deploys independently on push to `main` when its own folder changes. Builds run on GitHub Actions and the artefact is shipped to the host over SSH and restarted under Passenger.
 
-Server access details are held in GitHub Actions secrets. First-time setup, environment variables, Firestore rules and indexes, and rollback are covered in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Setup, secrets and post-deployment checks are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To release or roll back, follow the [runbooks](docs/runbooks/README.md).
 
 ## Documentation
 
+All documentation lives in [`docs/`](docs/README.md), using the same layout in every STTPS repository.
+
 | Document | Covers |
 | --- | --- |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | As-built architecture, hosting, prerequisites and deploy process |
-| [PRD.md](docs/PRD.md) | Product requirements |
-| [TRD.md](docs/TRD.md) | Technical requirements |
-| [App-Flow.md](docs/App-Flow.md) | User journeys and application flow |
-| [Backend-Schema.md](docs/Backend-Schema.md) | Data model |
-| [UI-UX-Design-Brief.md](docs/UI-UX-Design-Brief.md) | Design brief |
-| [Implementation-Plan.md](docs/Implementation-Plan.md) | Phased delivery plan |
-| [ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Long-term architecture and roadmap |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system is built and how data flows |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables and configuration files |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Hosting, the delivery pipeline and first-time setup |
+| [adr/](docs/adr/README.md) | Architecture decision records |
+| [runbooks/](docs/runbooks/README.md) | Release and rollback procedures |
+
+Product and reference documents for this project are listed in the [documentation index](docs/README.md).
 
 ## Releases and versioning
 
-The project follows [Semantic Versioning](https://semver.org). Releases are tagged `vX.Y.Z` and published on the [Releases](https://github.com/saadmaz/STTPS-ERP/releases) page; versions below `1.0.0` are pre-production. Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+The project follows [Semantic Versioning](https://semver.org). Each release is tagged `vX.Y.Z` and published on the [Releases](https://github.com/saadmaz/STTPS-ERP/releases) page. Versions below `1.0.0` are pre-production. Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md), and the release procedure is in [docs/runbooks/release.md](docs/runbooks/release.md).
 
 ## Contributing
 

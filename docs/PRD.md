@@ -1377,7 +1377,7 @@ Generate invoices from approved timesheets and milestones.
 - `build` — TypeScript compile + Next.js build (depends on `^build` for shared packages)
 - `dev` — Development servers (persistent, no cache)
 - `lint` — ESLint
-- `type-check` — TypeScript type checking
+- `typecheck` — TypeScript type checking
 
 ### 20.5 Environment Variables
 
