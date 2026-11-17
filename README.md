@@ -229,7 +229,7 @@ npm run typecheck && npm run build  # in each of api/, web/ and admin/
 
 | Environment | Branch | URL | Status |
 | --- | --- | --- | --- |
-| Development | `develop` | [dev.erp.sttps.co](https://dev.erp.sttps.co) | <img alt="development" src="https://img.shields.io/github/deployments/saadmaz/STTPS-ERP/development?style=flat-square&label=development&labelColor=111827"> |
+| Development | `develop` | [dev.erp.sttps.co](https://dev.erp.sttps.co) | <img alt="development: awaiting host setup" src="https://img.shields.io/badge/development-awaiting%20host%20setup-6b7280?style=flat-square&labelColor=111827"> |
 | Production | `main` | [erp.sttps.co](https://erp.sttps.co) | <img alt="production" src="https://img.shields.io/github/deployments/saadmaz/STTPS-ERP/production?style=flat-square&label=production&labelColor=111827"> |
 
 ```mermaid
