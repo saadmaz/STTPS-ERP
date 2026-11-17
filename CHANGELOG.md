@@ -8,6 +8,10 @@ Versions below `1.0.0` are pre-production.
 
 ## [Unreleased]
 
+### Added
+
+- Development and production environments: `develop` deploys to development and `main` to production, through one Deploy workflow and GitHub Environments with per-environment settings.
+
 ## [0.1.0] - 2026-11-16
 
 First pre-production release. The platform and identity layer is complete; domain modules are being ported to Firestore.
