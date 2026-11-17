@@ -1,5 +1,8 @@
 # Backend Schema — STTPS ERP
 
+<!-- nav -->
+<sub><a href="../README.md">Project README</a> · <a href="README.md">Documentation index</a></sub>
+
 > Source of truth for the database schema, all DTO shapes, and every REST endpoint.
 > Base path: `/api/v1` · Auth: `Authorization: Bearer <access_token>` + `x-company-id: <companyId>` header (all protected routes).
 
