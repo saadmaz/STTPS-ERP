@@ -9,3 +9,7 @@ dist
 coverage
 *.tsbuildinfo
 .DS_Store
+
+# Cloudflare build output
+.open-next/
+.wrangler/

@@ -1,0 +1,19 @@
+{
+  // Cloudflare Workers configuration for the STTPS ERP admin console
+  // (admin.erp.sttps.co), built with @opennextjs/cloudflare. Deploys run from
+  // .github/workflows/deploy.yml.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sttps-erp-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  "env": {
+    // `wrangler deploy --env development` publishes a separate Worker.
+    "development": { "name": "sttps-erp-admin-development" }
+  }
+}

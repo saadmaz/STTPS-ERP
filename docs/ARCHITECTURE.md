@@ -16,7 +16,7 @@ flowchart LR
   API -- firebase-admin --> Firestore[("Cloud Firestore")]
 ```
 
-Three standalone applications with no shared packages. Each has its own `package.json`, lockfile and build, so a broken build in one never blocks the others.
+Three standalone applications with no shared packages, all on Cloudflare: `web` and `admin` on Workers through OpenNext, `api` in a Cloudflare Container behind a Worker. Each has its own `package.json`, lockfile and build, so a broken build in one never blocks the others.
 
 | App | Technology | Production | Local port |
 | --- | --- | --- | --- |
