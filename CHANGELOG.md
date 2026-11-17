@@ -8,6 +8,12 @@ Versions below `1.0.0` are pre-production.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
+### Added
+
+- Development and production environments: `develop` deploys to development and `main` to production, through one Deploy workflow and GitHub Environments with per-environment settings.
+
 ## [0.1.0] - 2026-11-16
 
 First pre-production release. The platform and identity layer is complete; domain modules are being ported to Firestore.
@@ -33,5 +39,6 @@ First pre-production release. The platform and identity layer is complete; domai
 - Next.js upgraded from 15.1.4 to 15.5.29 in `web` and `admin`, closing critical advisories, and semver-compatible dependency fixes applied across all apps.
 - Server access details removed from the deployment guide.
 
-[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/saadmaz/STTPS-ERP/releases/tag/v0.1.0

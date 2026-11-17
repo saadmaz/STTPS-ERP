@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs ON THE SERVER, launched detached (nohup) by .github/workflows/deploy-api.yml,
+# Runs ON THE SERVER, launched detached (nohup) by .github/workflows/deploy.yml,
 # against a pre-built `dist/` shipped from the CI runner (not built here —
 # see that workflow for why). Only needs production dependencies (no
 # typescript/@nestjs/cli/webpack — dist/ is already compiled JS), which

@@ -8,7 +8,7 @@ One platform for identity, companies, finance, inventory, procurement, sales, ma
 
 [![App](https://img.shields.io/badge/app-erp.sttps.co-374151?style=flat-square&labelColor=111827)](https://erp.sttps.co)
 [![CI](https://github.com/saadmaz/STTPS-ERP/actions/workflows/ci.yml/badge.svg)](https://github.com/saadmaz/STTPS-ERP/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0-374151?style=flat-square&labelColor=111827)](https://github.com/saadmaz/STTPS-ERP/releases)
+[![Version](https://img.shields.io/badge/version-v0.2.0-374151?style=flat-square&labelColor=111827)](https://github.com/saadmaz/STTPS-ERP/releases)
 ![License](https://img.shields.io/badge/license-proprietary-374151?style=flat-square&labelColor=111827)
 
 [**erp.sttps.co**](https://erp.sttps.co) · [Documentation](docs/README.md) · [Report a bug](https://github.com/saadmaz/STTPS-ERP/issues/new?template=bug_report.yml) · [Request a change](https://github.com/saadmaz/STTPS-ERP/issues/new?template=feature_request.yml)
@@ -138,9 +138,14 @@ npm run typecheck && npm run build  # in each of api/, web/ and admin/
 
 ## Deployment
 
-Each app deploys independently on push to `main` when its own folder changes. Builds run on GitHub Actions and the artefact is shipped to the host over SSH and restarted under Passenger.
+| Environment | Branch | URL |
+| --- | --- | --- |
+| Development | `develop` | [dev.erp.sttps.co](https://dev.erp.sttps.co) |
+| Production | `main` | [erp.sttps.co](https://erp.sttps.co) |
 
-Setup, secrets and post-deployment checks are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To release or roll back, follow the [runbooks](docs/runbooks/README.md).
+The Deploy workflow builds on GitHub Actions and ships each changed app over SSH to Passenger. Work merges into `develop` and deploys to development; a release pull request from `develop` into `main` deploys to production.
+
+Environments, setup, secrets and post-deployment checks are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To release or roll back, follow the [runbooks](docs/runbooks/README.md).
 
 ## Documentation
 
