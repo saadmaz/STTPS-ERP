@@ -116,7 +116,7 @@ flowchart LR
 
 | App | Technology | Local port |
 | --- | --- | --- |
-| `web/` | Next.js 15 (App Router), React 19, TanStack Query, Zustand, Tailwind CSS | 3000 |
+| `web/` | Next.js 15 (App Router), React 19, TanStack Query, Tailwind CSS | 3000 |
 | `admin/` | Next.js 15 (App Router), React 19, Tailwind CSS | 3002 |
 | `api/` | NestJS 10, Passport JWT, Swagger, `firebase-admin` (Firestore) | 3001 |
 
