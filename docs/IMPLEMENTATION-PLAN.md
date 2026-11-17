@@ -1,5 +1,8 @@
 # Implementation Plan — STTPS ERP
 
+<!-- nav -->
+<sub><a href="../README.md">Project README</a> · <a href="README.md">Documentation index</a></sub>
+
 > **As of:** May 2026  
 > **Current version:** v0.7.0 — Phase 7 complete  
 > **Stack:** NestJS 10 · Next.js 15 · Prisma 6 · PostgreSQL 16 · Redis 7 · GCP  

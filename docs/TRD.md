@@ -1,4 +1,7 @@
 # Technical Requirements Document (TRD)
+
+<!-- nav -->
+<sub><a href="../README.md">Project README</a> · <a href="README.md">Documentation index</a></sub>
 ## STTPS ERP Platform
 
 **Version**: 1.0  
