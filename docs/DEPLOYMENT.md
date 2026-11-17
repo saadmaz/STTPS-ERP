@@ -16,6 +16,9 @@ Development deploys are switched on per repository by setting the `DEVELOPMENT_E
 
 ### Setting up development
 
+Once development is live, replace the grey development badge in the README Deployment table with the live status badge:
+`https://img.shields.io/github/deployments/saadmaz/STTPS-ERP/development?style=flat-square&label=development&labelColor=111827`.
+
 cPanel: create `dev.erp.sttps.co`, `dev.admin.erp.sttps.co` and `dev.api.erp.sttps.co` as Node.js apps; set development-environment secrets for `WEB_NEXT_PUBLIC_API_URL`, `ADMIN_NEXT_PUBLIC_API_URL` and a separate `api/.env` on the server.
 
 ### Promotion
