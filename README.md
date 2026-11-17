@@ -116,11 +116,11 @@ flowchart LR
 
 | App | Technology | Local port |
 | --- | --- | --- |
-| `web/` | Next.js 15 (App Router), React 19, TanStack Query, Zustand, Tailwind CSS | 3000 |
+| `web/` | Next.js 15 (App Router), React 19, TanStack Query, Tailwind CSS | 3000 |
 | `admin/` | Next.js 15 (App Router), React 19, Tailwind CSS | 3002 |
 | `api/` | NestJS 10, Passport JWT, Swagger, `firebase-admin` (Firestore) | 3001 |
 
-All three run on Node.js 22 under Phusion Passenger on cPanel hosting.
+All three run on Node.js 22 and are moving to Cloudflare: `web` and `admin` to Workers, `api` to Containers.
 
 </details>
 
@@ -155,8 +155,8 @@ Fill in each file from its `.env.example`. Seed a development Firestore project 
 | Command | `api` | `web` / `admin` |
 | --- | --- | --- |
 | `npm run dev` | NestJS in watch mode | Next.js dev server |
-| `npm run build` | Compile to `dist/` | Standalone production build |
-| `npm start` | Run the compiled API | Run the production server (`start.mjs`) |
+| `npm run build` | Compile to `dist/` | Production build |
+| `npm start` | Run the compiled API | Serve the production build (`next start`) |
 | `npm run typecheck` | `tsc --noEmit` | `tsc --noEmit` |
 | `npm run seed:firestore` | Seed Firestore with platform data | |
 
@@ -199,8 +199,7 @@ Where each value is set, and which are secret: [docs/CONFIGURATION.md](docs/CONF
 ├── .github/workflows/     # CI, plus one deploy workflow per app
 ├── api/                   # NestJS API: auth, tenant, company, user, admin and domain modules
 │   ├── prisma/            # Reference data model for modules not yet ported (not connected)
-│   ├── scripts/           # Firestore seeding
-│   └── deploy.sh          # Server-side deploy script
+│   └── scripts/           # Firestore seeding
 ├── web/                   # Staff application: dashboard and every domain module
 ├── admin/                 # Platform admin console: tenants, companies, users and roles
 ├── docs/                  # Architecture, configuration, deployment, ADRs, runbooks and product docs
@@ -240,7 +239,8 @@ flowchart LR
   M -- auto deploy --> PROD(["Production"])
 ```
 
-The Deploy workflow builds on GitHub Actions and ships each changed app over SSH to Passenger. Environments, setup, secrets and post-deployment checks are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+> [!IMPORTANT]
+> Hosting is moving to Cloudflare and the ERP is not in production yet, so nothing deploys automatically. The plan, environments and secrets are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 > [!TIP]
 > To ship or undo a release, follow the [release](docs/runbooks/release.md) and [rollback](docs/runbooks/rollback.md) runbooks.

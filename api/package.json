@@ -20,7 +20,6 @@
     "build": "nest build",
     "start": "node dist/main",
     "seed:firestore": "tsx scripts/seed-firestore.ts",
-    "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
