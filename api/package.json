@@ -1,6 +1,6 @@
 {
   "name": "sttps-api",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "STTPS ERP API: authentication, multi-tenancy and ERP domain services (NestJS, Firestore)",
   "repository": {
     "type": "git",
