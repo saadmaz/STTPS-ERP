@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { eamApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Wrench, AlertTriangle, ClipboardList, Cpu } from "lucide-react";
+import { Wrench, AlertTriangle, ClipboardList } from "lucide-react";
 import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 import { clsx } from "clsx";

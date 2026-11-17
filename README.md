@@ -120,7 +120,7 @@ flowchart LR
 | `admin/` | Next.js 15 (App Router), React 19, Tailwind CSS | 3002 |
 | `api/` | NestJS 10, Passport JWT, Swagger, `firebase-admin` (Firestore) | 3001 |
 
-All three run on Node.js 22 and are moving to Cloudflare: `web` and `admin` to Workers, `api` to Containers.
+All three run on Cloudflare: `web` and `admin` on Workers through OpenNext, and `api` in a Cloudflare Container.
 
 </details>
 
@@ -157,6 +157,8 @@ Fill in each file from its `.env.example`. Seed a development Firestore project 
 | `npm run dev` | NestJS in watch mode | Next.js dev server |
 | `npm run build` | Compile to `dist/` | Production build |
 | `npm start` | Run the compiled API | Serve the production build (`next start`) |
+| `npm run cf:preview` | | Build with OpenNext and run on Cloudflare's runtime |
+| `npm run deploy` / `cf:deploy` | Build and deploy to Cloudflare | Build and deploy to Cloudflare |
 | `npm run typecheck` | `tsc --noEmit` | `tsc --noEmit` |
 | `npm run seed:firestore` | Seed Firestore with platform data | |
 
@@ -196,7 +198,7 @@ Where each value is set, and which are secret: [docs/CONFIGURATION.md](docs/CONF
 
 ```
 .
-├── .github/workflows/     # CI, plus one deploy workflow per app
+├── .github/workflows/     # CI and the Cloudflare deploy
 ├── api/                   # NestJS API: auth, tenant, company, user, admin and domain modules
 │   ├── prisma/            # Reference data model for modules not yet ported (not connected)
 │   └── scripts/           # Firestore seeding
@@ -213,10 +215,10 @@ Where each value is set, and which are secret: [docs/CONFIGURATION.md](docs/CONF
 
 ## Quality checks
 
-Every pull request into `develop` or `main` runs the [CI workflow](.github/workflows/ci.yml): a type check and production build for `api`, `web` and `admin`. Pull requests merge only when CI is green.
+Every pull request into `develop` or `main` runs the [CI workflow](.github/workflows/ci.yml): lint, type check and production build for `api`, `web` and `admin`. Pull requests merge only when CI is green.
 
 ```sh
-npm run typecheck && npm run build  # in each of api/, web/ and admin/
+npm run lint && npm run typecheck && npm run build  # in each of api/, web/ and admin/
 ```
 
 > [!IMPORTANT]
@@ -240,7 +242,7 @@ flowchart LR
 ```
 
 > [!IMPORTANT]
-> Hosting is moving to Cloudflare and the ERP is not in production yet, so nothing deploys automatically. The plan, environments and secrets are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+> The ERP is set up for Cloudflare and is not in production yet. Production deploys switch on with the `CLOUDFLARE_ENABLED` variable. Setup, environments and secrets are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 > [!TIP]
 > To ship or undo a release, follow the [release](docs/runbooks/release.md) and [rollback](docs/runbooks/rollback.md) runbooks.

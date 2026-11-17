@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Search, Loader2, X, Building2 } from "lucide-react";
+import { Plus, Search, Loader2, X } from "lucide-react";
 import { clsx } from "clsx";
 import { format } from "date-fns";
 

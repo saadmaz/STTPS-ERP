@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { authApi, companiesApi } from "./api";
+import { authApi } from "./api";
 
 interface Company {
   id: string;

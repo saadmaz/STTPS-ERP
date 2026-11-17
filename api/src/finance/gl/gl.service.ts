@@ -205,7 +205,7 @@ export class GlService {
     });
   }
 
-  async voidJournal(id: string, tenantId: string, voidedBy: string) {
+  async voidJournal(id: string, tenantId: string, _voidedBy: string) {
     const journal = await this.getJournal(id, tenantId);
 
     if (journal.status !== "POSTED") {
@@ -268,10 +268,6 @@ export class GlService {
   // ─── Dashboard Stats ──────────────────────────────────────────
 
   async getDashboardStats(tenantId: string, companyId: string) {
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const startOfYear = new Date(today.getFullYear(), 0, 1);
-
     const [
       totalJournals,
       postedJournals,

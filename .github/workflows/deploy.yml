@@ -1,0 +1,160 @@
+# Deploys the ERP to Cloudflare: api runs in a Cloudflare Container behind a
+# Worker; web and admin run on Workers through OpenNext. Only the apps whose
+# folder changed are deployed, in order: api, web, admin.
+# main deploys to production once the CLOUDFLARE_ENABLED repository variable is
+# "true"; develop deploys to development once DEVELOPMENT_ENABLED is "true".
+name: Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changes
+    if: >-
+      (github.ref_name == 'main' && vars.CLOUDFLARE_ENABLED == 'true') ||
+      (github.ref_name == 'develop' && vars.DEVELOPMENT_ENABLED == 'true')
+    runs-on: ubuntu-24.04
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Detect changed applications
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api: ["api/**", ".github/workflows/deploy.yml"]
+            web: ["web/**", ".github/workflows/deploy.yml"]
+            admin: ["admin/**", ".github/workflows/deploy.yml"]
+
+  api:
+    name: ${{ github.ref_name == 'main' && 'Production' || 'Development' }} (api)
+    needs: changes
+    if: ${{ !failure() && !cancelled() && needs.changes.result == 'success' && (needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      url: ${{ vars.APP_URL }}
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: api
+          command: deploy ${{ github.ref_name == 'develop' && '--env development' || '' }}
+          secrets: |
+            FIREBASE_PROJECT_ID
+            FIREBASE_CLIENT_EMAIL
+            FIREBASE_PRIVATE_KEY
+            JWT_SECRET
+
+  web:
+    name: ${{ github.ref_name == 'main' && 'Production' || 'Development' }} (web)
+    needs: [changes, api]
+    if: ${{ !failure() && !cancelled() && needs.changes.result == 'success' && (needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      url: ${{ vars.APP_URL }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and deploy with OpenNext
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.WEB_NEXT_PUBLIC_API_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx opennextjs-cloudflare build
+          npx opennextjs-cloudflare deploy ${{ github.ref_name == 'develop' && '--env development' || '' }}
+
+  admin:
+    name: ${{ github.ref_name == 'main' && 'Production' || 'Development' }} (admin)
+    needs: [changes, web]
+    if: ${{ !failure() && !cancelled() && needs.changes.result == 'success' && (needs.changes.outputs.admin == 'true' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      url: ${{ vars.APP_URL }}
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and deploy with OpenNext
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.ADMIN_NEXT_PUBLIC_API_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx opennextjs-cloudflare build
+          npx opennextjs-cloudflare deploy ${{ github.ref_name == 'develop' && '--env development' || '' }}

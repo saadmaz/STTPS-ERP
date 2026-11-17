@@ -1,0 +1,33 @@
+{
+  // Cloudflare configuration for the STTPS ERP API (api.erp.sttps.co): a
+  // Worker that forwards every request to the NestJS server in a Cloudflare
+  // Container. Deploys run from .github/workflows/deploy.yml.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sttps-erp-api",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "containers": [{ "class_name": "ApiServer", "image": "./Dockerfile", "max_instances": 2 }],
+  "durable_objects": { "bindings": [{ "name": "API_SERVER", "class_name": "ApiServer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ApiServer"] }],
+  "vars": {
+    "JWT_EXPIRES_IN": "15m",
+    "FRONTEND_URL": "https://erp.sttps.co",
+    "ADMIN_URL": "https://admin.erp.sttps.co"
+  },
+  "observability": { "enabled": true },
+  "env": {
+    // `wrangler deploy --env development` publishes a separate Worker and container.
+    "development": {
+      "name": "sttps-erp-api-development",
+      "containers": [{ "class_name": "ApiServer", "image": "./Dockerfile", "max_instances": 1 }],
+      "durable_objects": { "bindings": [{ "name": "API_SERVER", "class_name": "ApiServer" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ApiServer"] }],
+      "vars": {
+        "JWT_EXPIRES_IN": "15m",
+        "FRONTEND_URL": "https://dev.erp.sttps.co",
+        "ADMIN_URL": "https://dev.admin.erp.sttps.co"
+      }
+    }
+  }
+}

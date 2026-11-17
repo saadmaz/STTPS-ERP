@@ -5,9 +5,20 @@ import { useAuth } from "@/lib/auth";
 import { glApi, procurementApi, hrApi, fsmApi } from "@/lib/api";
 import Link from "next/link";
 import {
-  BarChart3, TrendingUp, TrendingDown, Users, ShoppingCart,
-  Factory, Wrench, HardHat, ShieldCheck, Globe, Truck,
-  DollarSign, FileText, ArrowRight, Loader2,
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  ShoppingCart,
+  Factory,
+  Wrench,
+  HardHat,
+  ShieldCheck,
+  Globe,
+  Truck,
+  DollarSign,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 
 function KpiCard({

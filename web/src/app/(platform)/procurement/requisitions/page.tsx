@@ -5,7 +5,7 @@ import { procurementApi, inventoryApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Loader2, X, CheckCircle, ClipboardList } from "lucide-react";
+import { Plus, Loader2, X, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { clsx } from "clsx";
 
