@@ -2,7 +2,7 @@
 
 Target: **erp.sttps.co**, hosted on **Zircon Hosting (cPanel)**, same hosting provider as `pos.polishstation.lk`. This guide follows that project's proven pattern, adapted for three apps instead of one.
 
-**Live server details** (cPanel user `[cpanel-user]`, host `[server-ip]`, SSH port `[ssh-port]`, key `[deploy-key]`):
+**Live server details:** the cPanel username, host, SSH port and deploy key are stored as GitHub Actions secrets and in the team password manager. They are deliberately not written here.
 
 | App     | Subdomain             | Status |
 | ------- | ---------------------- | ------ |
@@ -26,11 +26,11 @@ Three independent, standalone apps — no monorepo tooling, no shared packages. 
 
 Only the platform/identity layer (auth, tenants, companies, users, roles/permissions, the admin console) is live on Firestore today. The other 12 ERP domain modules (finance, inventory, procurement, sales/CRM, manufacturing, HR, EAM, FSM, quality, EHS, projects) are deliberately commented out of `api/src/app.module.ts` pending a documented Phase 2 backlog — `web`'s pages for those modules will show empty/error states until each is ported, which is expected mid-migration, not a bug.
 
-## 2. What you (the user) need to do first
+## 2. Prerequisites before the API goes live
 
 1. **Create a dedicated Firebase project** for STTPS-ERP at console.firebase.google.com (confirmed: not sharing `polish-station-pos`'s project). Enable **Firestore in Native mode**, pick a region.
 2. **Project Settings → Service Accounts → Generate new private key** → gives `project_id` / `client_email` / `private_key`.
-3. **Hand me those three values** (or the downloaded JSON) so I can write `api/.env` on the already-provisioned `api.erp.sttps.co` server over SSH — this is the one remaining blocker before `api` can go live.
+3. **Write those three values into `api/.env`** on the already-provisioned `api.erp.sttps.co` server over SSH (never commit the file or the JSON). This is the one remaining blocker before `api` can go live.
 4. Once live: `firebase deploy --only firestore:rules,firestore:indexes` (from repo root, needs `firebase login` once) to push `firestore.rules`/`firestore.indexes.json` — without the indexes, several admin-console list endpoints will throw a Firestore error on first use (with a direct console link to auto-create the missing index, as a fallback).
 
 ## 3. One-time cPanel setup (per app)

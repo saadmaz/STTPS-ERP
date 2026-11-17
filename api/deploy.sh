@@ -39,7 +39,7 @@ if [ "$NPM_CI_OK" != "true" ]; then
 fi
 # No `prisma generate` here: PrismaModule is never imported by AppModule
 # (api/src/app.module.ts) -- every module that used it is commented out
-# pending the Firestore migration (see DEPLOYMENT.md), so nothing in the
+# pending the Firestore migration (see docs/DEPLOYMENT.md), so nothing in the
 # live app's module graph ever requires @prisma/client at runtime. Running
 # codegen for a client nothing loads was pure wasted risk: it just SIGABRT
 # ("JavaScript heap out of memory", exit 134) under this account's LVE

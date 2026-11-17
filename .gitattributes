@@ -2,3 +2,15 @@
 # them there (`$'\r': command not found`), regardless of the OS this repo
 # is checked out/edited on.
 *.sh text eol=lf
+
+# Everything else: normalise to LF in the repository and working tree.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

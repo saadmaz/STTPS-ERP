@@ -9,7 +9,7 @@ import { CompanyModule } from "./company/company.module";
 import { UserModule } from "./user/user.module";
 // TODO: re-enable once ported to Firestore, see Phase 2 backlog
 // (these still use PrismaService, which is no longer wired into the app —
-// see api/prisma/schema.prisma and DEPLOYMENT.md for why)
+// see api/prisma/schema.prisma and docs/DEPLOYMENT.md for why)
 // import { FinanceModule } from "./finance/finance.module";
 // import { InventoryModule } from "./inventory/inventory.module";
 // import { ProcurementModule } from "./procurement/procurement.module";
