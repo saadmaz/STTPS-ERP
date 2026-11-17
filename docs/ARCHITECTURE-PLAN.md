@@ -8,7 +8,7 @@
 > Elasticsearch, microservices, 13 module suites, etc.) and predates the
 > current codebase. **It does not describe what's actually deployed today.**
 > The real, current setup is three standalone apps (`web/`, `admin/`, `api/`)
-> on Firebase Firestore, deployed to Zircon cPanel hosting — see
+> on Firebase Firestore, moving to Cloudflare — see
 > [DEPLOYMENT.md](DEPLOYMENT.md) for the architecture and deploy process
 > that's actually in effect. Treat the rest of this file as roadmap, not
 > as-built documentation.
