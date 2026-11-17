@@ -31,6 +31,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- Shared-hosting deployment: the SSH deploy workflow, Passenger start files for `web` and `admin`, the server-side deploy script, Next.js standalone output and the `dotenv` dependency it needed. Hosting moves to Cloudflare.
+
 ## [0.2.3] - 2026-11-17
 
 ### Changed

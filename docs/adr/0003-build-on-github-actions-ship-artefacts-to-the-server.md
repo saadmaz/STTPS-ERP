@@ -5,7 +5,7 @@
 
 | Status | Date |
 | --- | --- |
-| Accepted | 2026-11-16 |
+| Superseded by [ADR-0004](0004-host-on-cloudflare.md) | 2026-11-16 |
 
 ## Decision
 
