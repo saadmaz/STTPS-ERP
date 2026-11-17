@@ -4,7 +4,7 @@
 
 <img src=".github/assets/banner.svg" alt="STTPS ERP: Multi-tenant enterprise resource planning for the STTPS group." width="100%">
 
-<br/><br/>
+<br/>
 
 <p><strong>One platform for identity, companies, finance, inventory, procurement, sales, manufacturing, HR, assets, field service, quality, EHS and projects across every STTPS business.</strong></p>
 
@@ -14,14 +14,14 @@
 <a href="https://github.com/saadmaz/STTPS-ERP/commits/develop"><img alt="Last commit" src="https://img.shields.io/github/last-commit/saadmaz/STTPS-ERP/develop?style=flat-square&labelColor=111827&color=374151"></a>
 <img alt="License" src="https://img.shields.io/badge/license-proprietary-374151?style=flat-square&labelColor=111827">
 
-<br/><br/>
+<br/>
 
 <a href="https://erp.sttps.co"><img alt="Visit erp.sttps.co" src="https://img.shields.io/badge/Visit%20erp.sttps.co-111827?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
 <a href="docs/README.md"><img alt="Documentation" src="https://img.shields.io/badge/Documentation-111827?style=for-the-badge&logo=readthedocs&logoColor=white"></a>
 <a href="https://github.com/saadmaz/STTPS-ERP/issues/new?template=bug_report.yml"><img alt="Report a bug" src="https://img.shields.io/badge/Report%20a%20bug-111827?style=for-the-badge&logo=github&logoColor=white"></a>
 <a href="https://github.com/saadmaz/STTPS-ERP/issues/new?template=feature_request.yml"><img alt="Request a change" src="https://img.shields.io/badge/Request%20a%20change-111827?style=for-the-badge&logo=github&logoColor=white"></a>
 
-<br/><br/>
+<br/>
 
 <a href="#about">About</a> ·
 <a href="#features">Features</a> ·
@@ -59,7 +59,7 @@
 
 STTPS ERP is the operating platform for the STTPS group of companies. It is multi-tenant from the ground up: each tenant holds one or more companies, and every user, role and permission is scoped to them.
 
-| | |
+| At a glance | |
 | --- | --- |
 | **Organisation** | STTPS (Pvt) Ltd |
 | **Status** | Pre-production: platform layer built, domain modules being ported |

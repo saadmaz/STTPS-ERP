@@ -1,4 +1,7 @@
 # STTPS — Enterprise ERP Platform
+
+<!-- nav -->
+<sub><a href="../README.md">Project README</a> · <a href="README.md">Documentation index</a></sub>
 ## Complete Architecture & Implementation Plan
 
 > **This document describes the long-term product vision** (GCP/GKE, Kafka,

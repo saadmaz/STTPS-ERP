@@ -1,5 +1,8 @@
 # STTPS ERP — UI/UX Design Brief
 
+<!-- nav -->
+<sub><a href="../README.md">Project README</a> · <a href="README.md">Documentation index</a></sub>
+
 > Ground-truth reference extracted directly from source code. Every class, color, and pattern documented here reflects what is actually rendered in production, not aspirational specs.
 
 ---
