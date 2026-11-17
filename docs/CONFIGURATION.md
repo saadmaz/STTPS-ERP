@@ -7,7 +7,7 @@
 
 ## api
 
-Copy `api/.env.example` to `api/.env`. On the server the file is placed manually and never committed.
+Copy `api/.env.example` to `api/.env` for local work; never commit it. In Cloudflare these values are runtime secrets of the API container.
 
 | Variable | Purpose |
 | --- | --- |

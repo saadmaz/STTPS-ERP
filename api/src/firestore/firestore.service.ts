@@ -54,11 +54,9 @@ export class FirestoreService implements OnModuleInit {
     // of just omitting them, which Prisma's equivalent partial-update calls
     // never did.
     //
-    // preferRest: this host (Zircon cPanel/LiteSpeed, same as
-    // polish-station-pos) breaks long-lived gRPC/HTTP2 outbound connections
-    // the Firestore SDK uses by default — every read stalled 40-90s and
-    // died as a 408 in that sibling project until REST mode was forced.
-    // Applying it here from day one.
+    // preferRest: plain HTTPS requests instead of long-lived gRPC/HTTP2
+    // connections, which serverless and shared hosts often break or throttle
+    // (reads stalled 40-90s in polish-station-pos before REST was forced).
     this._db.settings({
       ignoreUndefinedProperties: true,
       ...(usingEmulator ? {} : { preferRest: true }),

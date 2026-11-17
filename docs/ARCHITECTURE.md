@@ -16,11 +16,11 @@ flowchart LR
   API -- firebase-admin --> Firestore[("Cloud Firestore")]
 ```
 
-Three standalone applications with no shared packages. Each has its own `package.json`, lockfile and deploy workflow, so a broken build in one never blocks the others.
+Three standalone applications with no shared packages. Each has its own `package.json`, lockfile and build, so a broken build in one never blocks the others.
 
 | App | Technology | Production | Local port |
 | --- | --- | --- | --- |
-| `web/` | Next.js 15 (App Router), React 19, TanStack Query, Zustand | `erp.sttps.co` | 3000 |
+| `web/` | Next.js 15 (App Router), React 19, TanStack Query | `erp.sttps.co` | 3000 |
 | `admin/` | Next.js 15 (App Router), React 19 | `admin.erp.sttps.co` | 3002 |
 | `api/` | NestJS 10, Passport JWT, Swagger, `firebase-admin` | `api.erp.sttps.co` | 3001 |
 

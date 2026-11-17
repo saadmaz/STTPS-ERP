@@ -1,6 +1,6 @@
 {
   "name": "sttps-api",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "STTPS ERP API: authentication, multi-tenancy and ERP domain services (NestJS, Firestore)",
   "repository": {
     "type": "git",
@@ -20,7 +20,6 @@
     "build": "nest build",
     "start": "node dist/main",
     "seed:firestore": "tsx scripts/seed-firestore.ts",
-    "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

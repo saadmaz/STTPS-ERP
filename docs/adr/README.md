@@ -18,4 +18,5 @@ An architecture decision record (ADR) captures one significant technical decisio
 | --- | --- | --- |
 | [0001](0001-three-standalone-applications-instead-of-a-monorepo.md) | Three standalone applications instead of a monorepo | Accepted |
 | [0002](0002-cloud-firestore-instead-of-postgresql.md) | Cloud Firestore instead of PostgreSQL | Accepted |
-| [0003](0003-build-on-github-actions-ship-artefacts-to-the-server.md) | Build on GitHub Actions, ship artefacts to the server | Accepted |
+| [0003](0003-build-on-github-actions-ship-artefacts-to-the-server.md) | Build on GitHub Actions, ship artefacts to the server | Superseded |
+| [0004](0004-host-on-cloudflare.md) | Host on Cloudflare | Accepted |
