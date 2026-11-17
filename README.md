@@ -138,9 +138,14 @@ npm run typecheck && npm run build  # in each of api/, web/ and admin/
 
 ## Deployment
 
-Each app deploys independently on push to `main` when its own folder changes. Builds run on GitHub Actions and the artefact is shipped to the host over SSH and restarted under Passenger.
+| Environment | Branch | URL |
+| --- | --- | --- |
+| Development | `develop` | [dev.erp.sttps.co](https://dev.erp.sttps.co) |
+| Production | `main` | [erp.sttps.co](https://erp.sttps.co) |
 
-Setup, secrets and post-deployment checks are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To release or roll back, follow the [runbooks](docs/runbooks/README.md).
+The Deploy workflow builds on GitHub Actions and ships each changed app over SSH to Passenger. Work merges into `develop` and deploys to development; a release pull request from `develop` into `main` deploys to production.
+
+Environments, setup, secrets and post-deployment checks are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To release or roll back, follow the [runbooks](docs/runbooks/README.md).
 
 ## Documentation
 

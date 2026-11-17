@@ -1,5 +1,26 @@
 # Deployment Guide — STTPS ERP
 
+## Environments
+
+| Environment | Branch | URL | Deploys |
+| --- | --- | --- | --- |
+| `development` | `develop` | [dev.erp.sttps.co](https://dev.erp.sttps.co) | Automatically on every merge into `develop` |
+| `production` | `main` | [erp.sttps.co](https://erp.sttps.co) | Automatically when `develop` is promoted to `main` by a release pull request |
+
+The Deploy workflow builds on GitHub Actions and ships each changed app over SSH to Passenger. Each environment is a GitHub Environment with its own variables (`APP_URL` and host settings) and secrets, so one workflow serves both. Production accepts deployments from `main` only; development from `develop` only.
+
+Development deploys are switched on per repository by setting the `DEVELOPMENT_ENABLED` repository variable to `true` once the development host exists. Until then, `develop` is built and tested by CI but not deployed.
+
+### Setting up development
+
+cPanel: create `dev.erp.sttps.co`, `dev.admin.erp.sttps.co` and `dev.api.erp.sttps.co` as Node.js apps; set development-environment secrets for `WEB_NEXT_PUBLIC_API_URL`, `ADMIN_NEXT_PUBLIC_API_URL` and a separate `api/.env` on the server.
+
+### Promotion
+
+1. Feature branches merge into `develop` and deploy to development.
+2. When development is verified, open a release pull request from `develop` into `main` (see [runbooks/release.md](runbooks/release.md)).
+3. Merging it deploys to production.
+
 Target: **erp.sttps.co**, hosted on **Zircon Hosting (cPanel)**, same hosting provider as `pos.polishstation.lk`. This guide follows that project's proven pattern, adapted for three apps instead of one.
 
 **Live server details:** the cPanel username, host, SSH port and deploy key are stored as GitHub Actions secrets and in the team password manager. They are deliberately not written here.
@@ -96,7 +117,7 @@ Passenger does not source `.env` files itself. `web/start.mjs` and `admin/start.
 
 ## 6. CI/CD — GitHub Actions (SSH-based, auto-deploy on push to `main`)
 
-`.github/workflows/deploy-web.yml`, `deploy-admin.yml`, `deploy-api.yml` are already in this repo. Each triggers only on changes to its own folder, runs a type-check + build as a validation gate, then SSHes in and does the real `git pull && npm ci && npm run build && restart` on the server.
+`.github/workflows/deploy.yml` deploys all three apps. On each push to `main` (production) or `develop` (development) it detects which app folders changed and deploys only those, in order: `api`, then `web`, then `admin`. Each app is type-checked and built on GitHub Actions, shipped to the server over SSH, and restarted under Passenger. Server paths come from the environment variables `API_APP_PATH`, `WEB_APP_PATH` and `ADMIN_APP_PATH`.
 
 **GitHub repo secrets required** (Settings → Secrets and variables → Actions):
 
