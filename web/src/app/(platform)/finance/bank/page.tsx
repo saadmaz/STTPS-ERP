@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Loader2, X, Eye, CreditCard } from "lucide-react";
+import { Plus, Loader2, X, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });

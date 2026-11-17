@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { rolesApi, permissionsApi, type Role } from "@/lib/api";
 import { Plus, Shield, Trash2, Pencil, Users, Loader2, X, Check } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import {  } from "@/lib/utils";
 import { PermissionsMatrix } from "@/components/PermissionsMatrix";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { hrApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Users, Briefcase, Calendar, UserPlus } from "lucide-react";
+import { Users, Calendar, UserPlus } from "lucide-react";
 import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 

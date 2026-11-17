@@ -49,7 +49,7 @@
 | **6** | Release by pull request from `develop` into `main` | The change deploys to production |
 
 ```sh
-npm run typecheck && npm run build  # in each of api/, web/ and admin/
+npm run lint && npm run typecheck && npm run build  # in each of api/, web/ and admin/
 ```
 
 <p align="right"><a href="#top">Back to top ↑</a></p>

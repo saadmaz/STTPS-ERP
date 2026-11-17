@@ -215,10 +215,10 @@ Where each value is set, and which are secret: [docs/CONFIGURATION.md](docs/CONF
 
 ## Quality checks
 
-Every pull request into `develop` or `main` runs the [CI workflow](.github/workflows/ci.yml): a type check and production build for `api`, `web` and `admin`. Pull requests merge only when CI is green.
+Every pull request into `develop` or `main` runs the [CI workflow](.github/workflows/ci.yml): lint, type check and production build for `api`, `web` and `admin`. Pull requests merge only when CI is green.
 
 ```sh
-npm run typecheck && npm run build  # in each of api/, web/ and admin/
+npm run lint && npm run typecheck && npm run build  # in each of api/, web/ and admin/
 ```
 
 > [!IMPORTANT]

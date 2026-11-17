@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { inventoryApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Package, Warehouse, BarChart3, AlertTriangle } from "lucide-react";
+import { Package, Warehouse, BarChart3 } from "lucide-react";
 import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 
