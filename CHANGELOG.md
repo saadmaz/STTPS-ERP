@@ -11,6 +11,10 @@ Versions below `1.0.0` are pre-production.
 
 ## [Unreleased]
 
+### Changed
+
+- README shows the development environment as awaiting host setup until development deploys are enabled.
+
 ## [0.2.1] - 2026-11-17
 
 ### Changed
