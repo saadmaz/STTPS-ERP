@@ -8,7 +8,7 @@ One platform for identity, companies, finance, inventory, procurement, sales, ma
 
 [![App](https://img.shields.io/badge/app-erp.sttps.co-374151?style=flat-square&labelColor=111827)](https://erp.sttps.co)
 [![CI](https://github.com/saadmaz/STTPS-ERP/actions/workflows/ci.yml/badge.svg)](https://github.com/saadmaz/STTPS-ERP/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-v0.1.0-374151?style=flat-square&labelColor=111827)](https://github.com/saadmaz/STTPS-ERP/releases)
+[![Version](https://img.shields.io/badge/version-v0.2.0-374151?style=flat-square&labelColor=111827)](https://github.com/saadmaz/STTPS-ERP/releases)
 ![License](https://img.shields.io/badge/license-proprietary-374151?style=flat-square&labelColor=111827)
 
 [**erp.sttps.co**](https://erp.sttps.co) · [Documentation](docs/README.md) · [Report a bug](https://github.com/saadmaz/STTPS-ERP/issues/new?template=bug_report.yml) · [Request a change](https://github.com/saadmaz/STTPS-ERP/issues/new?template=feature_request.yml)
