@@ -1,6 +1,6 @@
 {
   "name": "sttps-web",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "STTPS ERP staff application: dashboard and ERP domain modules (Next.js)",
   "repository": {
     "type": "git",
