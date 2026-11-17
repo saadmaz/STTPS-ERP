@@ -31,10 +31,19 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-17
+
+### Added
+
+- ESLint in `api`, `web` and `admin` (TypeScript rules, plus Next.js core web vitals for the two front ends), with a `lint` script in each app and a lint step in CI. `any` types are warnings while modules are ported.
+- Cloudflare hosting: `web` and `admin` on Workers through OpenNext, and `api` in a Cloudflare Container behind a Worker, with production and development environments. Production deploys switch on with the `CLOUDFLARE_ENABLED` variable.
+- One Deploy workflow that deploys only the apps that changed, in order: api, web, admin.
+
 ## [0.3.0] - 2026-11-17
 
 ### Removed
 
+- Unused imports and variables flagged by the new lint setup.
 - Unused dependencies in `web` (13) and `admin` (11), including ESLint, which was installed but never configured, and the `lint` scripts that could not run.
 - Shared-hosting deployment: the SSH deploy workflow, Passenger start files for `web` and `admin`, the server-side deploy script, Next.js standalone output and the `dotenv` dependency it needed. Hosting moves to Cloudflare.
 
@@ -88,7 +97,8 @@ First pre-production release. The platform and identity layer is complete; domai
 - Next.js upgraded from 15.1.4 to 15.5.29 in `web` and `admin`, closing critical advisories, and semver-compatible dependency fixes applied across all apps.
 - Server access details removed from the deployment guide.
 
-[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.1...v0.2.2

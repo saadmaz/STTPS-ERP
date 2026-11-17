@@ -223,7 +223,7 @@ export class ManufacturingService {
       throw new BadRequestException('Order must be released before recording production');
     }
 
-    const { producedQty, scrapQty = 0, warehouseId, notes } = dto;
+    const { producedQty, scrapQty = 0, warehouseId, notes: _notes } = dto;
     const newProduced = Number(order.producedQty) + producedQty;
     const newScrap = Number(order.scrapQty) + scrapQty;
     const isComplete = newProduced >= Number(order.plannedQty);

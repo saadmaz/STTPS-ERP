@@ -18,7 +18,7 @@ Closes #
 
 ## Checklist
 
-- [ ] Checks pass locally: `npm run typecheck && npm run build`
+- [ ] Checks pass locally: `npm run lint && npm run typecheck && npm run build`
 - [ ] Checked on a phone-width screen as well as desktop
 - [ ] No secrets, credentials or personal data added
 - [ ] Permissions and data rules reviewed for any new endpoint or collection

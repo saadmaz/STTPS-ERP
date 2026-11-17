@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { procurementApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useState } from "react";
-import { Loader2, Search, Truck } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 export default function SuppliersPage() {
   const { activeCompany } = useAuth();

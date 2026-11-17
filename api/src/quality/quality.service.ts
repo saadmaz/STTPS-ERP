@@ -9,7 +9,6 @@ import {
   CloseNCRDto,
   CreateAuditDto,
   CompleteAuditDto,
-  CreateAuditFindingDto,
 } from './dto/create-quality.dto';
 
 @Injectable()
