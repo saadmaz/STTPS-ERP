@@ -54,7 +54,7 @@ export default function SalesOrdersPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       currency: "USD",

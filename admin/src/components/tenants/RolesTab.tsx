@@ -35,7 +35,7 @@ export function RolesTab({ tenantId }: { tenantId: string }) {
     queryFn: permissionsApi.list,
   });
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
   });
 

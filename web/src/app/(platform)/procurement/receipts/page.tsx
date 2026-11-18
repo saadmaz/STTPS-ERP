@@ -23,13 +23,13 @@ export default function GoodsReceiptsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedPO, setSelectedPO] = useState<any>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     poId: "",
     warehouseId: "",
     number: `GRN-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
     receiptDate: new Date().toISOString().split("T")[0],
     notes: "",
-  });
+  }));
   const [lines, setLines] = useState<any[]>([]);
 
   const { data: grnData, isLoading } = useQuery({

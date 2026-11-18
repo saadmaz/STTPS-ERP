@@ -53,7 +53,7 @@ export default function BankPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AccountForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(accountSchema),
     defaultValues: { currency: "USD" },
   });

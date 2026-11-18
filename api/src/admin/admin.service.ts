@@ -4,12 +4,12 @@ import {
   ConflictException,
   BadRequestException,
 } from "@nestjs/common";
-import { FirestoreService } from "../firestore/firestore.service";
-import { PermissionSyncService } from "../common/permission-sync.service";
-import { COLLECTIONS } from "../firestore/collections";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { PermissionSyncService } from "../common/permission-sync.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
 import {
   CompanyDoc, CompanyUserDoc, PermissionDoc, RoleDoc, TenantDoc, UserDoc, UserRoleDoc,
-} from "../firestore/models";
+} from "../firestore/models.js";
 import {
   CreateTenantDto,
   UpdateTenantDto,
@@ -18,7 +18,7 @@ import {
   CreateRoleDto,
   UpdateRolePermissionsDto,
   AssignUserToCompanyDto,
-} from "./dto/admin.dto";
+} from "./dto/admin.dto.js";
 import * as bcrypt from "bcryptjs";
 
 const PLATFORM_SLUG = "_platform";

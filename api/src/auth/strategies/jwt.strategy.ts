@@ -2,9 +2,9 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { FirestoreService } from "../../firestore/firestore.service";
-import { COLLECTIONS } from "../../firestore/collections";
-import { UserDoc } from "../../firestore/models";
+import { FirestoreService } from "../../firestore/firestore.service.js";
+import { COLLECTIONS } from "../../firestore/collections.js";
+import { UserDoc } from "../../firestore/models.js";
 
 export interface JwtPayload {
   sub: string;

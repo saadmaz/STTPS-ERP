@@ -38,7 +38,7 @@ export default function PriceListsPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { currency: "USD", items: [{ itemId: "", unitPrice: 0, minQty: 0, uom: "EA" }] },
   });

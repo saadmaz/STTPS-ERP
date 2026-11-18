@@ -49,7 +49,7 @@ export default function CustomersPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to create customer"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(customerSchema),
     defaultValues: { currency: "USD", paymentTerms: 30 },
   });

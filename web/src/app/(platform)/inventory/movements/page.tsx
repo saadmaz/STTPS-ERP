@@ -77,7 +77,7 @@ export default function MovementsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<MovementForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(movementSchema),
     defaultValues: { movementType: "RECEIPT", unitCost: 0 },
   });

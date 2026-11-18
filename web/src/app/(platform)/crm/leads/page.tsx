@@ -44,7 +44,7 @@ export default function LeadsPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 

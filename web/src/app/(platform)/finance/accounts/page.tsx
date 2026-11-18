@@ -141,7 +141,7 @@ export default function ChartOfAccountsPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<AccountForm>({
+  } = useForm({
     resolver: zodResolver(accountSchema),
     defaultValues: { type: "ASSET", isPosting: true },
   });

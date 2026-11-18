@@ -27,6 +27,10 @@ function getSafeNext(raw: string | null): string {
   return "/dashboard";
 }
 
+function markSessionCookie() {
+  document.cookie = "sttps_session=1; path=/; max-age=2592000; SameSite=Lax";
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -52,16 +56,16 @@ function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
+  } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@demo.sttps.live", password: "Admin@123" },
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data.email, data.password);
       // Set session cookie so middleware knows user is logged in
-      document.cookie = "sttps_session=1; path=/; max-age=2592000; SameSite=Lax";
+      markSessionCookie();
       router.push(getSafeNext(searchParams.get("next")));
       toast.success("Welcome back!");
     } catch (err: any) {

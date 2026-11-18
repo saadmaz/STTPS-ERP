@@ -82,7 +82,7 @@ export default function BudgetsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed"),
   });
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<BudgetForm>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm({
     resolver: zodResolver(budgetSchema),
     defaultValues: {
       fiscalYear: currentYear,

@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { AdminController } from "./admin.controller";
-import { AdminService } from "./admin.service";
-import { PermissionSyncService } from "../common/permission-sync.service";
+import { AdminController } from "./admin.controller.js";
+import { AdminService } from "./admin.service.js";
+import { PermissionSyncService } from "../common/permission-sync.service.js";
 
 @Module({
   controllers: [AdminController],

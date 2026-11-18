@@ -44,7 +44,7 @@ export default function OpportunitiesPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { stage: "PROSPECTING", probability: 10 },
   });

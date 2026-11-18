@@ -45,13 +45,13 @@ export function InviteUserModal({ tenantId, companies, onClose }: Props) {
     queryFn: () => rolesApi.list(tenantId),
   });
 
-  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { isSuperAdmin: false, roleIds: [] },
   });
 
   const selectedCompanyId = watch("companyId");
-  const selectedRoleIds = watch("roleIds");
+  const selectedRoleIds = watch("roleIds") ?? [];
   const isSuperAdmin = watch("isSuperAdmin");
 
   const toggleRole = (roleId: string) => {

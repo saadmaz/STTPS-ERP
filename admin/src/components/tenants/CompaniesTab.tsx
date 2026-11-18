@@ -29,7 +29,7 @@ export function CompaniesTab({ tenantId }: { tenantId: string }) {
     queryFn: () => companiesApi.list(tenantId),
   });
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { currency: "USD", timezone: "UTC" },
   });

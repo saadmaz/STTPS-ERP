@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
-import { FirestoreService } from "../firestore/firestore.service";
-import { COLLECTIONS } from "../firestore/collections";
-import { CompanyDoc, CompanyUserDoc, RoleDoc, UserDoc, UserRoleDoc } from "../firestore/models";
-import { CreateUserDto } from "./dto/create-user.dto";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
+import { CompanyDoc, CompanyUserDoc, RoleDoc, UserDoc, UserRoleDoc } from "../firestore/models.js";
+import { CreateUserDto } from "./dto/create-user.dto.js";
 import * as bcrypt from "bcryptjs";
 
 @Injectable()

@@ -40,7 +40,7 @@ export default function WarehousesPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<WarehouseForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(warehouseSchema),
   });
 

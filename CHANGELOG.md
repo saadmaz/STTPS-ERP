@@ -35,6 +35,16 @@
 
 - Product blueprint (`docs/BLUEPRINT.md`) and a new phase-based implementation plan covering every blueprint section, replacing the Prisma-era plan.
 
+### Changed
+
+- API upgraded to NestJS 12 (ES modules), firebase-admin 14 and TypeScript 6. `web` and `admin` upgraded to Next.js 16, zod 4 and the flat ESLint config of `eslint-config-next` 16. All three apps report no known vulnerabilities.
+- The unported Prisma modules moved to `api/legacy/` as reference code; Prisma is no longer installed.
+- Dependabot removed; dependencies are now updated directly by maintainers.
+
+### Security
+
+- The staff login form no longer pre-fills demo credentials.
+
 ## [0.4.1] - 2026-11-18
 
 ### Changed

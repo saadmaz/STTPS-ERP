@@ -26,14 +26,14 @@ export default function PurchaseOrdersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     number: `PO-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
     vendorId: "",
     orderDate: new Date().toISOString().split("T")[0],
     expectedDate: "",
     currency: "USD",
     notes: "",
-  });
+  }));
   const [lines, setLines] = useState([{ itemId: "", qty: 1, uom: "EA", unitPrice: 0, lineNumber: 1 }]);
 
   const { data: poData, isLoading } = useQuery({

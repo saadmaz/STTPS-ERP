@@ -25,12 +25,12 @@ export default function RequisitionsPage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   // Simple create form state (no React Hook Form for simplicity of inline table)
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     number: `PR-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
     requestDate: new Date().toISOString().split("T")[0],
     requiredDate: "",
     notes: "",
-  });
+  }));
   const [lines, setLines] = useState([{ itemId: "", qty: 1, uom: "EA", estUnitCost: 0, lineNumber: 1 }]);
 
   const { data: prData, isLoading } = useQuery({

@@ -65,7 +65,7 @@ export default function AssetsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to create asset"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<AssetForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(assetSchema),
     defaultValues: {
       acquisitionDate: new Date().toISOString().split("T")[0],

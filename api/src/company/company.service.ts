@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { FirestoreService } from "../firestore/firestore.service";
-import { COLLECTIONS } from "../firestore/collections";
-import { CompanyDoc, CompanyUserDoc, UserDoc, UserRoleDoc, RoleDoc } from "../firestore/models";
-import { CreateCompanyDto } from "./dto/create-company.dto";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
+import { CompanyDoc, CompanyUserDoc, UserDoc, UserRoleDoc, RoleDoc } from "../firestore/models.js";
+import { CreateCompanyDto } from "./dto/create-company.dto.js";
 
 @Injectable()
 export class CompanyService {

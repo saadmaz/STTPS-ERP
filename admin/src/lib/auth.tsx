@@ -40,7 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { loadUser(); }, [loadUser]);
+  useEffect(() => {
+    // Deferred: loadUser updates state synchronously when there is no token.
+    queueMicrotask(() => void loadUser());
+  }, [loadUser]);
 
   const login = async (email: string, password: string) => {
     const result = await authApi.login(email, password);

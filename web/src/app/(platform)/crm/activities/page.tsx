@@ -38,7 +38,7 @@ export default function ActivitiesPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { type: "CALL", status: "PLANNED" },
   });

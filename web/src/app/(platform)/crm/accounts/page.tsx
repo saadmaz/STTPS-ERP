@@ -32,7 +32,7 @@ export default function AccountsPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 

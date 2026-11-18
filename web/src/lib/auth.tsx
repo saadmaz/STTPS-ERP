@@ -82,11 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const token = sessionStorage.getItem("access_token");
-    if (token) {
-      loadUser();
-    } else {
-      setIsLoading(false);
-    }
+    // Deferred so no state update runs synchronously inside the effect.
+    queueMicrotask(() => (token ? void loadUser() : setIsLoading(false)));
   }, [loadUser]);
 
   const login = async (email: string, password: string) => {

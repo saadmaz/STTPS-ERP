@@ -48,7 +48,7 @@ export default function VendorsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to create vendor"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<VendorForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(vendorSchema),
     defaultValues: { currency: "USD", paymentTerms: 30 },
   });

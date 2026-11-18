@@ -20,9 +20,9 @@ Three standalone applications with no shared packages, all on Cloudflare: `web` 
 
 | App | Technology | Production | Local port |
 | --- | --- | --- | --- |
-| `web/` | Next.js 15 (App Router), React 19, TanStack Query | `erp.sttps.co` | 3000 |
-| `admin/` | Next.js 15 (App Router), React 19 | `admin.erp.sttps.co` | 3002 |
-| `api/` | NestJS 10, Passport JWT, Swagger, `firebase-admin` | `api.erp.sttps.co` | 3001 |
+| `web/` | Next.js 16 (App Router), React 19, TanStack Query | `erp.sttps.co` | 3000 |
+| `admin/` | Next.js 16 (App Router), React 19 | `admin.erp.sttps.co` | 3002 |
+| `api/` | NestJS 12 (ESM), Passport JWT, Swagger, `firebase-admin` | `api.erp.sttps.co` | 3001 |
 
 ## Multi-tenancy
 

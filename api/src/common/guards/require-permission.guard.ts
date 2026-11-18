@@ -1,9 +1,9 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { PERMISSION_KEY } from "../decorators/require-permission.decorator";
-import { FirestoreService } from "../../firestore/firestore.service";
-import { COLLECTIONS } from "../../firestore/collections";
-import { CompanyUserDoc } from "../../firestore/models";
+import { PERMISSION_KEY } from "../decorators/require-permission.decorator.js";
+import { FirestoreService } from "../../firestore/firestore.service.js";
+import { COLLECTIONS } from "../../firestore/collections.js";
+import { CompanyUserDoc } from "../../firestore/models.js";
 
 @Injectable()
 export class RequirePermissionGuard implements CanActivate {

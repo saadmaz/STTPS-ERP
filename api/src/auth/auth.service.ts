@@ -5,11 +5,11 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import { FirestoreService } from "../firestore/firestore.service";
-import { COLLECTIONS } from "../firestore/collections";
-import { CompanyDoc, CompanyUserDoc, RoleDoc, SessionDoc, UserDoc, UserRoleDoc } from "../firestore/models";
-import { LoginDto } from "./dto/login.dto";
-import { RegisterDto } from "./dto/register.dto";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
+import { CompanyDoc, CompanyUserDoc, RoleDoc, SessionDoc, UserDoc, UserRoleDoc } from "../firestore/models.js";
+import { LoginDto } from "./dto/login.dto.js";
+import { RegisterDto } from "./dto/register.dto.js";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 

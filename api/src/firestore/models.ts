@@ -1,5 +1,5 @@
 // Firestore document shapes for the Phase 1 (platform/identity) collections.
-// Field names mirror api/prisma/schema.prisma exactly so JSON responses stay
+// Field names mirror api/legacy/prisma-schema/schema.prisma exactly so JSON responses stay
 // byte-identical to what the Prisma-backed API returned. Dates are stored as
 // ISO strings (not Firestore Timestamp) so they serialize to JSON exactly
 // like Prisma's DateTime did, and still sort correctly with orderBy.

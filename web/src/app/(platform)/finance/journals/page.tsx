@@ -90,7 +90,7 @@ export default function JournalsPage() {
     watch,
     reset,
     formState: { errors },
-  } = useForm<JournalForm>({
+  } = useForm({
     resolver: zodResolver(journalSchema),
     defaultValues: {
       date: new Date().toISOString().split("T")[0],

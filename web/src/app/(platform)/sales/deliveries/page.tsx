@@ -45,7 +45,7 @@ export default function DeliveriesPage() {
     enabled: !!activeCompany,
   });
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       deliveryDate: new Date().toISOString().split("T")[0],

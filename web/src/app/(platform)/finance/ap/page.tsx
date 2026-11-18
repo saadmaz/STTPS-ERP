@@ -95,7 +95,7 @@ export default function ApInvoicesPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed"),
   });
 
-  const { register, handleSubmit, control, watch, reset, setValue, formState: { errors } } = useForm<InvoiceForm>({
+  const { register, handleSubmit, control, watch, reset, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       date: new Date().toISOString().split("T")[0],

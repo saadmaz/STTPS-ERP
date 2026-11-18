@@ -63,7 +63,7 @@ export default function ItemsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to create item"),
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ItemForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(itemSchema),
     defaultValues: { uom: "EA", itemType: "PRODUCT", trackInventory: true, reorderPoint: 0, reorderQty: 0, standardCost: 0, listPrice: 0 },
   });

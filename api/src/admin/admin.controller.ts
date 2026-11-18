@@ -3,13 +3,13 @@ import {
   UseGuards, HttpCode, HttpStatus,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
-import { AdminService } from "./admin.service";
-import { PlatformAdminGuard } from "../common/guards/platform-admin.guard";
+import { AdminService } from "./admin.service.js";
+import { PlatformAdminGuard } from "../common/guards/platform-admin.guard.js";
 import {
   CreateTenantDto, UpdateTenantDto, CreateCompanyDto,
   AdminCreateUserDto, CreateRoleDto, UpdateRolePermissionsDto,
   ToggleSuperAdminDto, AssignUserToCompanyDto,
-} from "./dto/admin.dto";
+} from "./dto/admin.dto.js";
 import { IsString, MinLength } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
