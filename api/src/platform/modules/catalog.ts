@@ -82,7 +82,20 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("org", "exchangeRate", "exchange rates"),
     ],
   }),
-  mod({ key: "workflow", name: "Approvals & Workflow", description: "Configurable approval workflows.", group: "platform", core: true, available: false }),
+  mod({
+    key: "workflow",
+    name: "Approvals & Workflow",
+    description: "Configurable approval workflows, delegation and escalation.",
+    group: "platform",
+    core: true,
+    available: true,
+    permissions: [
+      ...entityPermissions("workflow", "definition", "approval workflows"),
+      ...entityPermissions("workflow", "delegation", "delegations of other users"),
+      { code: "workflow.request.view", name: "View all approval requests", module: "workflow", action: "view" },
+      { code: "workflow.request.manage", name: "Cancel any approval request", module: "workflow", action: "manage" },
+    ],
+  }),
   mod({ key: "documents", name: "Documents", description: "Files, versions and document management.", group: "platform", available: false }),
   mod({ key: "calendar", name: "Calendar", description: "Shared calendars, events and meetings.", group: "platform", available: false }),
 

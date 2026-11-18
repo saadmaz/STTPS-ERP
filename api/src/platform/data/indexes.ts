@@ -37,6 +37,8 @@ export const INDEXES: IndexSpec[] = [
   { collection: "domainEvents", fields: [asc("companyId"), asc("entity"), asc("entityId"), desc("occurredAt")] },
   { collection: "jobs", fields: [asc("status"), asc("runAt")] },
   { collection: "jobs", fields: [asc("status"), asc("leaseUntil")] },
+  { collection: "notifications", fields: [asc("userId"), desc("createdAt")] },
+  { collection: "notifications", fields: [asc("userId"), asc("readAt"), desc("createdAt")] },
 
   // Organisation
   {

@@ -6,13 +6,43 @@ import { JobQueueService } from "./jobs/job-queue.service.js";
 import { EventBusService } from "./events/event-bus.service.js";
 import { ModulesService } from "./modules/modules.service.js";
 import { ModulesController } from "./modules/modules.controller.js";
+import { EmailSender } from "./notifications/email.sender.js";
+import { NotificationsService } from "./notifications/notifications.service.js";
+import { ApprovalsService } from "./approvals/approvals.service.js";
+import { ApprovalDefinitionsService, DelegationsService } from "./approvals/approval-definitions.service.js";
+import {
+  ApprovalDefinitionsController,
+  ApprovalRequestsController,
+  DelegationsAdminController,
+  MyDelegationsController,
+} from "./approvals/approvals.controller.js";
+import { MeController } from "./me/me.controller.js";
 
-const SHARED = [SequenceService, UniqueService, AuditService, JobQueueService, EventBusService, ModulesService];
+const SHARED = [
+  SequenceService,
+  UniqueService,
+  AuditService,
+  JobQueueService,
+  EventBusService,
+  ModulesService,
+  EmailSender,
+  NotificationsService,
+  ApprovalsService,
+  ApprovalDefinitionsService,
+  DelegationsService,
+];
 
 /** Shared kernel available to every domain module without importing it. */
 @Global()
 @Module({
-  controllers: [ModulesController],
+  controllers: [
+    ModulesController,
+    MeController,
+    MyDelegationsController,
+    ApprovalRequestsController,
+    ApprovalDefinitionsController,
+    DelegationsAdminController,
+  ],
   providers: SHARED,
   exports: SHARED,
 })

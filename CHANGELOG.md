@@ -37,6 +37,9 @@
 
 - Platform kernel in the API (`api/src/platform`): company-scoped repository with pagination, archiving and optimistic concurrency; exact money and quantity arithmetic; gap-free document numbering; audit trail service; durable background job queue; transactional domain-event outbox.
 - Organisation module: branches, departments, teams, cost centres, business units, fiscal years with monthly periods (open, soft-closed, locked) and exchange rates, each with audit history, archiving and per-company unique codes.
+- Approval engine (`/workflow`): configurable workflows per record type with conditions, conditional and parallel steps, approvers by user, role, permission or department manager, delegation, timeouts with escalation, and approve, reject, request changes, reassign and cancel. Outcomes are published as `ApprovalCompleted` events.
+- Notification centre (`/me/notifications`): in-app notifications, unread counts, per-category muting, and email delivery through Resend when `RESEND_API_KEY` is set.
+- My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
 - Firestore composite indexes generated from a registry (`npm run indexes`), checked by a test.
 - API test suite on the Firestore emulator (`npm test` in `api/`), run in CI.

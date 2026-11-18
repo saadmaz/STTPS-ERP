@@ -127,8 +127,8 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [ ] Audit trail writes from every mutating service: user, action, entity, id, before/after, reason, IP and device. Includes a viewer in `admin` and on each record.
 
 ### 0.4 Shared services (§3, §22, §24, §34)
-- [ ] Workflow and approval engine: definitions with trigger, conditions (amount, branch, department, category …), sequential and parallel levels, minimum approval count, delegation and substitutes, time limits, escalation, and approve, reject, request changes, reassign. Modules call `approvals.request(entity)` instead of hard-coding approvals.
-- [ ] Notifications: in-app centre (read/unread, mark all, categories, preferences, digests) and email through a provider adapter. SMS, WhatsApp and push adapters come in Phase 6.
+- [x] Workflow and approval engine: definitions with trigger, conditions (amount, branch, department, category …), sequential and parallel levels, minimum approval count, delegation and substitutes, time limits, escalation, and approve, reject, request changes, reassign. Modules call `approvals.request(entity)` instead of hard-coding approvals.
+- [x] Notifications: in-app centre (read/unread, mark all, categories, preferences, digests) and email through a provider adapter. SMS, WhatsApp and push adapters come in Phase 6.
 - [ ] Comments, tags, activity timeline, related-record links: one generic implementation keyed by `entityType` and `entityId`.
 - [ ] Documents and file storage on Cloudflare R2 (presigned upload/download, versioning, metadata, permission-checked access), attachable to any record.
 - [ ] Custom fields per entity type, with validation, list columns and filters.
