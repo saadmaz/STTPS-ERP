@@ -31,6 +31,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Product blueprint (`docs/BLUEPRINT.md`) and a new phase-based implementation plan covering every blueprint section, replacing the Prisma-era plan.
+
 ## [0.4.1] - 2026-11-18
 
 ### Changed

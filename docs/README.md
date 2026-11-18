@@ -27,7 +27,8 @@ Every STTPS repository uses the same documentation layout. Start with the core d
 | [APP-FLOW.md](APP-FLOW.md) | User journeys and application flow |
 | [ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md) | Long-term target architecture and roadmap (not as-built) |
 | [BACKEND-SCHEMA.md](BACKEND-SCHEMA.md) | Data model |
-| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Phased delivery plan |
+| [BLUEPRINT.md](BLUEPRINT.md) | Full product and functional scope |
+| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Phase-based plan for delivering the blueprint |
 | [PRD.md](PRD.md) | Product requirements |
 | [TRD.md](TRD.md) | Technical requirements |
 | [UI-UX-DESIGN-BRIEF.md](UI-UX-DESIGN-BRIEF.md) | Design brief |
