@@ -21,7 +21,9 @@
     "seed:firestore": "tsx scripts/seed-firestore.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "test": "npx -y firebase-tools@15.36.0 emulators:exec --only firestore --project demo-sttps-erp \"vitest run\"",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@nestjs/common": "^12.5.1",
@@ -51,6 +53,7 @@
     "@eslint/js": "^9.39.5",
     "@nestjs/cli": "^12.0.13",
     "@nestjs/testing": "^12.5.1",
+    "@swc/core": "^1.16.22",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
@@ -62,6 +65,8 @@
     "tsx": "^4.19.2",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.73.0",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^4.1.12",
     "wrangler": "^4.163.0"
   },
   "type": "module"

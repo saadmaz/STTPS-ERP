@@ -35,6 +35,9 @@
 
 - Product blueprint (`docs/BLUEPRINT.md`) and a new phase-based implementation plan covering every blueprint section, replacing the Prisma-era plan.
 
+- Platform kernel in the API (`api/src/platform`): company-scoped repository with pagination, archiving and optimistic concurrency; exact money and quantity arithmetic; gap-free document numbering; audit trail service; durable background job queue; transactional domain-event outbox.
+- API test suite on the Firestore emulator (`npm test` in `api/`), run in CI.
+
 ### Changed
 
 - API upgraded to NestJS 12 (ES modules), firebase-admin 14 and TypeScript 6. `web` and `admin` upgraded to Next.js 16, zod 4 and the flat ESLint config of `eslint-config-next` 16. All three apps report no known vulnerabilities.
@@ -43,6 +46,8 @@
 
 ### Security
 
+- Every API route now requires a signed-in user unless marked public, and permissions are checked against a verified company membership. Previously the permission guard ran before authentication and rejected every protected route.
+- The API refuses to start without a `JWT_SECRET` of at least 32 characters instead of falling back to a built-in default.
 - The staff login form no longer pre-fills demo credentials.
 
 ## [0.4.1] - 2026-11-18

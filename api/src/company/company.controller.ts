@@ -1,14 +1,12 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Put, Body, Param } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { CompanyService } from "./company.service.js";
 import { CreateCompanyDto } from "./dto/create-company.dto.js";
-import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
 
 @ApiTags("Companies")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller("companies")
 export class CompanyController {
   constructor(private companyService: CompanyService) {}

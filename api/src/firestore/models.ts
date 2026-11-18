@@ -112,6 +112,8 @@ export interface AuditLogDoc {
   entityId: string | null;
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
+  reason?: string | null;
   ipAddress: string | null;
+  userAgent?: string | null;
   createdAt: string;
 }

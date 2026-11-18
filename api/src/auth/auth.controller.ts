@@ -5,7 +5,6 @@ import {
   Body,
   Req,
   Res,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
@@ -14,7 +13,7 @@ import { Request, Response } from "express";
 import { AuthService } from "./auth.service.js";
 import { LoginDto } from "./dto/login.dto.js";
 import { RegisterDto } from "./dto/register.dto.js";
-import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
+import { Public } from "../common/decorators/public.decorator.js";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 
 @ApiTags("Auth")
@@ -22,12 +21,14 @@ import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Post("register")
   @ApiOperation({ summary: "Register a new organization" })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Public()
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Login" })
@@ -53,6 +54,7 @@ export class AuthController {
     };
   }
 
+  @Public()
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Refresh access token" })
@@ -75,6 +77,7 @@ export class AuthController {
     return { accessToken: tokens.accessToken };
   }
 
+  @Public()
   @Post("logout")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Logout" })
@@ -88,7 +91,6 @@ export class AuthController {
   }
 
   @Get("me")
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user profile" })
   async getProfile(@CurrentUser("id") userId: string) {

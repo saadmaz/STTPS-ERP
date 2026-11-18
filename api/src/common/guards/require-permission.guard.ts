@@ -1,15 +1,17 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PERMISSION_KEY } from "../decorators/require-permission.decorator.js";
-import { FirestoreService } from "../../firestore/firestore.service.js";
-import { COLLECTIONS } from "../../firestore/collections.js";
-import { CompanyUserDoc } from "../../firestore/models.js";
+import { hasPermission, RequestContext } from "../../platform/context/request-context.js";
 
+/**
+ * Last in the global guard chain: enforces `@RequirePermission(code)` against
+ * the RequestContext that CompanyContextGuard resolved.
+ */
 @Injectable()
 export class RequirePermissionGuard implements CanActivate {
-  constructor(private reflector: Reflector, private firestore: FirestoreService) {}
+  constructor(private readonly reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const required = this.reflector.getAllAndOverride<string>(PERMISSION_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -17,28 +19,10 @@ export class RequirePermissionGuard implements CanActivate {
     if (!required) return true;
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
-    if (!user) return false;
-
-    // Platform admins and tenant super admins bypass permission checks
-    if (user.isPlatformAdmin || user.isSuperAdmin) return true;
-
-    const companyId = request.headers["x-company-id"] as string;
-    if (!companyId) throw new ForbiddenException("Company context required");
-
-    // No join needed: permissionCodes is the pre-flattened union of every
-    // role assigned to this CompanyUser, kept in sync by PermissionSyncService.
-    const doc = await this.firestore
-      .collection<CompanyUserDoc>(COLLECTIONS.companyUsers)
-      .doc(`${user.id}_${companyId}`)
-      .get();
-
-    if (!doc.exists) throw new ForbiddenException("User not assigned to this company");
-
-    const companyUser = doc.data()!;
-    if (!companyUser.permissionCodes.includes(required)) {
-      throw new ForbiddenException(`Permission required: ${required}`);
-    }
+    if (!request.user) throw new UnauthorizedException();
+    const ctx = request.ctx as RequestContext | undefined;
+    if (!ctx) throw new ForbiddenException("Company context required: send the x-company-id header");
+    if (!hasPermission(ctx, required)) throw new ForbiddenException(`Permission required: ${required}`);
     return true;
   }
 }

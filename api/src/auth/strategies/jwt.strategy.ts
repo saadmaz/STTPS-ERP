@@ -5,6 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { FirestoreService } from "../../firestore/firestore.service.js";
 import { COLLECTIONS } from "../../firestore/collections.js";
 import { UserDoc } from "../../firestore/models.js";
+import { jwtSecret } from "../jwt-secret.js";
 
 export interface JwtPayload {
   sub: string;
@@ -23,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>("JWT_SECRET", "fallback-secret"),
+      secretOrKey: jwtSecret(configService),
     });
   }
 

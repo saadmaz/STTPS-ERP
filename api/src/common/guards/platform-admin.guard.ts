@@ -1,10 +1,9 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
-import { AuthGuard } from "@nestjs/passport";
 
+/** Runs after the global JwtAuthGuard, so `request.user` is already set. */
 @Injectable()
-export class PlatformAdminGuard extends AuthGuard("jwt") implements CanActivate {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    await super.canActivate(context);
+export class PlatformAdminGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
     const { user } = context.switchToHttp().getRequest();
     if (!user?.isPlatformAdmin) {
       throw new ForbiddenException("Platform admin access required");
