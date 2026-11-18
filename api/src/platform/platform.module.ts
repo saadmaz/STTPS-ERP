@@ -17,6 +17,11 @@ import {
   MyDelegationsController,
 } from "./approvals/approvals.controller.js";
 import { MeController } from "./me/me.controller.js";
+import { RecordsService } from "./records/records.service.js";
+import { CustomFieldsController, RecordItemsController, RecordsController } from "./records/records.controller.js";
+import { CustomFieldsService } from "./custom-fields/custom-fields.js";
+import { FilesService } from "./files/files.service.js";
+import { ObjectStorageProvider } from "./files/object-storage.js";
 
 const SHARED = [
   SequenceService,
@@ -30,6 +35,10 @@ const SHARED = [
   ApprovalsService,
   ApprovalDefinitionsService,
   DelegationsService,
+  RecordsService,
+  CustomFieldsService,
+  FilesService,
+  ObjectStorageProvider,
 ];
 
 /** Shared kernel available to every domain module without importing it. */
@@ -42,6 +51,9 @@ const SHARED = [
     ApprovalRequestsController,
     ApprovalDefinitionsController,
     DelegationsAdminController,
+    RecordsController,
+    RecordItemsController,
+    CustomFieldsController,
   ],
   providers: SHARED,
   exports: SHARED,

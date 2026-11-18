@@ -21,6 +21,9 @@ Copy `api/.env.example` to `api/.env` for local work; never commit it. In Cloudf
 | `BACKGROUND_WORKERS` | Set to `off` to stop the job worker and permission sync in this process (tests set it); leave unset in production |
 | `RESEND_API_KEY` | Resend API key for notification email. Without it, email is logged instead of sent. **Secret** |
 | `EMAIL_FROM` | Sender for notification email, default `STTPS ERP <no-reply@sttps.co>` |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Cloudflare R2 bucket for file attachments (an R2 API token with object read and write on the bucket). Without them, file endpoints answer 503. The bucket needs a CORS rule allowing `PUT` and `GET` from the `web` origin. **Secret** |
+| `FILE_MAX_BYTES` | Largest accepted upload, default 52428800 (50 MB) |
+| `STORAGE_DRIVER` | `memory` keeps files in process memory; tests only |
 | `SEED_PLATFORM_ADMIN_PASSWORD`, `SEED_DEMO_ADMIN_PASSWORD` | Optional passwords for accounts created by `npm run seed:firestore`; random ones are generated and printed when unset |
 
 ## web and admin

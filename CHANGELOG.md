@@ -39,6 +39,9 @@
 - Organisation module: branches, departments, teams, cost centres, business units, fiscal years with monthly periods (open, soft-closed, locked) and exchange rates, each with audit history, archiving and per-company unique codes.
 - Approval engine (`/workflow`): configurable workflows per record type with conditions, conditional and parallel steps, approvers by user, role, permission or department manager, delegation, timeouts with escalation, and approve, reject, request changes, reassign and cancel. Outcomes are published as `ApprovalCompleted` events.
 - Notification centre (`/me/notifications`): in-app notifications, unread counts, per-category muting, and email delivery through Resend when `RESEND_API_KEY` is set.
+- Record features for every record type (`/records/:type/:id/...`): comments with @mentions that notify, tags, links between records, one activity timeline (changes, comments and approval decisions) and file attachments.
+- Files on Cloudflare R2 through presigned upload and download URLs, with size verification, versions, and forced downloads for content types that could run script.
+- Custom fields per record type (`/settings/custom-fields`) with typed validation, saved list views (private or shared), and global search (`/search`) that only returns record types the user may view.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
 - Firestore composite indexes generated from a registry (`npm run indexes`), checked by a test.

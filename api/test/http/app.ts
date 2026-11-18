@@ -8,6 +8,7 @@ import { COLLECTIONS } from "../../src/firestore/collections.js";
 
 process.env.JWT_SECRET ??= "test-secret-that-is-long-enough-for-the-check";
 process.env.BACKGROUND_WORKERS = "off";
+process.env.STORAGE_DRIVER = "memory";
 
 /** Boots the real application (all guards and pipes) against the emulator. */
 export async function createApp(): Promise<INestApplication> {

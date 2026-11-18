@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsEmail,
   IsIn,
+  IsObject,
   IsISO8601,
   IsOptional,
   IsString,
@@ -41,6 +42,10 @@ class CodedDto {
   @ApiPropertyOptional({ default: true })
   @IsOptional() @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: "Values for the company's custom fields of this record type" })
+  @IsOptional() @IsObject()
+  customFields?: Record<string, unknown>;
 }
 
 export class CreateBranchDto extends CodedDto {

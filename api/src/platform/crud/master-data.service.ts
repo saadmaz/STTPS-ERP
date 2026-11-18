@@ -6,6 +6,9 @@ import { RequestContext, Scope } from "../context/request-context.js";
 import { BaseDoc, NewDoc, Page, Patch, TenantRepository, WriteResult } from "../data/repository.js";
 import { UniqueClaim, UniqueService } from "../data/unique.service.js";
 import { ListQueryDto, parseSort, parseWhere } from "./list-query.dto.js";
+import { registerRecordType } from "../records/record-types.js";
+import { SearchEntry, SearchIndex } from "../search/search-index.js";
+import { CustomFieldValidator } from "../custom-fields/custom-field-validator.js";
 
 export interface ReferenceRule {
   field: string;
@@ -32,6 +35,14 @@ export interface MasterDataConfig<T extends BaseDoc> {
   sortFields?: string[];
   /** Fields matched by `q` (case-insensitive substring). Default: code and name. */
   searchFields?: string[];
+  /** Permission prefix; defaults to `<module>.<entity>` (view / create / edit / delete). */
+  permission?: string;
+  /** Staff-app list route; record links are `<route>/<id>`. Defaults to `/<module>/<entity>`. */
+  route?: string;
+  /** Keep records in global search (default true). */
+  searchable?: boolean;
+  /** Accept `customFields` on create and update (default true). */
+  customFields?: boolean;
 }
 
 /** Upper bound on records of one master-data type per company. */
@@ -45,6 +56,10 @@ const MAX_RECORDS = 5_000;
  */
 export class MasterDataService<T extends BaseDoc, C extends object = object, U extends object = Partial<C>> {
   readonly repo: TenantRepository<T>;
+  /** `<module>.<entity>`: the record type used by audit, search, comments and files. */
+  readonly entityType: string;
+  protected readonly searchIndex: SearchIndex;
+  protected readonly customFieldValidator: CustomFieldValidator;
 
   constructor(
     protected readonly firestore: FirestoreService,
@@ -53,6 +68,32 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
     readonly config: MasterDataConfig<T>,
   ) {
     this.repo = new TenantRepository<T>(firestore, config.collection, config.label);
+    this.entityType = `${config.module}.${config.entity}`;
+    this.searchIndex = new SearchIndex(firestore);
+    this.customFieldValidator = new CustomFieldValidator(firestore);
+    const permission = config.permission ?? this.entityType;
+    const route = config.route ?? `/${config.module}/${config.entity}`;
+    registerRecordType({
+      type: this.entityType,
+      module: config.module,
+      label: config.label,
+      collection: config.collection,
+      viewPermission: `${permission}.view`,
+      editPermission: `${permission}.edit`,
+      link: (id) => `${route}/${id}`,
+    });
+  }
+
+  /** What global search shows for a record. Override for richer titles. */
+  protected searchEntry(doc: T): SearchEntry {
+    const record = doc as Record<string, unknown>;
+    return {
+      entityType: this.entityType,
+      entityId: doc.id,
+      title: String(record.name ?? record.title ?? record.code ?? doc.id),
+      subtitle: record.code ? String(record.code) : null,
+      keywords: [record.code as string | undefined, record.email as string | undefined],
+    };
   }
 
   /** Turns a create DTO into the document body. Override to set defaults or derived fields. */
@@ -121,12 +162,14 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
   async create(ctx: RequestContext, dto: C): Promise<T> {
     return this.firestore.runTransaction(async (tx) => {
       const doc = this.repo.build(ctx, this.toNew(dto, ctx));
+      await this.applyCustomFields(tx, ctx, doc, dto, null);
       await this.checkReferences(tx, ctx, doc, null);
       await this.validate(tx, ctx, doc, null);
       const claims = await this.checkUnique(tx, ctx, doc, null);
       claims.forEach((c) => this.unique.apply(tx, c));
       tx.create(this.repo.ref(doc.id), doc);
-      this.audit.record(ctx, { module: this.config.module, action: "created", entity: this.config.entity, entityId: doc.id, after: doc }, tx);
+      if (this.config.searchable !== false) this.searchIndex.upsert(tx, ctx, this.searchEntry(doc));
+      this.audit.record(ctx, { module: this.config.module, action: "created", entity: this.entityType, entityId: doc.id, after: doc }, tx);
       return doc;
     });
   }
@@ -136,12 +179,16 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
       const before = await this.repo.get(ctx, id, tx);
       const patch = this.toPatch(dto, before, ctx);
       const next = { ...before, ...stripUndefined(patch) } as T;
+      await this.applyCustomFields(tx, ctx, next, dto, before);
+      const nextCustom = (next as Record<string, unknown>).customFields;
+      if (nextCustom !== undefined) (patch as Record<string, unknown>).customFields = nextCustom;
       await this.checkReferences(tx, ctx, next, before);
       await this.validate(tx, ctx, next, before);
       const claims = await this.checkUnique(tx, ctx, next, before);
       claims.forEach((c) => this.unique.apply(tx, c));
       const result = this.repo.applyUpdate(ctx, tx, before, patch, expectedVersion);
-      this.audit.record(ctx, { module: this.config.module, action: "updated", entity: this.config.entity, entityId: id, before, after: result.after }, tx);
+      if (this.config.searchable !== false) this.searchIndex.upsert(tx, ctx, this.searchEntry(result.after));
+      this.audit.record(ctx, { module: this.config.module, action: "updated", entity: this.entityType, entityId: id, before, after: result.after }, tx);
       return result;
     });
     return after;
@@ -156,14 +203,18 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
   }
 
   history(ctx: RequestContext, id: string) {
-    return this.audit.forEntity(ctx, this.config.entity, id);
+    return this.audit.forEntity(ctx, this.entityType, id);
   }
 
   private async setArchived(ctx: RequestContext, id: string, value: string | null, action: string, reason?: string): Promise<T> {
     const result: WriteResult<T> = await this.firestore.runTransaction(async (tx) => {
       const before = await this.repo.get(ctx, id, tx);
       const res = this.repo.applyUpdate(ctx, tx, before, { archivedAt: value } as unknown as Patch<T>);
-      this.audit.record(ctx, { module: this.config.module, action, entity: this.config.entity, entityId: id, before, after: res.after, reason }, tx);
+      if (this.config.searchable !== false) {
+        if (value) this.searchIndex.remove(tx, ctx, this.entityType, id);
+        else this.searchIndex.upsert(tx, ctx, this.searchEntry(res.after));
+      }
+      this.audit.record(ctx, { module: this.config.module, action, entity: this.entityType, entityId: id, before, after: res.after, reason }, tx);
       return res;
     });
     return result.after;
@@ -177,7 +228,7 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
       const previous = before ? ((before as Record<string, unknown>)[field] as string | null | undefined) : null;
       claims.push(
         await this.unique.check(tx, ctx, {
-          entity: this.config.entity,
+          entity: this.entityType,
           field,
           value,
           ownerId: next.id,
@@ -187,6 +238,19 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
       );
     }
     return claims;
+  }
+
+  /** Validates `dto.customFields` against the definitions and writes the merged map onto `next`. */
+  private async applyCustomFields(tx: Transaction, ctx: RequestContext, next: T, dto: object, before: T | null): Promise<void> {
+    const record = next as Record<string, unknown>;
+    if (this.config.customFields === false) {
+      delete record.customFields;
+      return;
+    }
+    const incoming = (dto as { customFields?: Record<string, unknown> }).customFields;
+    if (incoming === undefined && before) return;
+    const existing = before ? ((before as Record<string, unknown>).customFields as Record<string, unknown> | undefined) : undefined;
+    record.customFields = await this.customFieldValidator.validate(tx, ctx, this.entityType, incoming, existing);
   }
 
   private async checkReferences(tx: Transaction, ctx: RequestContext, next: T, before: T | null): Promise<void> {

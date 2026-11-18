@@ -63,6 +63,8 @@ export const MODULES: ModuleDefinition[] = [
       { code: "platform.company.edit", name: "Edit company settings", module: "platform", action: "edit" },
       { code: "platform.audit.view", name: "View audit log", module: "platform", action: "view" },
       { code: "platform.settings.edit", name: "Edit settings", module: "platform", action: "edit" },
+      ...entityPermissions("platform", "customField", "custom fields"),
+      ...entityPermissions("platform", "savedView", "shared saved views"),
     ],
   }),
   mod({
