@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
     "deploy": "npm run build && wrangler deploy",
     "test": "npx -y firebase-tools@15.36.0 emulators:exec --only firestore --project demo-sttps-erp \"vitest run\"",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "indexes": "tsx scripts/generate-indexes.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.5.1",
@@ -60,8 +61,10 @@
     "@types/node": "^22.19.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
+    "@types/supertest": "^6.0.3",
     "eslint": "^9.39.5",
     "globals": "^17.14.0",
+    "supertest": "^7.3.2",
     "tsx": "^4.19.2",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.73.0",

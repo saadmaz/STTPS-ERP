@@ -108,19 +108,19 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 **Goal:** the shared services every module depends on, so ports in later phases are mostly domain logic.
 
 ### 0.1 Data layer
-- [ ] `TenantRepository<T>` base: scoped `get/list/create/update`, cursor pagination, filters and sorting matched to declared indexes, optimistic concurrency (`version` field), soft archive.
-- [ ] Money and quantity value types plus helpers. Transactional document-number sequences per company and document type.
-- [ ] Domain event bus with a Firestore outbox and idempotent handler registry.
-- [ ] Background jobs: a Firestore-backed queue with a worker loop in the API container (retries, backoff, dead-letter) for email, PDFs, imports and chunked postings.
-- [ ] Firestore emulator test harness wired into CI (`npm test` in `api`).
+- [x] `TenantRepository<T>` base: scoped `get/list/create/update`, cursor pagination, filters and sorting matched to declared indexes, optimistic concurrency (`version` field), soft archive.
+- [x] Money and quantity value types plus helpers. Transactional document-number sequences per company and document type.
+- [x] Domain event bus with a Firestore outbox and idempotent handler registry.
+- [x] Background jobs: a Firestore-backed queue with a worker loop in the API container (retries, backoff, dead-letter) for email, PDFs, imports and chunked postings.
+- [x] Firestore emulator test harness wired into CI (`npm test` in `api`).
 
 ### 0.2 Organisation structure (§3)
-- [ ] Branches/locations, departments, teams, cost centres, business units, reporting hierarchy.
-- [ ] Fiscal years and periods (open, soft-closed, locked) and currencies with exchange rates. Company time zone and locale are already on `CompanyDoc`.
+- [x] Branches/locations, departments, teams, cost centres, business units, reporting hierarchy.
+- [x] Fiscal years and periods (open, soft-closed, locked) and currencies with exchange rates. Company time zone and locale are already on `CompanyDoc`.
 - [ ] Group-of-companies view (parent company, already modelled as `parentId`).
 
 ### 0.3 Access and administration (§3, §30)
-- [ ] Module activation per tenant and company. The API rejects calls into disabled modules, and `web` navigation hides them (§2).
+- [x] Module activation per tenant and company. The API rejects calls into disabled modules, and `web` navigation hides them (§2).
 - [ ] Record-level scope on roles (own / team / branch / company / all) and field-level masking for sensitive fields such as salary and bank details.
 - [ ] Delegation, user suspension, session and device list with revoke, password policy.
 - [ ] MFA (TOTP; `mfaEnabled` and `mfaSecret` already exist on `UserDoc`).

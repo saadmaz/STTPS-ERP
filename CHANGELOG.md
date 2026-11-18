@@ -36,6 +36,9 @@
 - Product blueprint (`docs/BLUEPRINT.md`) and a new phase-based implementation plan covering every blueprint section, replacing the Prisma-era plan.
 
 - Platform kernel in the API (`api/src/platform`): company-scoped repository with pagination, archiving and optimistic concurrency; exact money and quantity arithmetic; gap-free document numbering; audit trail service; durable background job queue; transactional domain-event outbox.
+- Organisation module: branches, departments, teams, cost centres, business units, fiscal years with monthly periods (open, soft-closed, locked) and exchange rates, each with audit history, archiving and per-company unique codes.
+- Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
+- Firestore composite indexes generated from a registry (`npm run indexes`), checked by a test.
 - API test suite on the Firestore emulator (`npm test` in `api/`), run in CI.
 
 ### Changed
@@ -47,6 +50,10 @@
 ### Security
 
 - Every API route now requires a signed-in user unless marked public, and permissions are checked against a verified company membership. Previously the permission guard ran before authentication and rejected every protected route.
+- User and company updates accept only their editable fields. Previously any signed-in user could set privilege flags such as `isSuperAdmin` or `isPlatformAdmin` on any user of their tenant.
+- User management, company creation and company settings now require the matching permission or tenant administrator rights.
+- Password hashes and MFA secrets are stripped from every API response.
+- The seed script no longer creates accounts with fixed passwords; it reads them from the environment or generates random ones.
 - The API refuses to start without a `JWT_SECRET` of at least 32 characters instead of falling back to a built-in default.
 - The staff login form no longer pre-fills demo credentials.
 
