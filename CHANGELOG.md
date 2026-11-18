@@ -31,6 +31,12 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-18
+
+### Changed
+
+- Dependency updates in web and admin: Next.js and PostCSS, sonner 2, @types/node, follow-redirects and postcss-selector-parser.
+
 ## [0.4.0] - 2026-11-17
 
 ### Added
@@ -97,7 +103,8 @@ First pre-production release. The platform and identity layer is complete; domai
 - Next.js upgraded from 15.1.4 to 15.5.29 in `web` and `admin`, closing critical advisories, and semver-compatible dependency fixes applied across all apps.
 - Server access details removed from the deployment guide.
 
-[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.2...v0.2.3
