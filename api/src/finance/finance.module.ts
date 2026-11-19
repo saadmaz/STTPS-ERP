@@ -1,0 +1,133 @@
+import { BadRequestException, Body, Controller, Get, HttpCode, Module, Param, Post, Put, Query } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
+import { Ctx, RequestContext } from "../platform/context/request-context.js";
+import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
+import { RequireModule } from "../platform/modules/require-module.decorator.js";
+import { OrgModule } from "../org/org.module.js";
+import { AccountService, AutoPostingService, FinanceReportsService, FinanceSettingsService, JournalService } from "./finance.services.js";
+import { GeneralLedger } from "./ledger.service.js";
+import { CreateAccountDto, CreateJournalDto, FinanceSettingsDto, ReverseJournalDto, SetupFinanceDto, UpdateAccountDto, UpdateJournalDto } from "./finance.dto.js";
+
+const MONTH = /^\d{4}-\d{2}$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const month = (v?: string) => {
+  if (v === undefined || v === "") return undefined;
+  if (!MONTH.test(v)) throw new BadRequestException("Months look like 2026-11");
+  return v;
+};
+const day = (v?: string) => {
+  if (v === undefined || v === "") return undefined;
+  if (!DAY.test(v)) throw new BadRequestException("Dates look like 2026-11-30");
+  return v;
+};
+
+@ApiTags("Finance")
+@ApiBearerAuth()
+@RequireModule("finance")
+@Controller("finance")
+class FinanceController {
+  constructor(
+    private readonly settings: FinanceSettingsService,
+    private readonly journals: JournalService,
+    private readonly postings: AutoPostingService,
+    private readonly reports: FinanceReportsService,
+  ) {}
+
+  @Get("settings")
+  @RequirePermission("finance.account.view")
+  getSettings(@Ctx() ctx: RequestContext) {
+    return this.settings.get(ctx);
+  }
+
+  @Put("settings")
+  @RequirePermission("finance.settings.edit")
+  @ApiOperation({ summary: "Base currency and the account used for each kind of automatic posting" })
+  putSettings(@Ctx() ctx: RequestContext, @Body(validated(FinanceSettingsDto)) dto: FinanceSettingsDto) {
+    return this.settings.update(ctx, dto);
+  }
+
+  @Post("setup")
+  @HttpCode(200)
+  @RequirePermission("finance.settings.edit")
+  @ApiOperation({ summary: "Create the standard chart of accounts and posting rules (new companies only)" })
+  setup(@Ctx() ctx: RequestContext, @Body(validated(SetupFinanceDto)) dto: SetupFinanceDto) {
+    return this.settings.setup(ctx, dto.baseCurrency);
+  }
+
+  @Post("journals/:id/post")
+  @HttpCode(200)
+  @RequirePermission("finance.journal.edit")
+  @ApiOperation({ summary: "Post the journal (or send it for approval when a workflow applies)" })
+  post(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.journals.submit(ctx, id);
+  }
+
+  @Post("journals/:id/reverse")
+  @HttpCode(200)
+  @RequirePermission("finance.journal.edit")
+  reverse(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ReverseJournalDto)) dto: ReverseJournalDto) {
+    return this.journals.reverse(ctx, id, dto.date, dto.memo);
+  }
+
+  @Post("journals/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("finance.journal.edit")
+  cancel(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.journals.cancel(ctx, id);
+  }
+
+  @Get("posting-issues")
+  @RequirePermission("finance.journal.view")
+  @ApiOperation({ summary: "Automatic postings that failed (closed period, missing account mapping …)" })
+  issues(@Ctx() ctx: RequestContext, @Query("status") status?: string) {
+    return this.postings.issues(ctx, status === "resolved" ? "resolved" : "open");
+  }
+
+  @Post("posting-issues/:id/retry")
+  @HttpCode(200)
+  @RequirePermission("finance.journal.edit")
+  retry(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.postings.retry(ctx, id);
+  }
+
+  @Get("reports/trial-balance")
+  @RequirePermission("finance.reports.view")
+  trialBalance(@Ctx() ctx: RequestContext, @Query("to") to?: string) {
+    return this.reports.trialBalance(ctx, month(to));
+  }
+
+  @Get("reports/profit-and-loss")
+  @RequirePermission("finance.reports.view")
+  profitAndLoss(@Ctx() ctx: RequestContext, @Query("from") from?: string, @Query("to") to?: string) {
+    return this.reports.profitAndLoss(ctx, month(from), month(to));
+  }
+
+  @Get("reports/balance-sheet")
+  @RequirePermission("finance.reports.view")
+  balanceSheet(@Ctx() ctx: RequestContext, @Query("to") to?: string) {
+    return this.reports.balanceSheet(ctx, month(to));
+  }
+
+  @Get("reports/ledger/:accountId")
+  @RequirePermission("finance.reports.view")
+  @ApiOperation({ summary: "One account's posted lines with a running balance" })
+  ledger(@Ctx() ctx: RequestContext, @Param("accountId") accountId: string, @Query("from") from?: string, @Query("to") to?: string) {
+    return this.reports.accountLedger(ctx, accountId, day(from), day(to));
+  }
+}
+
+const crud = [
+  createMasterDataController({ path: "finance/accounts", tag: "Finance: Chart of accounts", module: "finance", permission: "finance.account", service: AccountService, createDto: CreateAccountDto, updateDto: UpdateAccountDto }),
+  createMasterDataController({ path: "finance/journals", tag: "Finance: Journals", module: "finance", permission: "finance.journal", service: JournalService, createDto: CreateJournalDto, updateDto: UpdateJournalDto }),
+];
+
+const SERVICES = [GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService];
+
+@Module({
+  imports: [OrgModule],
+  controllers: [FinanceController, ...crud],
+  providers: SERVICES,
+  exports: SERVICES,
+})
+export class FinanceModule {}

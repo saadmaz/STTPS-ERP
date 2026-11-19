@@ -14,6 +14,7 @@ import { PRODUCT_COLLECTIONS, PRODUCT_LISTS } from "../../products/products.mode
 import { INVENTORY_COLLECTIONS, INVENTORY_LISTS } from "../../inventory/inventory.models.js";
 import { SALES_COLLECTIONS, SALES_LISTS } from "../../sales/sales.models.js";
 import { PROCUREMENT_COLLECTIONS, PROCUREMENT_LISTS } from "../../procurement/procurement.models.js";
+import { FINANCE_COLLECTIONS, FINANCE_LISTS } from "../../finance/finance.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -99,6 +100,10 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(PROCUREMENT_COLLECTIONS.orders, PROCUREMENT_LISTS.orders),
   ...largeListIndexes(PROCUREMENT_COLLECTIONS.receipts, PROCUREMENT_LISTS.receipts),
   ...largeListIndexes(PROCUREMENT_COLLECTIONS.returns, PROCUREMENT_LISTS.returns),
+  ...largeListIndexes(FINANCE_COLLECTIONS.journals, FINANCE_LISTS.journals),
+  { collection: FINANCE_COLLECTIONS.balances, fields: [asc("companyId"), asc("period")] },
+  { collection: FINANCE_COLLECTIONS.entries, fields: [asc("companyId"), asc("accountId"), asc("date")] },
+  { collection: FINANCE_COLLECTIONS.entries, fields: [asc("companyId"), asc("partyId"), asc("date")] },
   { collection: INVENTORY_COLLECTIONS.layers, fields: [asc("companyId"), asc("productId"), asc("open"), asc("receivedAt")] },
 ];
 

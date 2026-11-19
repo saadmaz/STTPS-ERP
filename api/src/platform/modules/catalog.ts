@@ -183,7 +183,20 @@ export const MODULES: ModuleDefinition[] = [
   }),
 
   // Finance
-  mod({ key: "finance", name: "Finance", description: "Ledger, receivables, payables, banking, tax, budgets and reports.", group: "finance", available: false }),
+  mod({
+    key: "finance",
+    name: "Finance",
+    description: "Ledger, receivables, payables, banking, tax, budgets and reports.",
+    group: "finance",
+    available: true,
+    permissions: [
+      ...entityPermissions("finance", "account", "chart of accounts"),
+      ...entityPermissions("finance", "journal", "journals"),
+      { code: "finance.journal.control", name: "Post manual journals to control accounts", module: "finance", action: "edit" },
+      { code: "finance.settings.edit", name: "Edit finance settings and posting rules", module: "finance", action: "edit" },
+      { code: "finance.reports.view", name: "View financial statements and ledgers", module: "finance", action: "view" },
+    ],
+  }),
   mod({ key: "expenses", name: "Expenses", description: "Employee expense claims and reimbursement.", group: "finance", available: false, dependsOn: ["finance"] }),
   mod({ key: "assets", name: "Assets", description: "Asset register, assignment, depreciation and audits.", group: "finance", available: false }),
 

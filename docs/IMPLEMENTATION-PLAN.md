@@ -189,9 +189,9 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 
 **Goal:** finance becomes the financial source of truth, fed automatically by Phase 1 events (§10).
 
-- [ ] Chart of accounts: hierarchy, groups, restrictions, opening balances, and posting rules mapping each event type to accounts.
-- [ ] General ledger: manual, automatic and recurring journals, approval, posting, reversal, period locking, trial balance.
-- [ ] Automatic postings from domain events: delivery → COGS, invoice → AR/revenue/tax, GRN → inventory/GRNI, supplier invoice → AP, payments.
+- [x] Chart of accounts: hierarchy, groups, restrictions, opening balances, and posting rules mapping each event type to accounts.
+- [ ] General ledger: manual, automatic and recurring journals, approval, posting, reversal, period locking, trial balance. _Done except recurring journals._
+- [ ] Automatic postings from domain events: delivery → COGS, invoice → AR/revenue/tax, GRN → inventory/GRNI, supplier invoice → AP, payments. _Stock value (receipts, deliveries, returns, adjustments) posts today; invoices and payments follow with AR/AP._
 - [ ] AR: invoices from order or delivery, deposit, milestone and recurring invoices, credit and debit notes, payments and allocation, statements, write-offs, ageing, dunning/collections, overdue alerts.
 - [ ] AP: supplier invoices, three-way match (PO/GRN/invoice), duplicate-invoice prevention, payment scheduling, batches and approvals, supplier statements, ageing.
 - [ ] Banking and cash: accounts, petty cash, transfers, statement import (CSV/OFX), automatic and manual matching, reconciliation with history.
