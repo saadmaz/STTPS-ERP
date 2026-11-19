@@ -165,7 +165,21 @@ export const MODULES: ModuleDefinition[] = [
       { code: "inventory.settings.edit", name: "Edit inventory settings", module: "inventory", action: "edit" },
     ],
   }),
-  mod({ key: "procurement", name: "Procurement", description: "Suppliers, requisitions, purchase orders and receipts.", group: "core", available: false, dependsOn: ["products"] }),
+  mod({
+    key: "procurement",
+    name: "Procurement",
+    description: "Suppliers, requisitions, purchase orders and receipts.",
+    group: "core",
+    available: true,
+    dependsOn: ["products", "inventory"],
+    permissions: [
+      ...entityPermissions("procurement", "supplier", "suppliers"),
+      ...entityPermissions("procurement", "requisition", "purchase requisitions"),
+      ...entityPermissions("procurement", "rfq", "requests for quotation"),
+      ...entityPermissions("procurement", "order", "purchase orders"),
+      ...entityPermissions("procurement", "receipt", "goods receipts and supplier returns"),
+    ],
+  }),
 
   // Finance
   mod({ key: "finance", name: "Finance", description: "Ledger, receivables, payables, banking, tax, budgets and reports.", group: "finance", available: false }),

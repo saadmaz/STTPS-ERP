@@ -18,6 +18,7 @@ import { CrmModule } from "./crm/crm.module.js";
 import { ProductsModule } from "./products/products.module.js";
 import { InventoryModule } from "./inventory/inventory.module.js";
 import { SalesModule } from "./sales/sales.module.js";
+import { ProcurementModule } from "./procurement/procurement.module.js";
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { SalesModule } from "./sales/sales.module.js";
     ProductsModule,
     InventoryModule,
     SalesModule,
+    ProcurementModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [

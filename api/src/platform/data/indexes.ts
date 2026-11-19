@@ -13,6 +13,7 @@ import { CRM_COLLECTIONS, CRM_LISTS } from "../../crm/crm.models.js";
 import { PRODUCT_COLLECTIONS, PRODUCT_LISTS } from "../../products/products.models.js";
 import { INVENTORY_COLLECTIONS, INVENTORY_LISTS } from "../../inventory/inventory.models.js";
 import { SALES_COLLECTIONS, SALES_LISTS } from "../../sales/sales.models.js";
+import { PROCUREMENT_COLLECTIONS, PROCUREMENT_LISTS } from "../../procurement/procurement.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -92,6 +93,12 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(SALES_COLLECTIONS.orders, SALES_LISTS.orders),
   ...largeListIndexes(SALES_COLLECTIONS.deliveries, SALES_LISTS.deliveries),
   ...largeListIndexes(SALES_COLLECTIONS.returns, SALES_LISTS.returns),
+  ...largeListIndexes(PROCUREMENT_COLLECTIONS.suppliers, PROCUREMENT_LISTS.suppliers),
+  ...largeListIndexes(PROCUREMENT_COLLECTIONS.requisitions, PROCUREMENT_LISTS.requisitions),
+  ...largeListIndexes(PROCUREMENT_COLLECTIONS.rfqs, PROCUREMENT_LISTS.rfqs),
+  ...largeListIndexes(PROCUREMENT_COLLECTIONS.orders, PROCUREMENT_LISTS.orders),
+  ...largeListIndexes(PROCUREMENT_COLLECTIONS.receipts, PROCUREMENT_LISTS.receipts),
+  ...largeListIndexes(PROCUREMENT_COLLECTIONS.returns, PROCUREMENT_LISTS.returns),
   { collection: INVENTORY_COLLECTIONS.layers, fields: [asc("companyId"), asc("productId"), asc("open"), asc("receivedAt")] },
 ];
 

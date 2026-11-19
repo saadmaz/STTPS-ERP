@@ -44,6 +44,8 @@ export interface MovementInput {
   date?: string;
   /** For issues: reserved quantity (positive thousandths) this movement uses up. */
   consumeReserved?: number;
+  /** Change to the quantity on order from suppliers (receipts take goods off order). */
+  onOrderDelta?: number;
 }
 
 export interface PostOptions {
@@ -258,6 +260,7 @@ export class InventoryLedger {
       touchedBalances.add(bKey);
 
       summary.onHand += qty;
+      if (input.onOrderDelta) summary.onOrder = Math.max(0, (summary.onOrder ?? 0) + input.onOrderDelta);
       if (input.type === "transfer_out") summary.inTransit += -qty;
       else if (input.type === "transfer_in") summary.inTransit = Math.max(0, summary.inTransit - qty);
       else summary.value += value;
@@ -362,9 +365,19 @@ export class InventoryLedger {
     return { commit: () => this.writePositions(tx, balances, summaries, refs) };
   }
 
-  private async loadPositions(tx: Transaction, ctx: RequestContext, items: { productId: string; warehouseId: string; lotNo?: string | null }[]) {
+  /** Changes the quantity on order from suppliers (purchase orders approved, received or cancelled). */
+  async adjustOnOrder(tx: Transaction, ctx: RequestContext, items: { productId: string; delta: number }[]) {
+    const { summaries } = await this.loadPositions(tx, ctx, items.map((i) => ({ productId: i.productId, warehouseId: "-", lotNo: null })), false);
+    for (const item of items) {
+      const s = summaries.get(summaryId(ctx.companyId, item.productId))!;
+      s.onOrder = Math.max(0, (s.onOrder ?? 0) + item.delta);
+    }
+    return { commit: () => this.writePositions(tx, new Map(), summaries, new Set()) };
+  }
+
+  private async loadPositions(tx: Transaction, ctx: RequestContext, items: { productId: string; warehouseId: string; lotNo?: string | null }[], withBalances = true) {
     const now = new Date().toISOString();
-    const bKeys = [...new Set(items.map((i) => balanceId(ctx.companyId, i.productId, i.warehouseId, i.lotNo ?? null)))];
+    const bKeys = withBalances ? [...new Set(items.map((i) => balanceId(ctx.companyId, i.productId, i.warehouseId, i.lotNo ?? null)))] : [];
     const sKeys = [...new Set(items.map((i) => summaryId(ctx.companyId, i.productId)))];
     const balances = new Map<string, StockBalanceDoc>();
     const summaries = new Map<string, StockSummaryDoc>();
