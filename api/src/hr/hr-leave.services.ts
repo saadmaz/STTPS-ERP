@@ -217,6 +217,15 @@ export class LeaveRequestService extends MasterDataService<LeaveRequestDoc, Requ
     return snap.docs.map((d) => d.data()).filter((r) => r.status === "approved").reverse();
   }
 
+  /** Approved leave on an unpaid policy starting within the range, summed in days — for payroll's unpaid-leave deduction. */
+  async approvedUnpaidDaysInPeriod(ctx: RequestContext, employeeId: string, from: string, to: string): Promise<number> {
+    const [page, policies] = await Promise.all([this.list(ctx, { where: `employeeId:${employeeId}`, limit: 200 }), this.policies.listActive(ctx)]);
+    const unpaidPolicyIds = new Set(policies.filter((p) => !p.isPaid).map((p) => p.id));
+    return page.items
+      .filter((r) => r.status === "approved" && unpaidPolicyIds.has(r.policyId) && r.startDate >= from && r.startDate <= to)
+      .reduce((a, r) => a + r.days, 0);
+  }
+
   protected searchEntry(doc: LeaveRequestDoc): SearchEntry {
     return { entityType: this.entityType, entityId: doc.id, title: doc.startDate, subtitle: doc.status };
   }

@@ -5,6 +5,7 @@ import { RequirePermission } from "../common/decorators/require-permission.decor
 import { Ctx, RequestContext } from "../platform/context/request-context.js";
 import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
+import { FinanceModule } from "../finance/finance.module.js";
 import { EmployeeService, JobGradeService, PositionService } from "./hr.services.js";
 import {
   CreateEmployeeDto,
@@ -92,6 +93,22 @@ import {
   UpdateEquipmentRequestDto,
   UpdateHrRequestDto,
 } from "./hr-selfservice.dto.js";
+import { ApitBracketService, LoanService, PayrollRunService, PayslipService, SalaryComponentService, SalaryStructureService, StatutoryRateService } from "./hr-payroll.services.js";
+import {
+  ApprovePayrollRunDto,
+  CreateApitBracketDto,
+  CreateLoanDto,
+  CreatePayrollRunDto,
+  CreateSalaryComponentDto,
+  CreateSalaryStructureDto,
+  CreateStatutoryRateDto,
+  UpdateApitBracketDto,
+  UpdateLoanDto,
+  UpdatePayrollRunDto,
+  UpdateSalaryComponentDto,
+  UpdateSalaryStructureDto,
+  UpdateStatutoryRateDto,
+} from "./hr-payroll.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -417,6 +434,76 @@ class HrActionsController {
   }
 }
 
+/** The payroll pipeline: calculate, approve, lock (posts to the GL) and the bank file. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr")
+class PayrollActionsController {
+  constructor(
+    private readonly runs: PayrollRunService,
+    private readonly loans: LoanService,
+    private readonly payslips: PayslipService,
+  ) {}
+
+  @Post("payroll-runs/:id/calculate")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  @ApiOperation({ summary: "Builds (or rebuilds) every employee's payslip for the run" })
+  calculateRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.runs.calculate(ctx, id);
+  }
+
+  @Post("payroll-runs/:id/approve")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  approveRun(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ApprovePayrollRunDto)) dto: ApprovePayrollRunDto) {
+    return this.runs.approve(ctx, id, dto.notes);
+  }
+
+  @Post("payroll-runs/:id/lock")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  @ApiOperation({ summary: "Posts one journal for the whole run and locks it against further changes" })
+  lockRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.runs.lock(ctx, id);
+  }
+
+  @Post("payroll-runs/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  cancelRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.runs.cancel(ctx, id);
+  }
+
+  @Get("payroll-runs/:id/payslips")
+  @RequirePermission("hr.payrollRun.view")
+  payslipsForRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.payslips.forRun(ctx, id);
+  }
+
+  @Get("payroll-runs/:id/bank-file")
+  @RequirePermission("hr.payrollRun.edit")
+  @ApiOperation({ summary: "A CSV of employee, account number and net pay for the bank transfer" })
+  async bankFile(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return { csv: await this.runs.bankFileCsv(ctx, id) };
+  }
+
+  @Get("payslips")
+  @RequirePermission("hr.payrollRun.view")
+  @ApiOperation({ summary: "One employee's payslip history" })
+  payslipsForEmployee(@Ctx() ctx: RequestContext, @Query("employeeId") employeeId: string) {
+    return this.payslips.forEmployee(ctx, employeeId);
+  }
+
+  @Post("loans/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.loan.edit")
+  cancelLoan(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.loans.cancel(ctx, id);
+  }
+}
+
 /** The employee self-service portal: profile, announcements, HR and equipment requests. */
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -428,6 +515,7 @@ class SelfServicePortalController {
     private readonly announcements: AnnouncementService,
     private readonly hrRequests: HrRequestService,
     private readonly equipmentRequests: EquipmentRequestService,
+    private readonly payslips: PayslipService,
   ) {}
 
   private async myEmployee(ctx: RequestContext) {
@@ -483,6 +571,13 @@ class SelfServicePortalController {
   async createEquipmentRequest(@Ctx() ctx: RequestContext, @Body(validated(SelfEquipmentRequestDto)) dto: SelfEquipmentRequestDto) {
     const employee = await this.myEmployee(ctx);
     return this.equipmentRequests.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Get("me/payslips")
+  @ApiOperation({ summary: "My own payslip history" })
+  async myPayslips(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.payslips.forEmployee(ctx, employee.id);
   }
 }
 
@@ -771,6 +866,12 @@ const crud = [
   createMasterDataController({ path: "hr/announcements", tag: "HR: Announcements", module: "hr", permission: "hr.announcement", service: AnnouncementService, createDto: CreateAnnouncementDto, updateDto: UpdateAnnouncementDto }),
   createMasterDataController({ path: "hr/requests", tag: "HR: Requests", module: "hr", permission: "hr.hrRequest", service: HrRequestService, createDto: CreateHrRequestDto, updateDto: UpdateHrRequestDto }),
   createMasterDataController({ path: "hr/equipment-requests", tag: "HR: Equipment requests", module: "hr", permission: "hr.equipmentRequest", service: EquipmentRequestService, createDto: CreateEquipmentRequestDto, updateDto: UpdateEquipmentRequestDto }),
+  createMasterDataController({ path: "hr/statutory-rates", tag: "HR: Statutory rates", module: "hr", permission: "hr.statutoryRate", service: StatutoryRateService, createDto: CreateStatutoryRateDto, updateDto: UpdateStatutoryRateDto }),
+  createMasterDataController({ path: "hr/apit-brackets", tag: "HR: APIT brackets", module: "hr", permission: "hr.apitBracket", service: ApitBracketService, createDto: CreateApitBracketDto, updateDto: UpdateApitBracketDto }),
+  createMasterDataController({ path: "hr/salary-components", tag: "HR: Salary components", module: "hr", permission: "hr.salaryComponent", service: SalaryComponentService, createDto: CreateSalaryComponentDto, updateDto: UpdateSalaryComponentDto }),
+  createMasterDataController({ path: "hr/salary-structures", tag: "HR: Salary structures", module: "hr", permission: "hr.salaryStructure", service: SalaryStructureService, createDto: CreateSalaryStructureDto, updateDto: UpdateSalaryStructureDto }),
+  createMasterDataController({ path: "hr/loans", tag: "HR: Loans and advances", module: "hr", permission: "hr.loan", service: LoanService, createDto: CreateLoanDto, updateDto: UpdateLoanDto }),
+  createMasterDataController({ path: "hr/payroll-runs", tag: "HR: Payroll runs", module: "hr", permission: "hr.payrollRun", service: PayrollRunService, createDto: CreatePayrollRunDto, updateDto: UpdatePayrollRunDto }),
 ];
 
 const SERVICES = [
@@ -797,11 +898,20 @@ const SERVICES = [
   AnnouncementService,
   HrRequestService,
   EquipmentRequestService,
+  StatutoryRateService,
+  ApitBracketService,
+  SalaryComponentService,
+  SalaryStructureService,
+  LoanService,
+  PayslipService,
+  PayrollRunService,
 ];
 
 @Module({
+  imports: [FinanceModule],
   controllers: [
     HrActionsController,
+    PayrollActionsController,
     AttendanceSelfServiceController,
     ShiftSelfServiceController,
     LeaveSelfServiceController,
