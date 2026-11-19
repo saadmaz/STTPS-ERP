@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Ban, CheckCircle2, FileCheck, Mail, PackageCheck, PackagePlus, PencilLine, RotateCcw, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import { formatDate, formatDateTime, humanize } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { useCan } from "@/lib/workspace";
 import { MasterConfig } from "@/components/master/MasterData";
-import { StatusBadge } from "@/components/ui/kit";
+import { ConfirmDialog, StatusBadge } from "@/components/ui/kit";
 import { useProductNames, useWarehouseName } from "@/modules/inventory/config";
 import { Action } from "@/modules/sales/config";
 
@@ -479,6 +480,24 @@ function ReceiptLines({ g }: { g: GoodsReceipt }) {
   );
 }
 
+function BillReceipt({ receiptId }: { receiptId: string }) {
+  const router = useRouter();
+  const can = useCan("finance.bill.create");
+  const [asking, setAsking] = useState(false);
+  const run = useMutation({
+    mutationFn: (supplierInvoiceNo: string) => procurementApi.post<{ id: string }>(`/finance/bills/from-receipt/${receiptId}`, { supplierInvoiceNo }),
+    onSuccess: (b) => router.push(`/finance/bills/${b.id}`),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can) return null;
+  return (
+    <>
+      <button className="btn-primary" onClick={() => setAsking(true)}><FileCheck size={15} /> Bill</button>
+      <ConfirmDialog open={asking} title="Supplier's invoice number" confirmLabel="Draft bill" reason="required" busy={run.isPending} onConfirm={(no) => run.mutate(no)} onClose={() => setAsking(false)} />
+    </>
+  );
+}
+
 const receipts: MasterConfig<GoodsReceipt> = {
   entityType: "procurement.receipt",
   permission: "procurement.receipt",
@@ -506,6 +525,7 @@ const receipts: MasterConfig<GoodsReceipt> = {
     <>
       {r.status === "draft" && <Action<GoodsReceipt> label="Post to stock" icon={PackageCheck} path={`/procurement/receipts/${r.id}/post`} permission="procurement.receipt.edit" onDone={refresh} confirm="Put the accepted goods into stock?" />}
       {r.status === "draft" && <Action<GoodsReceipt> label="Cancel" icon={Ban} path={`/procurement/receipts/${r.id}/cancel`} permission="procurement.receipt.edit" onDone={refresh} danger confirm="Cancel this receipt?" />}
+      {r.status === "posted" && <BillReceipt receiptId={r.id} />}
       {r.status === "posted" && <Link className="btn-ghost" href={`/procurement/new/return?receipt=${r.id}`}><RotateCcw size={15} /> Return to supplier</Link>}
     </>
   ),

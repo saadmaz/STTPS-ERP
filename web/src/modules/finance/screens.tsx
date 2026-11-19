@@ -14,8 +14,9 @@ import { MasterListPage, MasterRecordPage } from "@/components/master/MasterData
 import { EmptyState, ErrorState, Field, PageHeader, Spinner } from "@/components/ui/kit";
 import { Account, FINANCE_SCREENS as CORE_SCREENS, financeApi, Journal, useAccountName, useAccounts } from "./config";
 import { AR_SCREENS, NewArDocument } from "./receivables";
+import { AP_FORM_KINDS, AP_SCREENS, NewApDocument } from "./payables";
 
-const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS };
+const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS, ...AP_SCREENS };
 
 export function FinanceList({ entity }: { entity: string }) {
   const config = FINANCE_SCREENS[entity];
@@ -216,7 +217,8 @@ const blank = (): LineForm => ({ accountId: "", debit: "", credit: "", descripti
 const cents = (v: string) => Math.round(Number(v || "0") * 100);
 
 export function NewFinanceDocument({ kind }: { kind: string }) {
-  return kind === "journal" ? <NewJournal /> : <NewArDocument kind={kind} />;
+  if (kind === "journal") return <NewJournal />;
+  return AP_FORM_KINDS.includes(kind) ? <NewApDocument kind={kind} /> : <NewArDocument kind={kind} />;
 }
 
 function NewJournal() {

@@ -7,6 +7,8 @@ import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { OrgModule } from "../org/org.module.js";
 import { SalesModule } from "../sales/sales.module.js";
 import { InvoiceService, ReceiptService, ReceivablesService } from "./ar.services.js";
+import { BillService, PayablesService, PaymentService } from "./ap.services.js";
+import { ApplyDebitDto, BillFromReceiptDto, CreateBillDto, CreatePaymentDto, PaymentRunDto, PostBillDto, UpdateBillDto, UpdatePaymentDto } from "./ap.dto.js";
 import { ApplyCreditDto, CreateInvoiceDto, CreateReceiptDto, UpdateInvoiceDto, UpdateReceiptDto, WriteOffDto } from "./ar.dto.js";
 import { AccountService, AutoPostingService, FinanceReportsService, FinanceSettingsService, JournalService } from "./finance.services.js";
 import { GeneralLedger } from "./ledger.service.js";
@@ -37,7 +39,67 @@ class FinanceController {
     private readonly reports: FinanceReportsService,
     private readonly invoices: InvoiceService,
     private readonly receivables: ReceivablesService,
+    private readonly bills: BillService,
+    private readonly payments: PaymentService,
+    private readonly payables: PayablesService,
   ) {}
+
+  @Post("bills/:id/post")
+  @HttpCode(200)
+  @RequirePermission("finance.bill.edit")
+  @ApiOperation({ summary: "Post the bill to payables after three-way matching (an override reason is needed when it does not match)" })
+  postBill(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(PostBillDto)) dto: PostBillDto) {
+    return this.bills.post(ctx, id, dto.overrideReason);
+  }
+
+  @Post("bills/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("finance.bill.edit")
+  cancelBill(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.bills.cancel(ctx, id);
+  }
+
+  @Post("bills/:id/apply-debit")
+  @HttpCode(200)
+  @RequirePermission("finance.bill.edit")
+  applyDebit(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ApplyDebitDto)) dto: ApplyDebitDto) {
+    return this.bills.applyDebit(ctx, id, dto.billId, dto.amount);
+  }
+
+  @Post("bills/from-receipt/:receiptId")
+  @HttpCode(200)
+  @RequirePermission("finance.bill.create")
+  @ApiOperation({ summary: "Draft a bill for a posted goods receipt at the order prices" })
+  billFromReceipt(@Ctx() ctx: RequestContext, @Param("receiptId") receiptId: string, @Body(validated(BillFromReceiptDto)) dto: BillFromReceiptDto) {
+    return this.bills.fromReceipt(ctx, receiptId, dto.supplierInvoiceNo, dto.date);
+  }
+
+  @Post("payments/run")
+  @HttpCode(200)
+  @RequirePermission("finance.payment.create")
+  @ApiOperation({ summary: "Pay the chosen bills in full, one payment per supplier" })
+  paymentRun(@Ctx() ctx: RequestContext, @Body(validated(PaymentRunDto)) dto: PaymentRunDto) {
+    return this.payments.run(ctx, dto);
+  }
+
+  @Get("payables/ageing")
+  @RequirePermission("finance.bill.view")
+  payablesAgeing(@Ctx() ctx: RequestContext, @Query("asOf") asOf?: string) {
+    return this.payables.ageing(ctx, day(asOf));
+  }
+
+  @Get("payables/due")
+  @RequirePermission("finance.bill.view")
+  @ApiOperation({ summary: "Open bills due by a date (default today), for a payment run" })
+  due(@Ctx() ctx: RequestContext, @Query("by") by?: string) {
+    return this.payables.due(ctx, day(by));
+  }
+
+  @Get("payables/statement/:supplierId")
+  @RequirePermission("finance.bill.view")
+  supplierStatement(@Ctx() ctx: RequestContext, @Param("supplierId") supplierId: string) {
+    return this.payables.statement(ctx, supplierId);
+  }
 
   @Post("invoices/:id/post")
   @HttpCode(200)
@@ -185,9 +247,11 @@ const crud = [
   createMasterDataController({ path: "finance/journals", tag: "Finance: Journals", module: "finance", permission: "finance.journal", service: JournalService, createDto: CreateJournalDto, updateDto: UpdateJournalDto }),
   createMasterDataController({ path: "finance/invoices", tag: "Finance: Invoices and credit notes", module: "finance", permission: "finance.invoice", service: InvoiceService, createDto: CreateInvoiceDto, updateDto: UpdateInvoiceDto }),
   createMasterDataController({ path: "finance/receipts", tag: "Finance: Customer receipts", module: "finance", permission: "finance.receipt", service: ReceiptService, createDto: CreateReceiptDto, updateDto: UpdateReceiptDto }),
+  createMasterDataController({ path: "finance/bills", tag: "Finance: Supplier bills and debit notes", module: "finance", permission: "finance.bill", service: BillService, createDto: CreateBillDto, updateDto: UpdateBillDto }),
+  createMasterDataController({ path: "finance/payments", tag: "Finance: Supplier payments", module: "finance", permission: "finance.payment", service: PaymentService, createDto: CreatePaymentDto, updateDto: UpdatePaymentDto }),
 ];
 
-const SERVICES = [GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
+const SERVICES = [BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
 
 @Module({
   imports: [OrgModule, SalesModule],
