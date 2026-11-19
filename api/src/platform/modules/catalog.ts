@@ -391,7 +391,19 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("pos", "sale", "sales"),
     ],
   }),
-  mod({ key: "logistics", name: "Logistics & Fleet", description: "Delivery routes, drivers, vehicles and fleet costs.", group: "advanced", available: false, dependsOn: ["sales"] }),
+  mod({
+    key: "logistics",
+    name: "Logistics & Fleet",
+    description: "Delivery routes, drivers, vehicles and fleet costs.",
+    group: "advanced",
+    available: true,
+    dependsOn: ["sales"],
+    permissions: [
+      ...entityPermissions("logistics", "vehicle", "vehicles"),
+      ...entityPermissions("logistics", "fuelLog", "fuel logs"),
+      ...entityPermissions("logistics", "route", "routes"),
+    ],
+  }),
   mod({ key: "marketing", name: "Marketing", description: "Campaigns, segments and marketing automation.", group: "advanced", available: false, dependsOn: ["crm"] }),
 
   // Intelligence

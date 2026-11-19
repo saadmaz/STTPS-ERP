@@ -64,6 +64,9 @@ import {
   PackageSearch,
   Store,
   CreditCard,
+  Car,
+  Fuel,
+  Navigation,
   Package,
   Percent,
   Ruler,
@@ -138,6 +141,16 @@ const SECTIONS: NavSection[] = [
       { label: "Deliveries", href: "/sales/deliveries", icon: Truck, permission: "sales.delivery.view" },
       { label: "Returns", href: "/sales/returns", icon: RotateCcw, permission: "sales.return.view" },
       { label: "Sales settings", href: "/sales/settings", icon: SlidersHorizontal, permission: "sales.settings.edit" },
+    ],
+  },
+  {
+    label: "Logistics & Fleet",
+    icon: Navigation,
+    module: "logistics",
+    links: [
+      { label: "Routes", href: "/logistics/routes", icon: Navigation, permission: "logistics.route.view" },
+      { label: "Vehicles", href: "/logistics/vehicles", icon: Car, permission: "logistics.vehicle.view" },
+      { label: "Fuel logs", href: "/logistics/fuel-logs", icon: Fuel, permission: "logistics.fuelLog.view" },
     ],
   },
   {

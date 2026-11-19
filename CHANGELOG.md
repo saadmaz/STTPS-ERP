@@ -128,6 +128,8 @@
 - Warehouse screens: put-away rules, a task list and record page with assign/start/complete/cancel, a Scan page for the barcode/QR flow, and a Picking page for single and wave pick suggestions.
 - POS API (`/pos`): terminals; cashier shifts (open with a float, close reconciling counted cash against the shift's sales); sales that price a cart, issue stock and post revenue, tax and tendered cash/card/QR in one transaction, with split tender and a simple loyalty-points balance (earned on spend, redeemable as a discount); refunds of a chosen subset of lines and same-shift voids, both reversing stock and the ledger.
 - POS screens: a Register page (product search, cart, split payments, a receipt), a sales list and record page (refund, void), cashier shifts (close) and terminals.
+- Logistics API (`/logistics`): routes group one or more already-picked-and-packed sales deliveries into an ordered sequence of stops against a vehicle; dispatching a route dispatches each stop's delivery (issuing its stock), and marking a stop delivered or failed drives the same proof-of-delivery and failed-delivery handling Sales deliveries already have. Vehicles (driver, insurance and licence expiry) and fuel logs, which keep a vehicle's own odometer current.
+- Logistics screens: a routes list and record page (dispatch, arrive, deliver, fail, cancel) with a dedicated page for building a new route from existing deliveries, vehicles and fuel logs.
 
 ### Changed
 

@@ -30,6 +30,7 @@ import { MFG_COLLECTIONS, MFG_LISTS } from "../../manufacturing/manufacturing.mo
 import { QUALITY_COLLECTIONS, QUALITY_LISTS } from "../../quality/quality.models.js";
 import { WAREHOUSE_COLLECTIONS, WAREHOUSE_LISTS } from "../../warehouse/warehouse.models.js";
 import { POS_COLLECTIONS, POS_LISTS } from "../../pos/pos.models.js";
+import { LOGISTICS_COLLECTIONS, LOGISTICS_LISTS } from "../../logistics/logistics.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -157,6 +158,9 @@ export const INDEXES: IndexSpec[] = [
 
   // POS
   ...largeListIndexes(POS_COLLECTIONS.sales, POS_LISTS.sales),
+
+  // Logistics
+  ...largeListIndexes(LOGISTICS_COLLECTIONS.routes, LOGISTICS_LISTS.routes),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */
