@@ -167,6 +167,7 @@ const SECTIONS: NavSection[] = [
       { label: "Job requisitions", href: "/hr/requisitions", icon: ClipboardList, permission: "hr.jobRequisition.view" },
       { label: "Job postings", href: "/hr/postings", icon: Megaphone, permission: "hr.jobPosting.view" },
       { label: "Candidates", href: "/hr/candidates", icon: UserPlus, permission: "hr.candidate.view" },
+      { label: "Onboarding & offboarding", href: "/hr/checklists", icon: ClipboardCheck, permission: "hr.checklist.view" },
     ],
   },
   {

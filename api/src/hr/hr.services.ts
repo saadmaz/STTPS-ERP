@@ -25,6 +25,7 @@ import {
   UpdatePositionDto,
 } from "./hr.dto.js";
 import { EmergencyContact, EmployeeDoc, EmploymentHistoryEntry, HR_COLLECTIONS, HR_LISTS, JobGradeDoc, PositionDoc } from "./hr.models.js";
+import { ChecklistService } from "./hr-onboarding.services.js";
 
 const orNull = <V>(v: V | undefined): V | null => (v === undefined ? null : v);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -114,7 +115,7 @@ function requireCompensationAccess(ctx: RequestContext): void {
 
 @Injectable()
 export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmployeeDto, UpdateEmployeeDto> {
-  constructor(fs: FirestoreService, audit: AuditService, unique: UniqueService) {
+  constructor(fs: FirestoreService, audit: AuditService, unique: UniqueService, private readonly checklists: ChecklistService) {
     super(fs, audit, unique, {
       module: "hr", entity: "employee", label: "Employee", collection: HR_COLLECTIONS.employees,
       route: "/hr/employees", uniqueFields: ["employeeNumber"], parentField: "managerId",
@@ -214,7 +215,7 @@ export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmploy
 
   /** Ends employment: status, date and reason, with a closing history entry. */
   async terminate(ctx: RequestContext, id: string, date: string | undefined, reason: string): Promise<EmployeeDoc> {
-    return this.firestore.runTransaction(async (tx) => {
+    const after = await this.firestore.runTransaction(async (tx) => {
       const before = await this.repo.get(ctx, id, tx);
       if (before.status === "terminated") throw new BadRequestException("Already terminated");
       const terminationDate = date?.slice(0, 10) ?? today();
@@ -225,6 +226,8 @@ export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmploy
       this.audit.record(ctx, { module: "hr", action: "terminated", entity: this.entityType, entityId: id, reason }, tx);
       return after;
     });
+    await this.checklists.start(ctx, id, "offboarding", after.terminationDate);
+    return after;
   }
 
   /** Brings a terminated employee back, as a fresh stint (does not undo the termination record). */

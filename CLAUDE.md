@@ -6,7 +6,7 @@ Read this file in full before changing anything. It records the conventions the 
 
 - `docs/BLUEPRINT.md` is the product spec. `docs/IMPLEMENTATION-PLAN.md` is the phase plan. Its checkboxes (`- [x]` / `- [ ]`, with *italic notes* on partly done items) are the source of truth for progress.
 - **Pick the next unchecked item in phase order** and build it end to end: API, tests, web screens, docs. Then commit, push and move on. The owner has said not to ask for approval between items.
-- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all), Phase 3 Employees and Recruitment/ATS. Next: **Phase 3 Workforce**, continuing with Onboarding and offboarding checklists.
+- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all), Phase 3 Employees, Recruitment/ATS, Onboarding/offboarding checklists. Next: **Phase 3 Workforce**, continuing with Attendance.
 
 ## 2. Git and release rules (strict)
 
@@ -134,7 +134,8 @@ plan.commitNew(); approval.apply();                                           //
 - **Employees vs users:** `EmployeeDoc.userId` (`api/src/hr/`) now links an employee to the platform user they sign in as, checked against `companyUsers` (not the generic `references` config: users have no `companyId`). Expense claims still key off the **user id** directly — leave that alone; payroll and self-service should resolve the employee from `userId`, not the other way round.
 - **Sensitive HR fields:** `EmployeeDoc.compensation`, `bankDetails` and `nationalId` need `hr.employee.compensation`, checked in `EmployeeService` (read redaction in `get`/`list`/`history`, write guard in `toNew`/`toPatch`) — not the generic Phase 0 record-level-scope engine, which still doesn't exist. Copy this per-field pattern for other sensitive data before that engine lands.
 - **Budget control:** procurement already calls `BudgetService.check`. Any new spending document (projects, maintenance work orders) should call it the same way.
-- **Onboarding (next):** `CandidateService.hire()` (`api/src/hr/hr-recruitment.services.ts`) already creates the `EmployeeDoc` on hire — build the onboarding checklist as follow-on tasks against that employee, not as part of `hire()` itself. The public career page pattern (`PublicCareersController`, no `@RequireModule`/`@RequirePermission`, just `@Public()`, scoped by raw `companyId` rather than a hashed token since the content is already public) is the template for any other public-facing portal.
+- **Onboarding/offboarding (done):** `ChecklistService` (`api/src/hr/hr-onboarding.services.ts`) is deliberately standalone — no sibling HR service injected, just the generic `references` config on `employeeId` — specifically so `EmployeeService.terminate()` and `CandidateService.hire()` can both depend on it (one direction each) without a cycle. It auto-starts a checklist via `start()`, which is idempotent (reuses an in-progress one rather than throwing), called *after* the caller's own transaction commits, the same two-phase pattern as `hire()` creating the employee. The public career page pattern (`PublicCareersController`, no `@RequireModule`/`@RequirePermission`, just `@Public()`, scoped by raw `companyId` rather than a hashed token since the content is already public) is the template for any other public-facing portal.
+- **Attendance (next):** no device-integration convention exists yet; design the clock-in endpoint's auth story (a kiosk/device credential, not a normal user session) before writing it. `EmployeeDoc.employmentType`/`status` and the org module's branches already exist for shift/location scoping.
 
 ## 10. Review hotspots (for a later review by a stronger model)
 

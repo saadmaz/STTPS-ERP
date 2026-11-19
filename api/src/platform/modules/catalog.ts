@@ -238,6 +238,7 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("hr", "jobRequisition", "job requisitions"),
       ...entityPermissions("hr", "jobPosting", "job postings"),
       ...entityPermissions("hr", "candidate", "candidates"),
+      ...entityPermissions("hr", "checklist", "onboarding and offboarding checklists"),
     ],
   }),
   mod({ key: "payroll", name: "Payroll", description: "Salary structures, payroll runs, payslips and statutory filings.", group: "people", available: false, dependsOn: ["hr", "finance"] }),

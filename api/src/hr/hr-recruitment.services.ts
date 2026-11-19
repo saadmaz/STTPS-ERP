@@ -16,6 +16,7 @@ import { SearchEntry } from "../platform/search/search-index.js";
 import { ORG_COLLECTIONS } from "../org/org.models.js";
 import { HR_COLLECTIONS } from "./hr.models.js";
 import { EmployeeService } from "./hr.services.js";
+import { ChecklistService } from "./hr-onboarding.services.js";
 import {
   CreateCandidateDto,
   CreateJobPostingDto,
@@ -195,6 +196,7 @@ export class CandidateService extends MasterDataService<CandidateDoc, CreateCand
     private readonly postings: JobPostingService,
     private readonly requisitions: JobRequisitionService,
     private readonly employees: EmployeeService,
+    private readonly checklists: ChecklistService,
   ) {
     super(fs, audit, unique, {
       module: "hr", entity: "candidate", label: "Candidate", collection: RECRUITMENT_COLLECTIONS.candidates,
@@ -286,7 +288,7 @@ export class CandidateService extends MasterDataService<CandidateDoc, CreateCand
       joiningDate: resolvedJoiningDate,
       departmentId: req?.departmentId ?? undefined, branchId: req?.branchId ?? undefined, positionId: req?.positionId ?? undefined, managerId: req?.hiringManagerId ?? undefined,
     });
-    return this.firestore.runTransaction(async (tx) => {
+    const after = await this.firestore.runTransaction(async (tx) => {
       const cur = await this.repo.get(ctx, id, tx);
       if (cur.stage === "hired") throw new BadRequestException("Already hired");
       const reqDoc = cur.requisitionId ? await this.requisitions.repo.find(ctx, cur.requisitionId, tx) : null;
@@ -298,6 +300,8 @@ export class CandidateService extends MasterDataService<CandidateDoc, CreateCand
       this.audit.record(ctx, { module: "hr", action: "hired", entity: this.entityType, entityId: id, after: { employeeId: employee.id } }, tx);
       return after;
     });
+    await this.checklists.start(ctx, employee.id, "onboarding", resolvedJoiningDate);
+    return after;
   }
 
   /** The public career page's apply form: creates a candidate with no authentication, scoped by the posting's own company. */

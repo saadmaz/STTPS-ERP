@@ -32,6 +32,8 @@ import {
   UpdateJobPostingDto,
   UpdateJobRequisitionDto,
 } from "./hr-recruitment.dto.js";
+import { ChecklistService } from "./hr-onboarding.services.js";
+import { AssignItemDto, CancelChecklistDto, CreateChecklistDto, SetItemStatusDto, StartChecklistDto, UpdateChecklistDto } from "./hr-onboarding.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -43,6 +45,7 @@ class HrActionsController {
     private readonly requisitions: JobRequisitionService,
     private readonly postings: JobPostingService,
     private readonly candidates: CandidateService,
+    private readonly checklists: ChecklistService,
   ) {}
 
   @Get("employees/org-chart")
@@ -66,6 +69,44 @@ class HrActionsController {
   @ApiOperation({ summary: "Brings a terminated employee back as a new stint" })
   reinstate(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ReinstateDto)) dto: ReinstateDto) {
     return this.employees.reinstate(ctx, id, dto.date);
+  }
+
+  @Post("employees/:id/onboarding")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.create")
+  @ApiOperation({ summary: "Starts an onboarding checklist for this employee (reuses one already in progress)" })
+  startOnboarding(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(StartChecklistDto)) dto: StartChecklistDto) {
+    return this.checklists.start(ctx, id, "onboarding", dto.targetDate?.slice(0, 10) ?? null);
+  }
+
+  @Post("employees/:id/offboarding")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.create")
+  @ApiOperation({ summary: "Starts an offboarding checklist for this employee (reuses one already in progress)" })
+  startOffboarding(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(StartChecklistDto)) dto: StartChecklistDto) {
+    return this.checklists.start(ctx, id, "offboarding", dto.targetDate?.slice(0, 10) ?? null);
+  }
+
+  @Post("checklists/:id/items/:itemId/status")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.edit")
+  @ApiOperation({ summary: "Marks a checklist item done, skipped or pending again" })
+  setItemStatus(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("itemId") itemId: string, @Body(validated(SetItemStatusDto)) dto: SetItemStatusDto) {
+    return this.checklists.setItemStatus(ctx, id, itemId, dto.status, dto.notes);
+  }
+
+  @Post("checklists/:id/items/:itemId/assign")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.edit")
+  assignItem(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("itemId") itemId: string, @Body(validated(AssignItemDto)) dto: AssignItemDto) {
+    return this.checklists.assignItem(ctx, id, itemId, dto.userId ?? null);
+  }
+
+  @Post("checklists/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.edit")
+  cancelChecklist(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelChecklistDto)) dto: CancelChecklistDto) {
+    return this.checklists.cancel(ctx, id, dto.reason);
   }
 
   @Post("requisitions/:id/submit")
@@ -179,9 +220,10 @@ const crud = [
   createMasterDataController({ path: "hr/requisitions", tag: "HR: Job requisitions", module: "hr", permission: "hr.jobRequisition", service: JobRequisitionService, createDto: CreateJobRequisitionDto, updateDto: UpdateJobRequisitionDto }),
   createMasterDataController({ path: "hr/postings", tag: "HR: Job postings", module: "hr", permission: "hr.jobPosting", service: JobPostingService, createDto: CreateJobPostingDto, updateDto: UpdateJobPostingDto }),
   createMasterDataController({ path: "hr/candidates", tag: "HR: Candidates", module: "hr", permission: "hr.candidate", service: CandidateService, createDto: CreateCandidateDto, updateDto: UpdateCandidateDto }),
+  createMasterDataController({ path: "hr/checklists", tag: "HR: Onboarding and offboarding checklists", module: "hr", permission: "hr.checklist", service: ChecklistService, createDto: CreateChecklistDto, updateDto: UpdateChecklistDto }),
 ];
 
-const SERVICES = [EmployeeService, PositionService, JobGradeService, JobRequisitionService, JobPostingService, CandidateService];
+const SERVICES = [EmployeeService, PositionService, JobGradeService, JobRequisitionService, JobPostingService, CandidateService, ChecklistService];
 
 @Module({
   controllers: [HrActionsController, PublicCareersController, ...crud],

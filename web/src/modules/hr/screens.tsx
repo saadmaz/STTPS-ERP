@@ -10,8 +10,9 @@ import { api, errorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { HR_SCREENS, OrgChartNode } from "./config";
 import { RECRUITMENT_SCREENS } from "./recruitment";
+import { ONBOARDING_SCREENS } from "./onboarding";
 
-const ALL_HR_SCREENS = { ...HR_SCREENS, ...RECRUITMENT_SCREENS };
+const ALL_HR_SCREENS = { ...HR_SCREENS, ...RECRUITMENT_SCREENS, ...ONBOARDING_SCREENS };
 
 export function HrList({ entity }: { entity: string }) {
   const config = ALL_HR_SCREENS[entity];
