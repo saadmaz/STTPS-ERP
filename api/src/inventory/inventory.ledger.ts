@@ -42,6 +42,8 @@ export interface MovementInput {
   reference?: RecordRef | null;
   reason?: string | null;
   date?: string;
+  /** For issues: reserved quantity (positive thousandths) this movement uses up. */
+  consumeReserved?: number;
 }
 
 export interface PostOptions {
@@ -175,6 +177,13 @@ export class InventoryLedger {
         value: 0, avgCost: product.costingMethod === "standard" ? product.standardCost : 0, reorderPoint: 0, safetyStock: 0, reorderQty: 0,
         lowStock: false, lastReceiptAt: null, lastIssueAt: null, updatedAt: now,
       };
+
+      // Reservations used up by this issue.
+      const consume = input.qty < 0 ? Math.min(input.consumeReserved ?? 0, balance.reserved, -input.qty) : 0;
+      if (consume) {
+        balance.reserved -= consume;
+        summary.reserved = Math.max(0, summary.reserved - consume);
+      }
 
       // Negative stock policy.
       if (input.qty < 0) {
@@ -323,39 +332,72 @@ export class InventoryLedger {
     };
   }
 
-  /** Holds stock for a document (e.g. a sales order) so others cannot take it. */
-  async reserve(tx: Transaction, ctx: RequestContext, input: { productId: string; warehouseId: string; lotNo?: string | null; qty: number; reference: RecordRef }) {
-    const bKey = balanceId(ctx.companyId, input.productId, input.warehouseId, input.lotNo ?? null);
-    const sKey = summaryId(ctx.companyId, input.productId);
-    const [bSnap, sSnap] = await tx.getAll(this.firestore.collection(INVENTORY_COLLECTIONS.balances).doc(bKey), this.firestore.collection(INVENTORY_COLLECTIONS.summaries).doc(sKey));
-    const balance = bSnap.data() as StockBalanceDoc | undefined;
-    const summary = sSnap.data() as StockSummaryDoc | undefined;
-    const available = (balance?.onHand ?? 0) - (balance?.reserved ?? 0);
-    if (input.qty > available) throw new BadRequestException(`Only ${available / QTY_SCALE} available to reserve`);
-    return {
-      commit: () => {
-        const now = new Date().toISOString();
-        tx.set(bSnap.ref, { ...balance!, reserved: balance!.reserved + input.qty, updatedAt: now });
-        tx.set(sSnap.ref, { ...summary!, reserved: (summary?.reserved ?? 0) + input.qty, updatedAt: now });
-      },
-    };
+  /**
+   * Reserves stock for several lines at once (read phase), allocating up to
+   * what is available per product, warehouse and lot. Returns the reserved
+   * quantity per line, and `commit()` for the write phase.
+   */
+  async reserveMany(tx: Transaction, ctx: RequestContext, items: { productId: string; warehouseId: string; lotNo?: string | null; qty: number }[]) {
+    const { balances, summaries, refs } = await this.loadPositions(tx, ctx, items);
+    const reserved = items.map((item) => {
+      const b = balances.get(balanceId(ctx.companyId, item.productId, item.warehouseId, item.lotNo ?? null))!;
+      const take = Math.max(0, Math.min(item.qty, b.onHand - b.reserved));
+      b.reserved += take;
+      summaries.get(summaryId(ctx.companyId, item.productId))!.reserved += take;
+      return take;
+    });
+    return { reserved, commit: () => this.writePositions(tx, balances, summaries, refs) };
   }
 
-  /** Gives back reserved stock (cancellation, or before issuing it). */
-  async release(tx: Transaction, ctx: RequestContext, input: { productId: string; warehouseId: string; lotNo?: string | null; qty: number }) {
-    const bKey = balanceId(ctx.companyId, input.productId, input.warehouseId, input.lotNo ?? null);
-    const sKey = summaryId(ctx.companyId, input.productId);
-    const [bSnap, sSnap] = await tx.getAll(this.firestore.collection(INVENTORY_COLLECTIONS.balances).doc(bKey), this.firestore.collection(INVENTORY_COLLECTIONS.summaries).doc(sKey));
-    const balance = bSnap.data() as StockBalanceDoc | undefined;
-    const summary = sSnap.data() as StockSummaryDoc | undefined;
-    return {
-      commit: () => {
-        if (!balance || !summary) return;
-        const now = new Date().toISOString();
-        tx.set(bSnap.ref, { ...balance, reserved: Math.max(0, balance.reserved - input.qty), updatedAt: now });
-        tx.set(sSnap.ref, { ...summary, reserved: Math.max(0, summary.reserved - input.qty), updatedAt: now });
-      },
-    };
+  /** Gives back reserved stock for several lines (read phase); `commit()` to write. */
+  async releaseMany(tx: Transaction, ctx: RequestContext, items: { productId: string; warehouseId: string; lotNo?: string | null; qty: number }[]) {
+    const { balances, summaries, refs } = await this.loadPositions(tx, ctx, items);
+    for (const item of items) {
+      const b = balances.get(balanceId(ctx.companyId, item.productId, item.warehouseId, item.lotNo ?? null))!;
+      const give = Math.min(item.qty, b.reserved);
+      b.reserved -= give;
+      const s = summaries.get(summaryId(ctx.companyId, item.productId))!;
+      s.reserved = Math.max(0, s.reserved - give);
+    }
+    return { commit: () => this.writePositions(tx, balances, summaries, refs) };
+  }
+
+  private async loadPositions(tx: Transaction, ctx: RequestContext, items: { productId: string; warehouseId: string; lotNo?: string | null }[]) {
+    const now = new Date().toISOString();
+    const bKeys = [...new Set(items.map((i) => balanceId(ctx.companyId, i.productId, i.warehouseId, i.lotNo ?? null)))];
+    const sKeys = [...new Set(items.map((i) => summaryId(ctx.companyId, i.productId)))];
+    const balances = new Map<string, StockBalanceDoc>();
+    const summaries = new Map<string, StockSummaryDoc>();
+    const refs = new Set<string>();
+    if (bKeys.length) {
+      const snaps = await tx.getAll(...bKeys.map((k) => this.firestore.collection(INVENTORY_COLLECTIONS.balances).doc(k)));
+      snaps.forEach((snap, i) => {
+        const item = items.find((it) => balanceId(ctx.companyId, it.productId, it.warehouseId, it.lotNo ?? null) === bKeys[i])!;
+        balances.set(snap.id, (snap.data() as StockBalanceDoc | undefined) ?? {
+          id: snap.id, tenantId: ctx.tenantId, companyId: ctx.companyId, productId: item.productId, warehouseId: item.warehouseId,
+          lotNo: item.lotNo ?? null, expiryDate: null, onHand: 0, reserved: 0, updatedAt: now,
+        });
+      });
+    }
+    if (sKeys.length) {
+      const snaps = await tx.getAll(...sKeys.map((k) => this.firestore.collection(INVENTORY_COLLECTIONS.summaries).doc(k)));
+      for (const snap of snaps) {
+        const productId = snap.id.slice(ctx.companyId.length + 2);
+        summaries.set(snap.id, (snap.data() as StockSummaryDoc | undefined) ?? {
+          id: snap.id, tenantId: ctx.tenantId, companyId: ctx.companyId, productId, onHand: 0, reserved: 0, inTransit: 0, onOrder: 0, value: 0,
+          avgCost: 0, reorderPoint: 0, safetyStock: 0, reorderQty: 0, lowStock: false, lastReceiptAt: null, lastIssueAt: null, updatedAt: now,
+        });
+      }
+    }
+    bKeys.forEach((k) => refs.add(`b:${k}`));
+    sKeys.forEach((k) => refs.add(`s:${k}`));
+    return { balances, summaries, refs };
+  }
+
+  private writePositions(tx: Transaction, balances: Map<string, StockBalanceDoc>, summaries: Map<string, StockSummaryDoc>, _refs: Set<string>) {
+    const now = new Date().toISOString();
+    for (const [k, b] of balances) tx.set(this.firestore.collection(INVENTORY_COLLECTIONS.balances).doc(k), { ...b, updatedAt: now });
+    for (const [k, s] of summaries) tx.set(this.firestore.collection(INVENTORY_COLLECTIONS.summaries).doc(k), { ...s, updatedAt: now });
   }
 
   /** Records an audit entry for a posted document. */

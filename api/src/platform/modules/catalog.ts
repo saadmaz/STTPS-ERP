@@ -132,7 +132,21 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("products", "discountRule", "discount rules"),
     ],
   }),
-  mod({ key: "sales", name: "Sales", description: "Quotes, orders, fulfilment and returns.", group: "core", available: false, dependsOn: ["products", "crm"] }),
+  mod({
+    key: "sales",
+    name: "Sales",
+    description: "Quotes, orders, fulfilment and returns.",
+    group: "core",
+    available: true,
+    dependsOn: ["products", "crm", "inventory"],
+    permissions: [
+      ...entityPermissions("sales", "quote", "quotes"),
+      ...entityPermissions("sales", "order", "sales orders"),
+      ...entityPermissions("sales", "delivery", "deliveries"),
+      ...entityPermissions("sales", "return", "returns"),
+      { code: "sales.settings.edit", name: "Edit sales settings (tax rates, thresholds)", module: "sales", action: "edit" },
+    ],
+  }),
   mod({
     key: "inventory",
     name: "Inventory",

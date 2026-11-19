@@ -163,9 +163,9 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [x] Pricing: price lists, customer-specific prices, quantity tiers, promotions and discount rules, currency, effective dates, price approval.
 
 ### 1.3 Sales (§6)
-- [ ] Quotes with versions and revisions, approval through the engine, PDF generation, email delivery, a customer accept/reject link, and conversion to order.
-- [ ] Sales orders: credit-limit check, stock availability, reservation, backorders, partial fulfilment, cancellation.
-- [ ] Fulfilment: pick, pack, dispatch, delivery, proof of delivery, delivery exceptions, returns/RMA.
+- [x] Quotes with versions and revisions, approval through the engine, PDF generation, email delivery, a customer accept/reject link, and conversion to order.
+- [x] Sales orders: credit-limit check, stock availability, reservation, backorders, partial fulfilment, cancellation.
+- [x] Fulfilment: pick, pack, dispatch, delivery, proof of delivery, delivery exceptions, returns/RMA.
 - [ ] Sales analytics: revenue, AOV, margin, by product/customer/branch/rep, quote conversion.
 
 ### 1.4 Inventory and warehouse (§8)

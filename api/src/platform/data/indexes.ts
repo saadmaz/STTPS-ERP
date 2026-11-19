@@ -12,6 +12,7 @@
 import { CRM_COLLECTIONS, CRM_LISTS } from "../../crm/crm.models.js";
 import { PRODUCT_COLLECTIONS, PRODUCT_LISTS } from "../../products/products.models.js";
 import { INVENTORY_COLLECTIONS, INVENTORY_LISTS } from "../../inventory/inventory.models.js";
+import { SALES_COLLECTIONS, SALES_LISTS } from "../../sales/sales.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -86,6 +87,11 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(INVENTORY_COLLECTIONS.adjustments, INVENTORY_LISTS.adjustments),
   ...largeListIndexes(INVENTORY_COLLECTIONS.transfers, INVENTORY_LISTS.transfers),
   ...largeListIndexes(INVENTORY_COLLECTIONS.counts, INVENTORY_LISTS.counts),
+  // Sales
+  ...largeListIndexes(SALES_COLLECTIONS.quotes, SALES_LISTS.quotes),
+  ...largeListIndexes(SALES_COLLECTIONS.orders, SALES_LISTS.orders),
+  ...largeListIndexes(SALES_COLLECTIONS.deliveries, SALES_LISTS.deliveries),
+  ...largeListIndexes(SALES_COLLECTIONS.returns, SALES_LISTS.returns),
   { collection: INVENTORY_COLLECTIONS.layers, fields: [asc("companyId"), asc("productId"), asc("open"), asc("receivedAt")] },
 ];
 
