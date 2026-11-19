@@ -42,6 +42,8 @@ export interface AccountDoc extends BaseDoc {
   /** Credit limit in minor units of `currency`; null for no limit. */
   creditLimit: number | null;
   taxId: string | null;
+  /** Customer-specific sales price list. */
+  priceListId: string | null;
   ownerUserId: string | null;
   portalAccess: boolean;
   notes: string | null;

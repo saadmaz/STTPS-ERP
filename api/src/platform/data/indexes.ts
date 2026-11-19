@@ -10,6 +10,7 @@
  */
 
 import { CRM_COLLECTIONS, CRM_LISTS } from "../../crm/crm.models.js";
+import { PRODUCT_COLLECTIONS, PRODUCT_LISTS } from "../../products/products.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -74,6 +75,10 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(CRM_COLLECTIONS.leads, CRM_LISTS.leads),
   ...largeListIndexes(CRM_COLLECTIONS.opportunities, CRM_LISTS.opportunities),
   ...largeListIndexes(CRM_COLLECTIONS.activities, CRM_LISTS.activities),
+
+  // Products
+  ...largeListIndexes(PRODUCT_COLLECTIONS.products, PRODUCT_LISTS.products),
+  ...largeListIndexes(PRODUCT_COLLECTIONS.priceListItems, PRODUCT_LISTS.priceListItems),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */

@@ -66,6 +66,7 @@ export class CreateAccountDto extends WithCustomFields {
   @ApiPropertyOptional({ example: "500000.00", description: "Decimal string; blank for no limit" })
   @IsOptional() @Matches(MONEY) creditLimit?: string;
   @IsOptional() @IsString() @MaxLength(40) taxId?: string;
+  @IsOptional() @IsString() priceListId?: string;
   @IsOptional() @IsString() ownerUserId?: string;
   @IsOptional() @IsBoolean() portalAccess?: boolean;
   @IsOptional() @IsString() @MaxLength(5000) notes?: string;

@@ -159,8 +159,8 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [x] CRM analytics: sources, conversion, pipeline value, cycle time, win/loss, rep performance.
 
 ### 1.2 Products and services (§7)
-- [ ] Product master on the existing `Item` model, extended with types (stock, non-stock, service, bundle/kit, manufactured, digital), variants and attributes, units of measure with conversions, barcodes, images, tax category, costing method (FIFO, weighted average, standard), warranty, and lot/serial flags.
-- [ ] Pricing: price lists, customer-specific prices, quantity tiers, promotions and discount rules, currency, effective dates, price approval.
+- [x] Product master on the existing `Item` model, extended with types (stock, non-stock, service, bundle/kit, manufactured, digital), variants and attributes, units of measure with conversions, barcodes, images, tax category, costing method (FIFO, weighted average, standard), warranty, and lot/serial flags.
+- [x] Pricing: price lists, customer-specific prices, quantity tiers, promotions and discount rules, currency, effective dates, price approval.
 
 ### 1.3 Sales (§6)
 - [ ] Quotes with versions and revisions, approval through the engine, PDF generation, email delivery, a customer accept/reject link, and conversion to order.

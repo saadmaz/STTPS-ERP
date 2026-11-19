@@ -15,6 +15,7 @@ import { UserModule } from "./user/user.module.js";
 import { AdminModule } from "./admin/admin.module.js";
 import { OrgModule } from "./org/org.module.js";
 import { CrmModule } from "./crm/crm.module.js";
+import { ProductsModule } from "./products/products.module.js";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CrmModule } from "./crm/crm.module.js";
     AdminModule,
     OrgModule,
     CrmModule,
+    ProductsModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [
