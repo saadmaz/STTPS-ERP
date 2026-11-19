@@ -284,6 +284,12 @@ export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmploy
     return all.find((e) => e.employeeNumber === employeeNumber) ?? null;
   }
 
+  /** For company-wide batch jobs (leave rollover). */
+  async listActive(ctx: RequestContext): Promise<EmployeeDoc[]> {
+    const all = await this.loadAll(ctx);
+    return all.filter((e) => e.status !== "terminated");
+  }
+
   /** Sets or clears the attendance kiosk PIN; hashed, never returned by the API. */
   async setAttendancePin(ctx: RequestContext, id: string, pin: string | null): Promise<EmployeeDoc> {
     const attendancePinHash = pin ? await bcryptHash(pin) : null;

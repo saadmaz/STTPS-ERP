@@ -50,6 +50,19 @@ import {
 } from "./hr-attendance.dto.js";
 import { ShiftAssignmentService, ShiftTemplateService } from "./hr-shifts.services.js";
 import { CancelAssignmentDto, CreateAssignmentDto, CreateShiftTemplateDto, DecideSwapDto, RequestSwapDto, UpdateAssignmentDto, UpdateShiftTemplateDto } from "./hr-shifts.dto.js";
+import { HolidayService, LeaveBalanceService, LeavePolicyService, LeaveRequestService } from "./hr-leave.services.js";
+import {
+  CancelLeaveRequestDto,
+  CreateHolidayDto,
+  CreateLeavePolicyDto,
+  CreateLeaveRequestDto,
+  DecideLeaveRequestDto,
+  RequestLeaveDto,
+  RolloverDto,
+  UpdateHolidayDto,
+  UpdateLeavePolicyDto,
+  UpdateLeaveRequestDto,
+} from "./hr-leave.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -66,6 +79,9 @@ class HrActionsController {
     private readonly attendanceSettings: AttendanceSettingsService,
     private readonly devices: DeviceService,
     private readonly assignments: ShiftAssignmentService,
+    private readonly leavePolicies: LeavePolicyService,
+    private readonly leaveRequests: LeaveRequestService,
+    private readonly leaveBalances: LeaveBalanceService,
   ) {}
 
   @Get("employees/org-chart")
@@ -286,6 +302,93 @@ class HrActionsController {
   cancelAssignment(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelAssignmentDto)) dto: CancelAssignmentDto) {
     return this.assignments.cancel(ctx, id, dto.reason);
   }
+
+  @Post("leave-requests/:id/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.leaveRequest.edit")
+  @ApiOperation({ summary: "Approves or rejects a leave request, consuming the employee's balance on approval" })
+  decideLeaveRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideLeaveRequestDto)) dto: DecideLeaveRequestDto) {
+    return this.leaveRequests.decide(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("leave-requests/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.leaveRequest.edit")
+  @ApiOperation({ summary: "Cancels a leave request on the employee's behalf, including an approved one (its balance is released)" })
+  cancelLeaveRequestAsAdmin(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelLeaveRequestDto)) dto: CancelLeaveRequestDto) {
+    return this.leaveRequests.cancel(ctx, id, null, dto.reason);
+  }
+
+  @Get("leave-requests/calendar")
+  @RequirePermission("hr.leaveRequest.view")
+  @ApiOperation({ summary: "Who is on approved leave, by start date, in a date range" })
+  leaveCalendar(@Ctx() ctx: RequestContext, @Query("from") from: string, @Query("to") to: string) {
+    return this.leaveRequests.calendar(ctx, from, to);
+  }
+
+  @Get("leave-balances")
+  @RequirePermission("hr.leaveRequest.view")
+  @ApiOperation({ summary: "One employee's balance across every leave policy" })
+  async leaveBalancesFor(@Ctx() ctx: RequestContext, @Query("employeeId") employeeId: string) {
+    const policies = await this.leavePolicies.listActive(ctx);
+    return Promise.all(policies.map(async (policy) => ({ policy, balance: await this.leaveBalances.get(ctx, employeeId, policy.id, policy) })));
+  }
+
+  @Post("leave/rollover")
+  @HttpCode(200)
+  @RequirePermission("hr.leavePolicy.edit")
+  @ApiOperation({ summary: "Resets every employee's balance for every policy into the given year, carrying forward up to each policy's cap" })
+  async rolloverLeave(@Ctx() ctx: RequestContext, @Body(validated(RolloverDto)) dto: RolloverDto) {
+    const [employees, policies] = await Promise.all([this.employees.listActive(ctx), this.leavePolicies.listActive(ctx)]);
+    const updated = await this.leaveBalances.rollover(ctx, dto.year, employees, policies);
+    return { year: dto.year, employees: employees.length, policies: policies.length, balancesUpdated: updated };
+  }
+}
+
+/** Leave self-service: a signed-in employee's own requests and balances. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/leave")
+class LeaveSelfServiceController {
+  constructor(private readonly employees: EmployeeService, private readonly leavePolicies: LeavePolicyService, private readonly leaveRequests: LeaveRequestService, private readonly leaveBalances: LeaveBalanceService) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me/requests")
+  @ApiOperation({ summary: "My own leave requests, most recent first" })
+  async myRequests(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.leaveRequests.list(ctx, { where: `employeeId:${employee.id}`, limit: 100 });
+  }
+
+  @Post("me/requests")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Requests leave for myself" })
+  async requestLeave(@Ctx() ctx: RequestContext, @Body(validated(RequestLeaveDto)) dto: RequestLeaveDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.leaveRequests.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Post("me/requests/:id/cancel")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Cancels my own pending leave request" })
+  async cancelMyRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelLeaveRequestDto)) dto: CancelLeaveRequestDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.leaveRequests.cancel(ctx, id, employee.id, dto.reason);
+  }
+
+  @Get("me/balances")
+  @ApiOperation({ summary: "My own balance across every leave policy" })
+  async myBalances(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    const policies = await this.leavePolicies.listActive(ctx);
+    return Promise.all(policies.map(async (policy) => ({ policy, balance: await this.leaveBalances.get(ctx, employee.id, policy.id, policy) })));
+  }
 }
 
 /** Shift self-service: a signed-in employee's own schedule and swap requests. */
@@ -452,6 +555,9 @@ const crud = [
   createMasterDataController({ path: "hr/devices", tag: "HR: Attendance devices", module: "hr", permission: "hr.device", service: DeviceService, createDto: CreateDeviceDto, updateDto: UpdateDeviceDto }),
   createMasterDataController({ path: "hr/shift-templates", tag: "HR: Shift templates", module: "hr", permission: "hr.shiftTemplate", service: ShiftTemplateService, createDto: CreateShiftTemplateDto, updateDto: UpdateShiftTemplateDto }),
   createMasterDataController({ path: "hr/shift-assignments", tag: "HR: Shift assignments", module: "hr", permission: "hr.shiftAssignment", service: ShiftAssignmentService, createDto: CreateAssignmentDto, updateDto: UpdateAssignmentDto }),
+  createMasterDataController({ path: "hr/leave-policies", tag: "HR: Leave policies", module: "hr", permission: "hr.leavePolicy", service: LeavePolicyService, createDto: CreateLeavePolicyDto, updateDto: UpdateLeavePolicyDto }),
+  createMasterDataController({ path: "hr/holidays", tag: "HR: Holidays", module: "hr", permission: "hr.holiday", service: HolidayService, createDto: CreateHolidayDto, updateDto: UpdateHolidayDto }),
+  createMasterDataController({ path: "hr/leave-requests", tag: "HR: Leave requests", module: "hr", permission: "hr.leaveRequest", service: LeaveRequestService, createDto: CreateLeaveRequestDto, updateDto: UpdateLeaveRequestDto }),
 ];
 
 const SERVICES = [
@@ -467,10 +573,14 @@ const SERVICES = [
   DeviceService,
   ShiftTemplateService,
   ShiftAssignmentService,
+  LeavePolicyService,
+  HolidayService,
+  LeaveBalanceService,
+  LeaveRequestService,
 ];
 
 @Module({
-  controllers: [HrActionsController, AttendanceSelfServiceController, ShiftSelfServiceController, PublicCareersController, PublicAttendanceController, ...crud],
+  controllers: [HrActionsController, AttendanceSelfServiceController, ShiftSelfServiceController, LeaveSelfServiceController, PublicCareersController, PublicAttendanceController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })

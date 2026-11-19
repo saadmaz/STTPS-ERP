@@ -21,6 +21,7 @@ import { HR_COLLECTIONS, HR_LISTS } from "../../hr/hr.models.js";
 import { RECRUITMENT_COLLECTIONS, RECRUITMENT_LISTS } from "../../hr/hr-recruitment.models.js";
 import { ATTENDANCE_COLLECTIONS, ATTENDANCE_LISTS } from "../../hr/hr-attendance.models.js";
 import { SHIFT_COLLECTIONS, SHIFT_LISTS } from "../../hr/hr-shifts.models.js";
+import { LEAVE_COLLECTIONS, LEAVE_LISTS } from "../../hr/hr-leave.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -125,6 +126,7 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(RECRUITMENT_COLLECTIONS.candidates, RECRUITMENT_LISTS.candidates),
   ...largeListIndexes(ATTENDANCE_COLLECTIONS.records, ATTENDANCE_LISTS.records),
   ...largeListIndexes(SHIFT_COLLECTIONS.assignments, SHIFT_LISTS.assignments),
+  ...largeListIndexes(LEAVE_COLLECTIONS.requests, LEAVE_LISTS.requests),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */

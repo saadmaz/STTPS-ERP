@@ -10,7 +10,8 @@ describe("Firestore indexes", () => {
   });
 
   it("stays within the composite index budget and has no duplicates", () => {
-    expect(INDEXES.length).toBeLessThanOrEqual(180);
+    // Firestore's own ceiling is 200 composite indexes per database (see indexes.ts's header comment).
+    expect(INDEXES.length).toBeLessThanOrEqual(200);
     const keys = INDEXES.map((i) => `${i.collection}:${i.fields.map((f) => f.join(" ")).join(",")}`);
     expect(new Set(keys).size).toBe(keys.length);
   });

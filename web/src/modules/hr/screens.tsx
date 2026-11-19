@@ -13,8 +13,9 @@ import { RECRUITMENT_SCREENS } from "./recruitment";
 import { ONBOARDING_SCREENS } from "./onboarding";
 import { ATTENDANCE_SCREENS } from "./attendance";
 import { SHIFT_SCREENS } from "./shifts";
+import { LEAVE_SCREENS } from "./leave";
 
-const ALL_HR_SCREENS = { ...HR_SCREENS, ...RECRUITMENT_SCREENS, ...ONBOARDING_SCREENS, ...ATTENDANCE_SCREENS, ...SHIFT_SCREENS };
+const ALL_HR_SCREENS = { ...HR_SCREENS, ...RECRUITMENT_SCREENS, ...ONBOARDING_SCREENS, ...ATTENDANCE_SCREENS, ...SHIFT_SCREENS, ...LEAVE_SCREENS };
 
 export function HrList({ entity }: { entity: string }) {
   const config = ALL_HR_SCREENS[entity];
