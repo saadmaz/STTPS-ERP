@@ -4,11 +4,16 @@ import { RequirePermission } from "../common/decorators/require-permission.decor
 import { Ctx, RequestContext } from "../platform/context/request-context.js";
 import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
+import { InventoryModule } from "../inventory/inventory.module.js";
+import { SalesModule } from "../sales/sales.module.js";
+import { ProcurementModule } from "../procurement/procurement.module.js";
 import {
   CompleteOperationDto, CreateBomDto, CreateMachineDto, CreateProductionOrderDto, CreateRoutingDto, CreateWorkCentreDto,
   LogDowntimeDto, RecordOutputDto, UpdateBomDto, UpdateMachineDto, UpdateProductionOrderDto, UpdateRoutingDto, UpdateWorkCentreDto,
 } from "./manufacturing.dto.js";
 import { BomService, MachineService, ProductionOrderService, RoutingService, WorkCentreService } from "./manufacturing.services.js";
+import { CreateDemandForecastDto, RunMrpDto, UpdateDemandForecastDto, UpdateMrpRunDto } from "./manufacturing-mrp.dto.js";
+import { DemandForecastService, MrpService } from "./manufacturing-mrp.services.js";
 
 @ApiTags("Manufacturing")
 @ApiBearerAuth()
@@ -19,6 +24,7 @@ class ManufacturingActionsController {
     private readonly boms: BomService,
     private readonly routings: RoutingService,
     private readonly orders: ProductionOrderService,
+    private readonly mrp: MrpService,
   ) {}
 
   @Post("boms/:id/activate")
@@ -86,6 +92,36 @@ class ManufacturingActionsController {
   cancel(@Ctx() ctx: RequestContext, @Param("id") id: string) {
     return this.orders.cancel(ctx, id);
   }
+
+  @Post("mrp-runs/:id/production/:lineId/convert")
+  @HttpCode(200)
+  @RequirePermission("manufacturing.mrpRun.edit")
+  @ApiOperation({ summary: "Creates a production order from a planned production line" })
+  convertMrpProduction(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("lineId") lineId: string) {
+    return this.mrp.convertProduction(ctx, id, lineId);
+  }
+
+  @Post("mrp-runs/:id/production/:lineId/dismiss")
+  @HttpCode(200)
+  @RequirePermission("manufacturing.mrpRun.edit")
+  dismissMrpProduction(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("lineId") lineId: string) {
+    return this.mrp.dismissProduction(ctx, id, lineId);
+  }
+
+  @Post("mrp-runs/:id/purchases/:lineId/convert")
+  @HttpCode(200)
+  @RequirePermission("manufacturing.mrpRun.edit")
+  @ApiOperation({ summary: "Creates a purchase requisition from a planned purchase line" })
+  convertMrpPurchase(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("lineId") lineId: string) {
+    return this.mrp.convertPurchase(ctx, id, lineId);
+  }
+
+  @Post("mrp-runs/:id/purchases/:lineId/dismiss")
+  @HttpCode(200)
+  @RequirePermission("manufacturing.mrpRun.edit")
+  dismissMrpPurchase(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("lineId") lineId: string) {
+    return this.mrp.dismissPurchase(ctx, id, lineId);
+  }
 }
 
 const crud = [
@@ -94,11 +130,14 @@ const crud = [
   createMasterDataController({ path: "manufacturing/boms", tag: "Manufacturing: BOMs", module: "manufacturing", permission: "manufacturing.bom", service: BomService, createDto: CreateBomDto, updateDto: UpdateBomDto }),
   createMasterDataController({ path: "manufacturing/routings", tag: "Manufacturing: Routings", module: "manufacturing", permission: "manufacturing.routing", service: RoutingService, createDto: CreateRoutingDto, updateDto: UpdateRoutingDto }),
   createMasterDataController({ path: "manufacturing/production-orders", tag: "Manufacturing: Production orders", module: "manufacturing", permission: "manufacturing.productionOrder", service: ProductionOrderService, createDto: CreateProductionOrderDto, updateDto: UpdateProductionOrderDto }),
+  createMasterDataController({ path: "manufacturing/demand-forecasts", tag: "Manufacturing: Demand forecasts", module: "manufacturing", permission: "manufacturing.demandForecast", service: DemandForecastService, createDto: CreateDemandForecastDto, updateDto: UpdateDemandForecastDto }),
+  createMasterDataController({ path: "manufacturing/mrp-runs", tag: "Manufacturing: MRP runs", module: "manufacturing", permission: "manufacturing.mrpRun", service: MrpService, createDto: RunMrpDto, updateDto: UpdateMrpRunDto }),
 ];
 
-const SERVICES = [WorkCentreService, MachineService, BomService, RoutingService, ProductionOrderService];
+const SERVICES = [WorkCentreService, MachineService, BomService, RoutingService, ProductionOrderService, DemandForecastService, MrpService];
 
 @Module({
+  imports: [InventoryModule, SalesModule, ProcurementModule],
   controllers: [ManufacturingActionsController, ...crud],
   providers: SERVICES,
   exports: SERVICES,

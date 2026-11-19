@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, BaseRecord, crud, errorMessage } from "@/lib/api";
-import { formatDate, humanize } from "@/lib/format";
+import { formatDate, formatDateTime, humanize } from "@/lib/format";
 import { useCan } from "@/lib/workspace";
 import { useProductNames } from "@/modules/inventory/config";
 import { productsApi } from "@/modules/products/config";
@@ -40,6 +41,21 @@ export interface ProductionOperation {
   seq: number; name: string; workCentreId: string; machineId: string | null;
   status: "pending" | "in_progress" | "completed"; actualMinutes: number; downtimeMinutes: number;
 }
+export interface DemandForecast extends BaseRecord {
+  productId: string; period: string; qty: number; notes: string | null;
+}
+export type MrpLineStatus = "suggested" | "converted" | "dismissed";
+export interface MrpDemandLine { productId: string; source: "salesOrder" | "forecast"; sourceId: string | null; dueDate: string; qty: number }
+export interface MrpPlannedProductionLine {
+  lineId: string; productId: string; qty: number; dueDate: string; bomId: string; status: MrpLineStatus; productionOrderId: string | null;
+}
+export interface MrpPlannedPurchaseLine {
+  lineId: string; productId: string; qty: number; dueDate: string; status: MrpLineStatus; requisitionId: string | null;
+}
+export interface MrpRun extends BaseRecord {
+  runAt: string; horizonEnd: string; demand: MrpDemandLine[]; plannedProduction: MrpPlannedProductionLine[]; plannedPurchases: MrpPlannedPurchaseLine[]; notes: string | null;
+}
+
 export interface ProductionOrder extends BaseRecord {
   number: string; productId: string; bomId: string; routingId: string | null;
   qtyPlanned: number; qtyProduced: number; qtyScrapped: number; status: (typeof PRODUCTION_ORDER_STATUSES)[number];
@@ -56,6 +72,8 @@ export const manufacturingApi = {
   boms: crud<Bom>("/manufacturing/boms"),
   routings: crud<Routing>("/manufacturing/routings"),
   productionOrders: crud<ProductionOrder>("/manufacturing/production-orders"),
+  demandForecasts: crud<DemandForecast>("/manufacturing/demand-forecasts"),
+  mrpRuns: crud<MrpRun>("/manufacturing/mrp-runs"),
   post: <T,>(path: string, body: object = {}) => api.post(path, body).then((r) => r.data as T),
 };
 
@@ -520,10 +538,148 @@ export const productionOrders: MasterConfig<ProductionOrder> = {
   extra: (r) => <ProductionOrderExtra r={r} />,
 };
 
+export const demandForecasts: MasterConfig<DemandForecast> = {
+  entityType: "manufacturing.demandForecast",
+  permission: "manufacturing.demandForecast",
+  plural: "Demand forecasts",
+  singular: "Demand forecast",
+  description: "A manually entered demand quantity for a product in one month, fed into MRP alongside open sales orders.",
+  route: "/manufacturing/demand-forecasts",
+  client: manufacturingApi.demandForecasts,
+  defaultSort: "-createdAt",
+  columns: [
+    { key: "productId", label: "Product", render: (r) => <ProductLabel id={r.productId} /> },
+    { key: "period", label: "Period" },
+    { key: "qty", label: "Quantity", render: (r) => qty(r.qty) },
+  ],
+  fields: [
+    { key: "productId", label: "Product", type: "reference", reference: productOptions, required: true },
+    { key: "period", label: "Period", type: "text", required: true, placeholder: "2026-12", hint: "YYYY-MM" },
+    { key: "qty", label: "Quantity", type: "number", required: true },
+    { key: "notes", label: "Notes", type: "textarea", wide: true },
+  ],
+  title: (r) => r.period,
+  subtitle: (r) => qty(r.qty),
+  details: (r) => [{ label: "Notes", value: r.notes }],
+};
+
+function MrpLineActions({
+  runId, kind, line, onChange,
+}: {
+  runId: string; kind: "production" | "purchase"; line: MrpPlannedProductionLine | MrpPlannedPurchaseLine; onChange: (run: MrpRun) => void;
+}) {
+  const canEdit = useCan("manufacturing.mrpRun.edit");
+  const segment = kind === "production" ? "production" : "purchases";
+  const convert = useMutation({
+    mutationFn: () => manufacturingApi.post<MrpRun>(`/manufacturing/mrp-runs/${runId}/${segment}/${line.lineId}/convert`),
+    onSuccess: (run) => { toast.success(kind === "production" ? "Production order created" : "Requisition created"); onChange(run); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const dismiss = useMutation({
+    mutationFn: () => manufacturingApi.post<MrpRun>(`/manufacturing/mrp-runs/${runId}/${segment}/${line.lineId}/dismiss`),
+    onSuccess: (run) => { toast.success("Dismissed"); onChange(run); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (line.status === "converted") {
+    const id = kind === "production" ? (line as MrpPlannedProductionLine).productionOrderId : (line as MrpPlannedPurchaseLine).requisitionId;
+    const href = kind === "production" ? `/manufacturing/production-orders/${id}` : `/procurement/requisitions/${id}`;
+    return <Link className="text-blue-600 hover:underline dark:text-blue-400" href={href}>View</Link>;
+  }
+  if (line.status === "dismissed") return <span className="text-slate-400">Dismissed</span>;
+  if (!canEdit) return null;
+  return (
+    <div className="flex gap-2">
+      <button className="btn-primary" disabled={convert.isPending} onClick={() => convert.mutate()}>Convert</button>
+      <button className="btn-ghost" disabled={dismiss.isPending} onClick={() => dismiss.mutate()}>Dismiss</button>
+    </div>
+  );
+}
+
+function MrpRunExtra({ r }: { r: MrpRun }) {
+  const [current, setCurrent] = useState(r);
+  return (
+    <div className="space-y-6">
+      <section className="card overflow-x-auto">
+        <h2 className="font-semibold px-4 pt-4 mb-2">Demand</h2>
+        <table className="table-base">
+          <thead><tr><th>Product</th><th>Source</th><th>Due</th><th>Qty</th></tr></thead>
+          <tbody>
+            {current.demand.map((d, i) => (
+              <tr key={i}><td><ProductLabel id={d.productId} /></td><td>{humanize(d.source)}</td><td>{formatDate(d.dueDate)}</td><td>{qty(d.qty)}</td></tr>
+            ))}
+            {current.demand.length === 0 && <tr><td colSpan={4} className="text-center text-slate-500 py-6">No open demand in this run&apos;s horizon.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+      <section className="card overflow-x-auto">
+        <h2 className="font-semibold px-4 pt-4 mb-2">Planned production</h2>
+        <table className="table-base">
+          <thead><tr><th>Product</th><th>Qty</th><th>Due</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {current.plannedProduction.map((l) => (
+              <tr key={l.lineId}>
+                <td><ProductLabel id={l.productId} /></td><td>{qty(l.qty)}</td><td>{formatDate(l.dueDate)}</td><td><StatusBadge status={l.status} /></td>
+                <td><MrpLineActions runId={current.id} kind="production" line={l} onChange={setCurrent} /></td>
+              </tr>
+            ))}
+            {current.plannedProduction.length === 0 && <tr><td colSpan={5} className="text-center text-slate-500 py-6">No shortages need production.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+      <section className="card overflow-x-auto">
+        <h2 className="font-semibold px-4 pt-4 mb-2">Planned purchases</h2>
+        <table className="table-base">
+          <thead><tr><th>Product</th><th>Qty</th><th>Due</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {current.plannedPurchases.map((l) => (
+              <tr key={l.lineId}>
+                <td><ProductLabel id={l.productId} /></td><td>{qty(l.qty)}</td><td>{formatDate(l.dueDate)}</td><td><StatusBadge status={l.status} /></td>
+                <td><MrpLineActions runId={current.id} kind="purchase" line={l} onChange={setCurrent} /></td>
+              </tr>
+            ))}
+            {current.plannedPurchases.length === 0 && <tr><td colSpan={5} className="text-center text-slate-500 py-6">No shortages need purchasing.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
+export const mrpRuns: MasterConfig<MrpRun> = {
+  entityType: "manufacturing.mrpRun",
+  permission: "manufacturing.mrpRun",
+  plural: "MRP runs",
+  singular: "MRP run",
+  description: "Nets open sales-order and forecast demand against stock and existing orders, and suggests planned production and purchases.",
+  route: "/manufacturing/mrp-runs",
+  client: manufacturingApi.mrpRuns,
+  defaultSort: "-createdAt",
+  columns: [
+    { key: "runAt", label: "Run at", render: (r) => formatDateTime(r.runAt) },
+    { key: "horizonEnd", label: "Horizon", render: (r) => formatDate(r.horizonEnd) },
+    { key: "plannedProduction", label: "Planned production", render: (r) => String(r.plannedProduction.length) },
+    { key: "plannedPurchases", label: "Planned purchases", render: (r) => String(r.plannedPurchases.length) },
+  ],
+  fields: [
+    { key: "horizonEnd", label: "Plan demand through", type: "date", createOnly: true, hint: "Optional; defaults to 90 days out" },
+  ],
+  editable: () => false,
+  title: (r) => `MRP run · ${formatDateTime(r.runAt)}`,
+  subtitle: (r) => `Through ${formatDate(r.horizonEnd)}`,
+  details: (r) => [
+    { label: "Demand lines", value: String(r.demand.length) },
+    { label: "Planned production", value: String(r.plannedProduction.length) },
+    { label: "Planned purchases", value: String(r.plannedPurchases.length) },
+  ],
+  extra: (r) => <MrpRunExtra r={r} />,
+};
+
 export const MANUFACTURING_SCREENS: Record<string, MasterConfig<never>> = {
   "work-centres": workCentres as unknown as MasterConfig<never>,
   machines: machines as unknown as MasterConfig<never>,
   boms: boms as unknown as MasterConfig<never>,
   routings: routings as unknown as MasterConfig<never>,
   "production-orders": productionOrders as unknown as MasterConfig<never>,
+  "demand-forecasts": demandForecasts as unknown as MasterConfig<never>,
+  "mrp-runs": mrpRuns as unknown as MasterConfig<never>,
 };

@@ -286,6 +286,8 @@ const SECTIONS: NavSection[] = [
     module: "manufacturing",
     links: [
       { label: "Production orders", href: "/manufacturing/production-orders", icon: Factory, permission: "manufacturing.productionOrder.view" },
+      { label: "MRP runs", href: "/manufacturing/mrp-runs", icon: TrendingUp, permission: "manufacturing.mrpRun.view" },
+      { label: "Demand forecasts", href: "/manufacturing/demand-forecasts", icon: CalendarRange, permission: "manufacturing.demandForecast.view" },
       { label: "Bills of materials", href: "/manufacturing/boms", icon: ClipboardList, permission: "manufacturing.bom.view" },
       { label: "Routings", href: "/manufacturing/routings", icon: Repeat, permission: "manufacturing.routing.view" },
       { label: "Work centres", href: "/manufacturing/work-centres", icon: Warehouse, permission: "manufacturing.workCentre.view" },
