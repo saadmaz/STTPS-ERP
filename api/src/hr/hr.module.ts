@@ -63,6 +63,20 @@ import {
   UpdateLeavePolicyDto,
   UpdateLeaveRequestDto,
 } from "./hr-leave.dto.js";
+import { DevelopmentPlanService, GoalService, PerformanceCycleService, ReviewService } from "./hr-performance.services.js";
+import {
+  CreateDevelopmentPlanDto,
+  CreateGoalDto,
+  CreatePerformanceCycleDto,
+  CreateReviewDto,
+  SelfGoalDto,
+  SelfReviewDto,
+  UpdateDevelopmentPlanDto,
+  UpdateGoalDto,
+  UpdateGoalProgressDto,
+  UpdatePerformanceCycleDto,
+  UpdateReviewDto,
+} from "./hr-performance.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -82,6 +96,8 @@ class HrActionsController {
     private readonly leavePolicies: LeavePolicyService,
     private readonly leaveRequests: LeaveRequestService,
     private readonly leaveBalances: LeaveBalanceService,
+    private readonly goals: GoalService,
+    private readonly reviews: ReviewService,
   ) {}
 
   @Get("employees/org-chart")
@@ -343,6 +359,87 @@ class HrActionsController {
     const updated = await this.leaveBalances.rollover(ctx, dto.year, employees, policies);
     return { year: dto.year, employees: employees.length, policies: policies.length, balancesUpdated: updated };
   }
+
+  @Post("goals/:id/progress")
+  @HttpCode(200)
+  @RequirePermission("hr.goal.edit")
+  @ApiOperation({ summary: "Updates a goal's progress on the employee's behalf" })
+  setGoalProgress(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(UpdateGoalProgressDto)) dto: UpdateGoalProgressDto) {
+    return this.goals.updateProgress(ctx, id, null, dto.status, dto.currentValue);
+  }
+
+  @Post("reviews/:id/submit")
+  @HttpCode(200)
+  @RequirePermission("hr.review.edit")
+  @ApiOperation({ summary: "Submits a manager or peer review, locking it from further edits" })
+  submitReview(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.reviews.submit(ctx, id);
+  }
+}
+
+/** Performance self-service: a signed-in employee's own goals, reviews and development plan. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/performance")
+class PerformanceSelfServiceController {
+  constructor(
+    private readonly employees: EmployeeService,
+    private readonly goals: GoalService,
+    private readonly reviews: ReviewService,
+    private readonly developmentPlans: DevelopmentPlanService,
+  ) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me/goals")
+  @ApiOperation({ summary: "My own goals, KPIs and OKRs" })
+  async myGoals(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.goals.forEmployee(ctx, employee.id);
+  }
+
+  @Post("me/goals")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Sets a goal for myself" })
+  async createMyGoal(@Ctx() ctx: RequestContext, @Body(validated(SelfGoalDto)) dto: SelfGoalDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.goals.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Post("me/goals/:id/progress")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Updates my own goal's progress" })
+  async updateMyGoal(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(UpdateGoalProgressDto)) dto: UpdateGoalProgressDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.goals.updateProgress(ctx, id, employee.id, dto.status, dto.currentValue);
+  }
+
+  @Get("me/reviews")
+  @ApiOperation({ summary: "Submitted reviews about me (self-assessments, manager reviews, peer feedback)" })
+  async myReviews(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.reviews.aboutMeSubmitted(ctx, employee.id);
+  }
+
+  @Post("me/reviews/self")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Saves and submits my self-assessment for a cycle" })
+  async submitMySelfReview(@Ctx() ctx: RequestContext, @Body(validated(SelfReviewDto)) dto: SelfReviewDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.reviews.submitSelfReview(ctx, employee.id, dto);
+  }
+
+  @Get("me/development-plan")
+  @ApiOperation({ summary: "My own development plan(s)" })
+  async myDevelopmentPlan(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.developmentPlans.forEmployee(ctx, employee.id);
+  }
 }
 
 /** Leave self-service: a signed-in employee's own requests and balances. */
@@ -558,6 +655,10 @@ const crud = [
   createMasterDataController({ path: "hr/leave-policies", tag: "HR: Leave policies", module: "hr", permission: "hr.leavePolicy", service: LeavePolicyService, createDto: CreateLeavePolicyDto, updateDto: UpdateLeavePolicyDto }),
   createMasterDataController({ path: "hr/holidays", tag: "HR: Holidays", module: "hr", permission: "hr.holiday", service: HolidayService, createDto: CreateHolidayDto, updateDto: UpdateHolidayDto }),
   createMasterDataController({ path: "hr/leave-requests", tag: "HR: Leave requests", module: "hr", permission: "hr.leaveRequest", service: LeaveRequestService, createDto: CreateLeaveRequestDto, updateDto: UpdateLeaveRequestDto }),
+  createMasterDataController({ path: "hr/performance-cycles", tag: "HR: Performance cycles", module: "hr", permission: "hr.performanceCycle", service: PerformanceCycleService, createDto: CreatePerformanceCycleDto, updateDto: UpdatePerformanceCycleDto }),
+  createMasterDataController({ path: "hr/goals", tag: "HR: Goals", module: "hr", permission: "hr.goal", service: GoalService, createDto: CreateGoalDto, updateDto: UpdateGoalDto }),
+  createMasterDataController({ path: "hr/reviews", tag: "HR: Reviews", module: "hr", permission: "hr.review", service: ReviewService, createDto: CreateReviewDto, updateDto: UpdateReviewDto }),
+  createMasterDataController({ path: "hr/development-plans", tag: "HR: Development plans", module: "hr", permission: "hr.developmentPlan", service: DevelopmentPlanService, createDto: CreateDevelopmentPlanDto, updateDto: UpdateDevelopmentPlanDto }),
 ];
 
 const SERVICES = [
@@ -577,10 +678,23 @@ const SERVICES = [
   HolidayService,
   LeaveBalanceService,
   LeaveRequestService,
+  PerformanceCycleService,
+  GoalService,
+  ReviewService,
+  DevelopmentPlanService,
 ];
 
 @Module({
-  controllers: [HrActionsController, AttendanceSelfServiceController, ShiftSelfServiceController, LeaveSelfServiceController, PublicCareersController, PublicAttendanceController, ...crud],
+  controllers: [
+    HrActionsController,
+    AttendanceSelfServiceController,
+    ShiftSelfServiceController,
+    LeaveSelfServiceController,
+    PerformanceSelfServiceController,
+    PublicCareersController,
+    PublicAttendanceController,
+    ...crud,
+  ],
   providers: SERVICES,
   exports: SERVICES,
 })
