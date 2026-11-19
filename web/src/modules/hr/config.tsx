@@ -152,11 +152,11 @@ export function useJobGradeName() {
   return (id: string | null) => (id ? data?.items.find((x) => x.id === id)?.name ?? "…" : "—");
 }
 
-const employeeOptions = { queryKey: ["options", "hr.employees"], load: async () => (await hrApi.employees.list({ limit: 200 })).items.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName} (${e.employeeNumber})` })) };
-const positionOptions = { queryKey: ["options", "hr.positions"], load: async () => (await hrApi.positions.list({ limit: 200, where: "status:active" })).items.map((p) => ({ value: p.id, label: `${p.code} · ${p.title}` })) };
+export const employeeOptions = { queryKey: ["options", "hr.employees"], load: async () => (await hrApi.employees.list({ limit: 200 })).items.map((e) => ({ value: e.id, label: `${e.firstName} ${e.lastName} (${e.employeeNumber})` })) };
+export const positionOptions = { queryKey: ["options", "hr.positions"], load: async () => (await hrApi.positions.list({ limit: 200, where: "status:active" })).items.map((p) => ({ value: p.id, label: `${p.code} · ${p.title}` })) };
 const jobGradeOptions = { queryKey: ["options", "hr.jobGrades"], load: async () => (await hrApi.jobGrades.list({ limit: 200 })).items.map((g) => ({ value: g.id, label: `${g.code} · ${g.name}` })) };
-const departmentOptions = { queryKey: ["options", "departments"], load: async () => (await orgApi.departments.list({ limit: 200, where: "isActive:true" })).items.map((d) => ({ value: d.id, label: `${d.code} · ${d.name}` })) };
-const branchOptions = { queryKey: ["options", "branches"], load: async () => (await orgApi.branches.list({ limit: 200, where: "isActive:true" })).items.map((b) => ({ value: b.id, label: `${b.code} · ${b.name}` })) };
+export const departmentOptions = { queryKey: ["options", "departments"], load: async () => (await orgApi.departments.list({ limit: 200, where: "isActive:true" })).items.map((d) => ({ value: d.id, label: `${d.code} · ${d.name}` })) };
+export const branchOptions = { queryKey: ["options", "branches"], load: async () => (await orgApi.branches.list({ limit: 200, where: "isActive:true" })).items.map((b) => ({ value: b.id, label: `${b.code} · ${b.name}` })) };
 
 const employeeFields: FieldDef[] = [
   { key: "firstName", label: "First name", type: "text", required: true },

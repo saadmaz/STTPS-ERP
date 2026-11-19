@@ -6,7 +6,7 @@ Read this file in full before changing anything. It records the conventions the 
 
 - `docs/BLUEPRINT.md` is the product spec. `docs/IMPLEMENTATION-PLAN.md` is the phase plan. Its checkboxes (`- [x]` / `- [ ]`, with *italic notes* on partly done items) are the source of truth for progress.
 - **Pick the next unchecked item in phase order** and build it end to end: API, tests, web screens, docs. Then commit, push and move on. The owner has said not to ask for approval between items.
-- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all), Phase 3 Employees. Next: **Phase 3 Workforce**, continuing with Recruitment/ATS.
+- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all), Phase 3 Employees and Recruitment/ATS. Next: **Phase 3 Workforce**, continuing with Onboarding and offboarding checklists.
 
 ## 2. Git and release rules (strict)
 
@@ -83,7 +83,7 @@ plan.commitNew(); approval.apply();                                           //
 3. `<mod>.services.ts` and `<mod>.module.ts`: import the modules whose services you need (`OrgModule`, `SalesModule`, `FinanceModule` …). Watch for import cycles.
 4. `api/src/platform/modules/catalog.ts`: set `available: true` and add `permissions: [...entityPermissions(mod, entity, "label")]` plus any custom codes.
 5. `api/src/app.module.ts`: add the module to `imports`.
-6. `api/src/platform/data/indexes.ts`: add `largeListIndexes(...)` for large lists, plus explicit composite indexes for any query that combines equality with a range or order on another field. Then run `npm run indexes` (in `api/`) and commit the regenerated `firestore.indexes.json`. A test fails when they drift. Budget: at most 180 indexes.
+6. `api/src/platform/data/indexes.ts`: add `largeListIndexes(...)` for large lists, plus explicit composite indexes for any query that combines equality with a range or order on another field. Then run `npm run indexes` (in `api/`) and commit the regenerated `firestore.indexes.json`. A test fails when they drift. Budget: at most 180 indexes. **At 176 as of Phase 3 Recruitment/ATS** — keep new `LargeListSpec.filters` arrays short (2–3 fields); Attendance, Leave and Payroll runs are still to come.
 7. Delete `api/legacy/<mod>` and `web/legacy/<mod>` if they exist.
 8. Write `api/test/http/<mod>.spec.ts` (see §7).
 9. Web: `web/src/modules/<mod>/`, pages under `web/src/app/(platform)/<mod>/`, and a section in `web/src/components/layout/Sidebar.tsx` with `module` and `permission` set.
@@ -134,6 +134,7 @@ plan.commitNew(); approval.apply();                                           //
 - **Employees vs users:** `EmployeeDoc.userId` (`api/src/hr/`) now links an employee to the platform user they sign in as, checked against `companyUsers` (not the generic `references` config: users have no `companyId`). Expense claims still key off the **user id** directly — leave that alone; payroll and self-service should resolve the employee from `userId`, not the other way round.
 - **Sensitive HR fields:** `EmployeeDoc.compensation`, `bankDetails` and `nationalId` need `hr.employee.compensation`, checked in `EmployeeService` (read redaction in `get`/`list`/`history`, write guard in `toNew`/`toPatch`) — not the generic Phase 0 record-level-scope engine, which still doesn't exist. Copy this per-field pattern for other sensitive data before that engine lands.
 - **Budget control:** procurement already calls `BudgetService.check`. Any new spending document (projects, maintenance work orders) should call it the same way.
+- **Onboarding (next):** `CandidateService.hire()` (`api/src/hr/hr-recruitment.services.ts`) already creates the `EmployeeDoc` on hire — build the onboarding checklist as follow-on tasks against that employee, not as part of `hire()` itself. The public career page pattern (`PublicCareersController`, no `@RequireModule`/`@RequirePermission`, just `@Public()`, scoped by raw `companyId` rather than a hashed token since the content is already public) is the template for any other public-facing portal.
 
 ## 10. Review hotspots (for a later review by a stronger model)
 
