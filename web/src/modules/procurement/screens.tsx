@@ -12,6 +12,7 @@ import { MasterListPage, MasterRecordPage } from "@/components/master/MasterData
 import { EmptyState, ErrorState, Field, PageHeader, Spinner } from "@/components/ui/kit";
 import { productsApi } from "@/modules/products/config";
 import { inventoryApi, useProductNames } from "@/modules/inventory/config";
+import { orgApi } from "@/modules/org/config";
 import { GoodsReceipt, PROCUREMENT_SCREENS, procurementApi, PurchaseOrder, Requisition, Rfq, useSupplierName } from "./config";
 
 export function ProcurementList({ entity }: { entity: string }) {
@@ -463,6 +464,113 @@ export function RfqQuotePage({ id }: { id: string }) {
           <div className="flex justify-end"><button className="btn-primary" disabled={!awardTo || !warehouseId || award.isPending}><Award size={15} /> Award and raise order</button></div>
         </form>
       )}
+    </div>
+  );
+}
+
+// ─── Overview ─────────────────────────────────────────────────────────────────
+
+interface ProcurementAnalytics {
+  orders: number;
+  totalSpend: number;
+  openCommitment: number;
+  byCategory: Record<string, number>;
+  byDepartment: Record<string, number>;
+  suppliers: { supplierId: string; name: string; spend: number; performanceScore: number | null; onTimeRate: number | null; acceptanceRate: number | null; averageLeadTimeDays: number | null }[];
+  priceVariance: { productId: string; qty: number; averagePrice: number; minPrice: number; maxPrice: number; standardPrice: number | null; variance: number }[];
+}
+
+function SpendBars({ data, label }: { data: Record<string, number>; label: (k: string) => string }) {
+  const max = Math.max(1, ...Object.values(data));
+  const rows = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (!rows.length) return <p className="text-sm text-slate-500">No spend yet.</p>;
+  return (
+    <ul className="space-y-2">
+      {rows.map(([k, v]) => (
+        <li key={k} className="text-sm">
+          <div className="flex justify-between gap-2"><span className="truncate">{label(k)}</span><span className="text-slate-500">{formatMoney(v, "LKR")}</span></div>
+          <div className="h-2 rounded bg-slate-100 dark:bg-slate-800 mt-1"><div className="h-2 rounded bg-blue-500" style={{ width: `${(v / max) * 100}%` }} /></div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AnalyticsBody({ a }: { a: ProcurementAnalytics }) {
+  const product = useProductNames();
+  const categories = useQuery({ queryKey: ["options", "products.categories.raw"], queryFn: () => productsApi.categories.list({ limit: 200 }) });
+  const departments = useQuery({ queryKey: ["options", "org.departments.raw"], queryFn: () => orgApi.departments.list({ limit: 200 }) });
+  const catName = (id: string) => (id === "uncategorised" ? "Uncategorised" : categories.data?.items.find((c) => c.id === id)?.name ?? "…");
+  const depName = (id: string) => (id === "unassigned" ? "No department" : departments.data?.items.find((d) => d.id === id)?.name ?? "…");
+  const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="stat-card"><p className="text-xl font-semibold">{formatMoney(a.totalSpend, "LKR")}</p><p className="text-sm text-slate-500">Spend before tax ({a.orders} orders)</p></div>
+        <div className="stat-card"><p className="text-xl font-semibold">{formatMoney(a.openCommitment, "LKR")}</p><p className="text-sm text-slate-500">Still to be received</p></div>
+        <div className="stat-card"><p className="text-xl font-semibold">{a.suppliers.length}</p><p className="text-sm text-slate-500">Suppliers with activity</p></div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="card p-5"><h2 className="font-semibold mb-3">By supplier</h2><SpendBars data={Object.fromEntries(a.suppliers.map((s) => [s.name, s.spend]))} label={(k) => k} /></section>
+        <section className="card p-5"><h2 className="font-semibold mb-3">By category</h2><SpendBars data={a.byCategory} label={catName} /></section>
+        <section className="card p-5"><h2 className="font-semibold mb-3">By department</h2><SpendBars data={a.byDepartment} label={depName} /></section>
+      </div>
+      <section className="card overflow-x-auto">
+        <h2 className="px-4 pt-4 font-semibold">Supplier performance</h2>
+        <table className="table-base">
+          <thead><tr><th>Supplier</th><th>Spend</th><th>Score</th><th>On time</th><th>Accepted</th><th>Avg. lead time</th></tr></thead>
+          <tbody>
+            {a.suppliers.map((s) => (
+              <tr key={s.supplierId}>
+                <td><Link className="text-blue-700 dark:text-blue-400 hover:underline" href={`/procurement/suppliers/${s.supplierId}`}>{s.name}</Link></td>
+                <td>{formatMoney(s.spend, "LKR")}</td><td>{s.performanceScore ?? "—"}</td><td>{pct(s.onTimeRate)}</td><td>{pct(s.acceptanceRate)}</td>
+                <td>{s.averageLeadTimeDays === null ? "—" : `${s.averageLeadTimeDays} days`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <section className="card overflow-x-auto">
+        <h2 className="px-4 pt-4 font-semibold">Price variance against standard purchase price</h2>
+        <table className="table-base">
+          <thead><tr><th>Product</th><th>Qty</th><th>Standard</th><th>Average</th><th>Range</th><th className="text-right">Variance</th></tr></thead>
+          <tbody>
+            {a.priceVariance.map((p) => (
+              <tr key={p.productId}>
+                <td>{product(p.productId)}</td><td>{toQtyText(p.qty)}</td>
+                <td>{p.standardPrice === null ? "—" : formatMoney(p.standardPrice, "LKR")}</td>
+                <td>{formatMoney(p.averagePrice, "LKR")}</td>
+                <td>{formatMoney(p.minPrice, "LKR")} – {formatMoney(p.maxPrice, "LKR")}</td>
+                <td className={`text-right ${p.variance > 0 ? "text-red-600 dark:text-red-400" : p.variance < 0 ? "text-emerald-700 dark:text-emerald-400" : ""}`}>{formatMoney(p.variance, "LKR")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    </>
+  );
+}
+
+export function ProcurementDashboard() {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const q = useQuery({
+    queryKey: ["procurement-analytics", from, to],
+    queryFn: () => api.get("/procurement/analytics", { params: { from: from || undefined, to: to || undefined } }).then((r) => r.data as ProcurementAnalytics),
+  });
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Procurement"
+        subtitle="Spend, prices and supplier performance"
+        actions={
+          <div className="flex gap-2 items-center">
+            <input type="date" className="input-base py-1" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From" />
+            <input type="date" className="input-base py-1" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To" />
+          </div>
+        }
+      />
+      {q.isLoading ? <Spinner /> : q.isError ? <ErrorState message={errorMessage(q.error)} onRetry={() => q.refetch()} /> : <AnalyticsBody a={q.data!} />}
     </div>
   );
 }

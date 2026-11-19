@@ -103,6 +103,7 @@ const SECTIONS: NavSection[] = [
     icon: ShoppingBag,
     module: "procurement",
     links: [
+      { label: "Overview", href: "/procurement", icon: PieChart, permission: "procurement.analytics.view" },
       { label: "Requisitions", href: "/procurement/requisitions", icon: ClipboardList, permission: "procurement.requisition.view" },
       { label: "RFQs", href: "/procurement/rfqs", icon: FileQuestion, permission: "procurement.rfq.view" },
       { label: "Purchase orders", href: "/procurement/orders", icon: ShoppingBag, permission: "procurement.order.view" },

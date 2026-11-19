@@ -178,6 +178,7 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("procurement", "rfq", "requests for quotation"),
       ...entityPermissions("procurement", "order", "purchase orders"),
       ...entityPermissions("procurement", "receipt", "goods receipts and supplier returns"),
+      { code: "procurement.analytics.view", name: "View procurement analytics", module: "procurement", action: "view" },
     ],
   }),
 

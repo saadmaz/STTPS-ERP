@@ -179,7 +179,7 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [x] Requisitions (department, cost centre, project, budget validation) going through approval thresholds, then RFQ / competitive quotations, then PO. _Budget validation plugs in with Phase 2 budgeting._
 - [x] Purchase orders with amendments, cancellation, supplier confirmation and partial receipts.
 - [x] Goods receipts: accepted/rejected quantities, inspection hook, lot/serial capture, put-away, discrepancies, supplier returns.
-- [ ] Procurement analytics: spend by supplier/category/department, price variance, lead time, delivery performance.
+- [x] Procurement analytics: spend by supplier/category/department, price variance, lead time, delivery performance.
 
 **Exit:** a salesperson can take a lead to a delivered order, and a buyer can take a requisition to received stock, with approvals, audit and stock correct throughout.
 

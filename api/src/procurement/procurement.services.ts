@@ -799,3 +799,86 @@ export class SupplierReturnService extends MasterDataService<SupplierReturnDoc, 
   }
 }
 
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+const SPENT = new Set(["approved", "sent", "confirmed", "partially_received", "received", "closed"]);
+
+@Injectable()
+export class ProcurementAnalyticsService {
+  constructor(private readonly firestore: FirestoreService) {}
+
+  /** Spend by supplier, category and department, price variance, lead times and delivery performance (blueprint §9). */
+  async summary(ctx: RequestContext, range: { from?: string; to?: string } = {}) {
+    const col = (name: string) => this.firestore.collection(name).where("companyId", "==", ctx.companyId).where("archived", "==", false);
+    const [orderSnap, receiptSnap, supplierSnap, productSnap, reqSnap] = await Promise.all([
+      col(PROCUREMENT_COLLECTIONS.orders).select("supplierId", "requisitionId", "currency", "date", "status", "lines", "totals").limit(10_000).get(),
+      col(PROCUREMENT_COLLECTIONS.receipts).select("orderId", "supplierId", "date", "status").limit(20_000).get(),
+      col(PROCUREMENT_COLLECTIONS.suppliers).select("name", "performanceScore", "receiptsCount", "onTimeCount", "acceptedQty", "receivedQty").limit(5_000).get(),
+      col(PRODUCT_COLLECTIONS.products).select("categoryId", "purchasePrice", "currency").limit(20_000).get(),
+      col(PROCUREMENT_COLLECTIONS.requisitions).select("departmentId").limit(20_000).get(),
+    ]);
+    const inRange = (d: string) => (!range.from || d >= range.from) && (!range.to || d <= range.to);
+    const orders = orderSnap.docs.map((d) => ({ id: d.id, ...(d.data() as Pick<PurchaseOrderDoc, "supplierId" | "requisitionId" | "currency" | "date" | "status" | "lines" | "totals">) }))
+      .filter((o) => SPENT.has(o.status) && inRange(o.date));
+    const productInfo = new Map(productSnap.docs.map((d) => [d.id, d.data() as Pick<ProductDoc, "categoryId" | "purchasePrice" | "currency">]));
+    const department = new Map(reqSnap.docs.map((d) => [d.id, (d.data() as Pick<RequisitionDoc, "departmentId">).departmentId]));
+
+    const add = (m: Record<string, number>, k: string, v: number) => void (m[k] = (m[k] ?? 0) + v);
+    const bySupplier: Record<string, number> = {};
+    const byCategory: Record<string, number> = {};
+    const byDepartment: Record<string, number> = {};
+    const prices = new Map<string, { qty: number; spend: number; min: number; max: number; standard: number | null; variance: number }>();
+    let openCommitment = 0;
+    for (const o of orders) {
+      add(bySupplier, o.supplierId, o.totals.subtotal);
+      add(byDepartment, (o.requisitionId && department.get(o.requisitionId)) || "unassigned", o.totals.subtotal);
+      for (const l of o.lines) {
+        const info = productInfo.get(l.productId);
+        add(byCategory, info?.categoryId ?? "uncategorised", l.net);
+        const standard = info && info.currency === o.currency ? info.purchasePrice : null;
+        const p = prices.get(l.productId) ?? { qty: 0, spend: 0, min: l.unitPrice, max: l.unitPrice, standard, variance: 0 };
+        p.qty += l.qty;
+        p.spend += l.net;
+        p.min = Math.min(p.min, l.unitPrice);
+        p.max = Math.max(p.max, l.unitPrice);
+        if (standard !== null) p.variance += extend(l.qty, l.unitPrice - standard);
+        prices.set(l.productId, p);
+        if (!["received", "closed"].includes(o.status)) openCommitment += extend(Math.max(0, l.qty - (l.received - l.rejected)), l.unitPrice);
+      }
+    }
+
+    const orderDate = new Map(orders.map((o) => [o.id, o.date]));
+    const leadDays: Record<string, number[]> = {};
+    for (const r of receiptSnap.docs.map((d) => d.data() as Pick<GoodsReceiptDoc, "orderId" | "supplierId" | "date" | "status">)) {
+      const placed = orderDate.get(r.orderId);
+      if (r.status !== "posted" || !placed) continue;
+      (leadDays[r.supplierId] ??= []).push(Math.max(0, (Date.parse(r.date) - Date.parse(placed)) / 86_400_000));
+    }
+    const suppliers = supplierSnap.docs.map((d) => {
+      const s = d.data() as Pick<SupplierDoc, "name" | "performanceScore" | "receiptsCount" | "onTimeCount" | "acceptedQty" | "receivedQty">;
+      const days = leadDays[d.id] ?? [];
+      return {
+        supplierId: d.id, name: s.name, spend: bySupplier[d.id] ?? 0, performanceScore: s.performanceScore,
+        onTimeRate: s.receiptsCount ? s.onTimeCount / s.receiptsCount : null,
+        acceptanceRate: s.receivedQty ? s.acceptedQty / s.receivedQty : null,
+        averageLeadTimeDays: days.length ? Math.round((days.reduce((a, b) => a + b, 0) / days.length) * 10) / 10 : null,
+      };
+    }).filter((s) => s.spend > 0 || s.performanceScore !== null).sort((a, b) => b.spend - a.spend);
+
+    return {
+      range,
+      orders: orders.length,
+      totalSpend: orders.reduce((a, o) => a + o.totals.subtotal, 0),
+      openCommitment,
+      byCategory,
+      byDepartment,
+      suppliers,
+      priceVariance: [...prices.entries()]
+        .map(([productId, p]) => ({ productId, qty: p.qty, averagePrice: p.qty ? Math.round((p.spend * 1000) / p.qty) : 0, minPrice: p.min, maxPrice: p.max, standardPrice: p.standard, variance: p.variance }))
+        .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance))
+        .slice(0, 50),
+      note: "Amounts are minor units before tax; orders in other currencies are summed as recorded.",
+    };
+  }
+}

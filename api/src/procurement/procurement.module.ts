@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Module, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Module, Param, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
 import { Ctx, RequestContext } from "../platform/context/request-context.js";
@@ -10,6 +10,7 @@ import { InventoryModule } from "../inventory/inventory.module.js";
 import { SalesModule } from "../sales/sales.module.js";
 import {
   GoodsReceiptService,
+  ProcurementAnalyticsService,
   PurchaseOrderService,
   RequisitionService,
   RfqService,
@@ -46,7 +47,16 @@ class ProcurementActionsController {
     private readonly orders: PurchaseOrderService,
     private readonly receipts: GoodsReceiptService,
     private readonly returns: SupplierReturnService,
+    private readonly analytics: ProcurementAnalyticsService,
   ) {}
+
+  @Get("analytics")
+  @RequirePermission("procurement.analytics.view")
+  @ApiOperation({ summary: "Spend by supplier, category and department; price variance; lead time; delivery performance" })
+  summary(@Ctx() ctx: RequestContext, @Query("from") from?: string, @Query("to") to?: string) {
+    const date = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
+    return this.analytics.summary(ctx, { from: date(from), to: date(to) });
+  }
 
   @Post("requisitions/:id/submit")
   @HttpCode(200)
@@ -163,7 +173,7 @@ const crud = [
   createMasterDataController({ path: "procurement/returns", tag: "Procurement: Supplier returns", module: "procurement", permission: "procurement.receipt", service: SupplierReturnService, createDto: CreateSupplierReturnDto, updateDto: UpdateSupplierReturnDto }),
 ];
 
-const SERVICES = [SupplierService, RequisitionService, PurchaseOrderService, RfqService, GoodsReceiptService, SupplierReturnService];
+const SERVICES = [ProcurementAnalyticsService, SupplierService, RequisitionService, PurchaseOrderService, RfqService, GoodsReceiptService, SupplierReturnService];
 
 @Module({
   imports: [OrgModule, ProductsModule, InventoryModule, SalesModule],

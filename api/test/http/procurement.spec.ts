@@ -169,6 +169,18 @@ describe("Procurement: requisition to receipt", () => {
     await http().post("/api/v1/procurement/receipts").set(as()).send({ orderId, lines: [{ orderLineId: closed.body.lines[0].lineId, received: "1" }] }).expect(400);
   });
 
+  it("reports spend, price variance and supplier performance", async () => {
+    const a = (await http().get("/api/v1/procurement/analytics").set(as()).expect(200)).body;
+    expect(a.orders).toBe(1);
+    expect(a.totalSpend).toBe(29_400_000);
+    expect(a.openCommitment).toBe(0);
+    const acmeRow = a.suppliers.find((s: { supplierId: string }) => s.supplierId === acme);
+    expect(acmeRow).toMatchObject({ spend: 29_400_000, onTimeRate: 1, averageLeadTimeDays: 0 });
+    // Cement bought at 1,900 against a standard 2,000: 100 × -100 = -10,000.
+    expect(a.priceVariance.find((p: { productId: string }) => p.productId === cement)).toMatchObject({ standardPrice: 200_000, minPrice: 190_000, variance: -1_000_000 });
+    await http().get("/api/v1/procurement/analytics").set(as("viewer")).expect(403);
+  });
+
   it("lets a viewer read orders but not raise them", async () => {
     await http().get("/api/v1/procurement/orders").set(as("viewer")).expect(200);
     await http().post("/api/v1/procurement/orders").set(as("viewer")).send({ supplierId: acme, warehouseId: warehouse, lines: [{ productId: cement, qty: "1" }] }).expect(403);
