@@ -366,6 +366,18 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("ehs", "permit", "permits to work"),
     ],
   }),
+  mod({
+    key: "warehouse",
+    name: "Warehouse",
+    description: "Put-away rules, picking strategies and a warehouse task queue.",
+    group: "advanced",
+    available: true,
+    dependsOn: ["inventory", "sales", "procurement"],
+    permissions: [
+      ...entityPermissions("warehouse", "putAwayRule", "put-away rules"),
+      ...entityPermissions("warehouse", "task", "warehouse tasks"),
+    ],
+  }),
   mod({ key: "pos", name: "POS & Retail", description: "Point of sale, shifts, loyalty and promotions.", group: "advanced", available: false, dependsOn: ["sales", "inventory"] }),
   mod({ key: "logistics", name: "Logistics & Fleet", description: "Delivery routes, drivers, vehicles and fleet costs.", group: "advanced", available: false, dependsOn: ["sales"] }),
   mod({ key: "marketing", name: "Marketing", description: "Campaigns, segments and marketing automation.", group: "advanced", available: false, dependsOn: ["crm"] }),

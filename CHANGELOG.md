@@ -124,6 +124,8 @@
 - Quality screens: inspection plans with a variable-length checklist editor, an inspection list and record page (a dynamic complete form built from the plan's own checklist, cancel, a read-only response breakdown), and non-conformances with their corrective/preventive actions and closure.
 - EHS API (`/ehs`): incidents (report, investigate with a root cause and preventive actions, close); risk assessments (hazards scored from 1–5 likelihood and severity, with controls and residual risk, draft until at least one hazard is added then activated); permits to work (requested, approved or rejected, then closed).
 - EHS screens: an incident list and record page (investigate, close), risk assessments with a variable-length hazards editor and activation, and permits to work (approve, reject, close).
+- Warehouse API (`/warehouse`): put-away rules matched most-specific first; a picking-suggestion engine (FIFO, FEFO or zone) over existing stock balances plus a wave-pick endpoint combining several deliveries into one list; a warehouse task queue auto-populated from goods receipts (put-away) and confirmed sales orders (pick), assignable, started, completed and cancelled, and looked up by its scannable number.
+- Warehouse screens: put-away rules, a task list and record page with assign/start/complete/cancel, a Scan page for the barcode/QR flow, and a Picking page for single and wave pick suggestions.
 
 ### Changed
 

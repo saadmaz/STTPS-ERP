@@ -30,6 +30,7 @@ import { DocumentsModule } from "./documents/documents.module.js";
 import { ManufacturingModule } from "./manufacturing/manufacturing.module.js";
 import { QualityModule } from "./quality/quality.module.js";
 import { EhsModule } from "./ehs/ehs.module.js";
+import { WarehouseModule } from "./warehouse/warehouse.module.js";
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { EhsModule } from "./ehs/ehs.module.js";
     ManufacturingModule,
     QualityModule,
     EhsModule,
+    WarehouseModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [

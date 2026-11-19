@@ -28,6 +28,7 @@ import { TASK_COLLECTIONS, TASK_LISTS } from "../../tasks/tasks.models.js";
 import { SUPPORT_COLLECTIONS, SUPPORT_LISTS } from "../../support/support.models.js";
 import { MFG_COLLECTIONS, MFG_LISTS } from "../../manufacturing/manufacturing.models.js";
 import { QUALITY_COLLECTIONS, QUALITY_LISTS } from "../../quality/quality.models.js";
+import { WAREHOUSE_COLLECTIONS, WAREHOUSE_LISTS } from "../../warehouse/warehouse.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -149,6 +150,9 @@ export const INDEXES: IndexSpec[] = [
 
   // Quality
   ...largeListIndexes(QUALITY_COLLECTIONS.inspections, QUALITY_LISTS.inspections),
+
+  // Warehouse
+  ...largeListIndexes(WAREHOUSE_COLLECTIONS.tasks, WAREHOUSE_LISTS.tasks),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */

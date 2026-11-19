@@ -60,6 +60,8 @@ import {
   FolderTree,
   HardHat,
   FileCheck,
+  ScanLine,
+  PackageSearch,
   Package,
   Percent,
   Ruler,
@@ -352,6 +354,17 @@ const SECTIONS: NavSection[] = [
       { label: "Transfers", href: "/inventory/transfers", icon: Truck, permission: "inventory.transfer.view" },
       { label: "Stock counts", href: "/inventory/counts", icon: ClipboardCheck, permission: "inventory.count.view" },
       { label: "Warehouses", href: "/inventory/warehouses", icon: Warehouse, permission: "inventory.warehouse.view" },
+    ],
+  },
+  {
+    label: "Warehouse Ops",
+    icon: PackageSearch,
+    module: "warehouse",
+    links: [
+      { label: "Tasks", href: "/warehouse/tasks", icon: ListTodo, permission: "warehouse.task.view" },
+      { label: "Scan", href: "/warehouse/scan", icon: ScanLine, permission: "warehouse.task.view" },
+      { label: "Picking", href: "/warehouse/picking", icon: PackageSearch, permission: "warehouse.task.view" },
+      { label: "Put-away rules", href: "/warehouse/put-away-rules", icon: ClipboardList, permission: "warehouse.putAwayRule.view" },
     ],
   },
   {
