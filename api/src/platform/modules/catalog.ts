@@ -192,6 +192,8 @@ export const MODULES: ModuleDefinition[] = [
     permissions: [
       ...entityPermissions("finance", "account", "chart of accounts"),
       ...entityPermissions("finance", "journal", "journals"),
+      ...entityPermissions("finance", "invoice", "customer invoices and credit notes"),
+      ...entityPermissions("finance", "receipt", "customer receipts"),
       { code: "finance.journal.control", name: "Post manual journals to control accounts", module: "finance", action: "edit" },
       { code: "finance.settings.edit", name: "Edit finance settings and posting rules", module: "finance", action: "edit" },
       { code: "finance.reports.view", name: "View financial statements and ledgers", module: "finance", action: "view" },

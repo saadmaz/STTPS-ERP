@@ -126,7 +126,7 @@ export class FinanceSettingsService {
       accounts[role as PostingRole] = id;
     }
     const { configured: _c, missingRoles: _m, ...base } = current;
-    const next: FinanceSettingsDoc = { ...base, baseCurrency: dto.baseCurrency ?? current.baseCurrency, accounts, updatedAt: new Date().toISOString(), updatedBy: ctx.userId };
+    const next: FinanceSettingsDoc = { ...base, baseCurrency: dto.baseCurrency ?? current.baseCurrency, accounts, autoInvoiceDeliveries: dto.autoInvoiceDeliveries ?? current.autoInvoiceDeliveries ?? false, updatedAt: new Date().toISOString(), updatedBy: ctx.userId };
     await this.ref(ctx).set(next);
     this.audit.record(ctx, { module: "finance", action: "settings.updated", entity: "finance.settings", entityId: ctx.companyId, before: current, after: next });
     return next;

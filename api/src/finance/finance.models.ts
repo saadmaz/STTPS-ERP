@@ -62,6 +62,8 @@ export interface FinanceSettingsDoc {
   tenantId: string;
   baseCurrency: string;
   accounts: Partial<Record<PostingRole, string>>;
+  /** Invoice dispatched deliveries and credit received returns automatically (posted at once). */
+  autoInvoiceDeliveries?: boolean;
   updatedAt: string;
   updatedBy: string | null;
 }

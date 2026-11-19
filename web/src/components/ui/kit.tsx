@@ -107,6 +107,7 @@ export function ConfirmDialog({
   busy,
   onConfirm,
   onClose,
+  children,
 }: {
   open: boolean;
   title: string;
@@ -117,6 +118,8 @@ export function ConfirmDialog({
   busy?: boolean;
   onConfirm: (reason: string) => void;
   onClose: () => void;
+  /** Extra fields shown under the message. */
+  children?: React.ReactNode;
 }) {
   const [text, setText] = useState("");
   const id = useId();
@@ -130,6 +133,7 @@ export function ConfirmDialog({
           {title}
         </h2>
         {body && <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">{body}</p>}
+        {children && <div className="mt-3">{children}</div>}
         {reason && (
           <textarea
             className="input-base mt-3"

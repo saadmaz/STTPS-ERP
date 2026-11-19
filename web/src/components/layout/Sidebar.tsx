@@ -110,6 +110,9 @@ const SECTIONS: NavSection[] = [
     module: "finance",
     links: [
       { label: "Overview", href: "/finance", icon: PieChart, permission: "finance.account.view" },
+      { label: "Invoices", href: "/finance/invoices", icon: FileText, permission: "finance.invoice.view" },
+      { label: "Customer receipts", href: "/finance/receipts", icon: Coins, permission: "finance.receipt.view" },
+      { label: "Receivables ageing", href: "/finance/receivables", icon: CalendarRange, permission: "finance.invoice.view" },
       { label: "Journals", href: "/finance/journals", icon: BookOpen, permission: "finance.journal.view" },
       { label: "Chart of accounts", href: "/finance/accounts", icon: FolderTree, permission: "finance.account.view" },
       { label: "Trial balance", href: "/finance/reports/trial-balance", icon: Scale, permission: "finance.reports.view" },

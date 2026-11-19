@@ -5,6 +5,9 @@ import { Ctx, RequestContext } from "../platform/context/request-context.js";
 import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { OrgModule } from "../org/org.module.js";
+import { SalesModule } from "../sales/sales.module.js";
+import { InvoiceService, ReceiptService, ReceivablesService } from "./ar.services.js";
+import { ApplyCreditDto, CreateInvoiceDto, CreateReceiptDto, UpdateInvoiceDto, UpdateReceiptDto, WriteOffDto } from "./ar.dto.js";
 import { AccountService, AutoPostingService, FinanceReportsService, FinanceSettingsService, JournalService } from "./finance.services.js";
 import { GeneralLedger } from "./ledger.service.js";
 import { CreateAccountDto, CreateJournalDto, FinanceSettingsDto, ReverseJournalDto, SetupFinanceDto, UpdateAccountDto, UpdateJournalDto } from "./finance.dto.js";
@@ -32,7 +35,67 @@ class FinanceController {
     private readonly journals: JournalService,
     private readonly postings: AutoPostingService,
     private readonly reports: FinanceReportsService,
+    private readonly invoices: InvoiceService,
+    private readonly receivables: ReceivablesService,
   ) {}
+
+  @Post("invoices/:id/post")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.edit")
+  @ApiOperation({ summary: "Post the invoice or credit note to receivables" })
+  postInvoice(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.invoices.post(ctx, id);
+  }
+
+  @Post("invoices/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.edit")
+  cancelInvoice(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.invoices.cancel(ctx, id);
+  }
+
+  @Post("invoices/:id/apply-credit")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.edit")
+  @ApiOperation({ summary: "Use this credit note to settle part of an open invoice" })
+  applyCredit(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ApplyCreditDto)) dto: ApplyCreditDto) {
+    return this.invoices.applyCredit(ctx, id, dto.invoiceId, dto.amount);
+  }
+
+  @Post("invoices/:id/write-off")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.delete")
+  writeOff(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(WriteOffDto)) dto: WriteOffDto) {
+    return this.invoices.writeOff(ctx, id, dto.accountId, dto.reason);
+  }
+
+  @Post("invoices/from-delivery/:deliveryId")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.create")
+  @ApiOperation({ summary: "Draft an invoice for a dispatched delivery at the order prices" })
+  fromDelivery(@Ctx() ctx: RequestContext, @Param("deliveryId") deliveryId: string) {
+    return this.invoices.fromDelivery(ctx, deliveryId);
+  }
+
+  @Post("invoices/from-return/:returnId")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.create")
+  @ApiOperation({ summary: "Draft a credit note for a received sales return" })
+  fromReturn(@Ctx() ctx: RequestContext, @Param("returnId") returnId: string) {
+    return this.invoices.fromReturn(ctx, returnId);
+  }
+
+  @Get("receivables/ageing")
+  @RequirePermission("finance.invoice.view")
+  ageing(@Ctx() ctx: RequestContext, @Query("asOf") asOf?: string) {
+    return this.receivables.ageing(ctx, day(asOf));
+  }
+
+  @Get("receivables/statement/:customerId")
+  @RequirePermission("finance.invoice.view")
+  statement(@Ctx() ctx: RequestContext, @Param("customerId") customerId: string) {
+    return this.receivables.statement(ctx, customerId);
+  }
 
   @Get("settings")
   @RequirePermission("finance.account.view")
@@ -120,12 +183,14 @@ class FinanceController {
 const crud = [
   createMasterDataController({ path: "finance/accounts", tag: "Finance: Chart of accounts", module: "finance", permission: "finance.account", service: AccountService, createDto: CreateAccountDto, updateDto: UpdateAccountDto }),
   createMasterDataController({ path: "finance/journals", tag: "Finance: Journals", module: "finance", permission: "finance.journal", service: JournalService, createDto: CreateJournalDto, updateDto: UpdateJournalDto }),
+  createMasterDataController({ path: "finance/invoices", tag: "Finance: Invoices and credit notes", module: "finance", permission: "finance.invoice", service: InvoiceService, createDto: CreateInvoiceDto, updateDto: UpdateInvoiceDto }),
+  createMasterDataController({ path: "finance/receipts", tag: "Finance: Customer receipts", module: "finance", permission: "finance.receipt", service: ReceiptService, createDto: CreateReceiptDto, updateDto: UpdateReceiptDto }),
 ];
 
-const SERVICES = [GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService];
+const SERVICES = [GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
 
 @Module({
-  imports: [OrgModule],
+  imports: [OrgModule, SalesModule],
   controllers: [FinanceController, ...crud],
   providers: SERVICES,
   exports: SERVICES,

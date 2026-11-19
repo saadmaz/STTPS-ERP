@@ -15,6 +15,7 @@ import { INVENTORY_COLLECTIONS, INVENTORY_LISTS } from "../../inventory/inventor
 import { SALES_COLLECTIONS, SALES_LISTS } from "../../sales/sales.models.js";
 import { PROCUREMENT_COLLECTIONS, PROCUREMENT_LISTS } from "../../procurement/procurement.models.js";
 import { FINANCE_COLLECTIONS, FINANCE_LISTS } from "../../finance/finance.models.js";
+import { AR_COLLECTIONS, AR_LISTS } from "../../finance/ar.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -101,6 +102,8 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(PROCUREMENT_COLLECTIONS.receipts, PROCUREMENT_LISTS.receipts),
   ...largeListIndexes(PROCUREMENT_COLLECTIONS.returns, PROCUREMENT_LISTS.returns),
   ...largeListIndexes(FINANCE_COLLECTIONS.journals, FINANCE_LISTS.journals),
+  ...largeListIndexes(AR_COLLECTIONS.invoices, AR_LISTS.invoices),
+  ...largeListIndexes(AR_COLLECTIONS.receipts, AR_LISTS.receipts),
   { collection: FINANCE_COLLECTIONS.balances, fields: [asc("companyId"), asc("period")] },
   { collection: FINANCE_COLLECTIONS.entries, fields: [asc("companyId"), asc("accountId"), asc("date")] },
   { collection: FINANCE_COLLECTIONS.entries, fields: [asc("companyId"), asc("partyId"), asc("date")] },

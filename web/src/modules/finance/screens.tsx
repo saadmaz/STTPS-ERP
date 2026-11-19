@@ -12,7 +12,10 @@ import { formatMoney } from "@/lib/money";
 import { useCan } from "@/lib/workspace";
 import { MasterListPage, MasterRecordPage } from "@/components/master/MasterData";
 import { EmptyState, ErrorState, Field, PageHeader, Spinner } from "@/components/ui/kit";
-import { Account, FINANCE_SCREENS, financeApi, Journal, useAccountName, useAccounts } from "./config";
+import { Account, FINANCE_SCREENS as CORE_SCREENS, financeApi, Journal, useAccountName, useAccounts } from "./config";
+import { AR_SCREENS, NewArDocument } from "./receivables";
+
+const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS };
 
 export function FinanceList({ entity }: { entity: string }) {
   const config = FINANCE_SCREENS[entity];
@@ -34,6 +37,7 @@ interface Settings {
   accounts: Record<string, string>;
   configured: boolean;
   missingRoles: string[];
+  autoInvoiceDeliveries?: boolean;
 }
 
 function useSettings() {
@@ -141,7 +145,7 @@ export function FinanceSettingsPage() {
   const can = useCan("finance.settings.edit");
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const save = useMutation({
-    mutationFn: (body: Record<string, string>) => financeApi.put<Settings>("/finance/settings", { accounts: body }),
+    mutationFn: (body: { accounts?: Record<string, string>; autoInvoiceDeliveries?: boolean }) => financeApi.put<Settings>("/finance/settings", body),
     onSuccess: () => { toast.success("Posting rules saved"); setDraft(null); qc.invalidateQueries({ queryKey: ["finance-settings"] }); },
     onError: (e) => toast.error(errorMessage(e)),
   });
@@ -149,8 +153,14 @@ export function FinanceSettingsPage() {
   if (settings.isError) return <ErrorState message={errorMessage(settings.error)} />;
   const values = draft ?? settings.data!.accounts;
   return (
-    <form className="max-w-4xl space-y-6" onSubmit={(e) => { e.preventDefault(); save.mutate(values); }}>
+    <form className="max-w-4xl space-y-6" onSubmit={(e) => { e.preventDefault(); save.mutate({ accounts: values }); }}>
       <PageHeader title="Posting rules" subtitle="The account each automatic posting uses." />
+      <section className="card p-5">
+        <label className="flex items-center gap-3 text-sm">
+          <input type="checkbox" checked={!!settings.data!.autoInvoiceDeliveries} disabled={!can || save.isPending} onChange={(e) => save.mutate({ autoInvoiceDeliveries: e.target.checked })} />
+          Invoice dispatched deliveries and credit received returns automatically
+        </label>
+      </section>
       <section className="card p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {Object.keys(ROLE_HELP).map((role) => (
           <Field key={role} label={humanize(role)} hint={ROLE_HELP[role]}>
@@ -205,7 +215,11 @@ interface LineForm { accountId: string; debit: string; credit: string; descripti
 const blank = (): LineForm => ({ accountId: "", debit: "", credit: "", description: "" });
 const cents = (v: string) => Math.round(Number(v || "0") * 100);
 
-export function NewJournal() {
+export function NewFinanceDocument({ kind }: { kind: string }) {
+  return kind === "journal" ? <NewJournal /> : <NewArDocument kind={kind} />;
+}
+
+function NewJournal() {
   const router = useRouter();
   const accounts = useAccounts().filter((a: Account) => !a.isGroup && a.status === "active");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));

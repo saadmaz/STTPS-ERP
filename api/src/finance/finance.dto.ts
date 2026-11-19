@@ -60,6 +60,7 @@ export class ReverseJournalDto {
 }
 
 export class FinanceSettingsDto {
+  @IsOptional() @IsBoolean() autoInvoiceDeliveries?: boolean;
   @IsOptional() @Matches(CURRENCY) baseCurrency?: string;
   @ApiPropertyOptional({ description: "Account id per posting role" }) @IsOptional() @IsObject() accounts?: Record<string, string>;
 }

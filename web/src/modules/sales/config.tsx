@@ -239,6 +239,18 @@ const quotes: MasterConfig<Quote> = {
   extra: (r) => <LinesSummary lines={r.lines} totals={r.totals} currency={r.currency} />,
 };
 
+function InvoiceDelivery({ deliveryId }: { deliveryId: string }) {
+  const router = useRouter();
+  const can = useCan("finance.invoice.create");
+  const run = useMutation({
+    mutationFn: () => salesApi.post<{ id: string }>(`/finance/invoices/from-delivery/${deliveryId}`),
+    onSuccess: (inv) => router.push(`/finance/invoices/${inv.id}`),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can) return null;
+  return <button className="btn-ghost" onClick={() => run.mutate()} disabled={run.isPending}><FileCheck size={15} /> Invoice</button>;
+}
+
 function NewDelivery({ order }: { order: Order }) {
   const router = useRouter();
   const can = useCan("sales.delivery.create");
@@ -336,6 +348,7 @@ const deliveries: MasterConfig<Delivery> = {
       {["draft", "picked", "packed"].includes(r.status) && <Action<Delivery> label="Dispatch" icon={Truck} path={`/sales/deliveries/${r.id}/dispatch`} permission="sales.delivery.edit" onDone={refresh} confirm="Dispatch now? Stock leaves the warehouse." />}
       {r.status === "dispatched" && <Action<Delivery> label="Delivered" icon={CheckCircle2} path={`/sales/deliveries/${r.id}/deliver`} permission="sales.delivery.edit" onDone={refresh} confirm="Who received the goods?" reason="required" body={(why) => ({ receivedBy: why })} />}
       {r.status === "dispatched" && <Action<Delivery> label="Failed" icon={Ban} path={`/sales/deliveries/${r.id}/fail`} permission="sales.delivery.edit" onDone={refresh} danger confirm="What went wrong?" reason="required" />}
+      {["dispatched", "delivered"].includes(r.status) && <InvoiceDelivery deliveryId={r.id} />}
       {["dispatched", "delivered", "failed"].includes(r.status) && <Link className="btn-ghost" href={`/sales/new/return?delivery=${r.id}`}><RotateCcw size={15} /> Return</Link>}
     </>
   ),

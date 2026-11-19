@@ -191,8 +191,8 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 
 - [x] Chart of accounts: hierarchy, groups, restrictions, opening balances, and posting rules mapping each event type to accounts.
 - [ ] General ledger: manual, automatic and recurring journals, approval, posting, reversal, period locking, trial balance. _Done except recurring journals._
-- [ ] Automatic postings from domain events: delivery → COGS, invoice → AR/revenue/tax, GRN → inventory/GRNI, supplier invoice → AP, payments. _Stock value (receipts, deliveries, returns, adjustments) posts today; invoices and payments follow with AR/AP._
-- [ ] AR: invoices from order or delivery, deposit, milestone and recurring invoices, credit and debit notes, payments and allocation, statements, write-offs, ageing, dunning/collections, overdue alerts.
+- [ ] Automatic postings from domain events: delivery → COGS, invoice → AR/revenue/tax, GRN → inventory/GRNI, supplier invoice → AP, payments. _Stock value, customer invoices, credit notes, receipts and write-offs post today; supplier invoices and payments follow with AP._
+- [ ] AR: invoices from order or delivery, deposit, milestone and recurring invoices, credit and debit notes, payments and allocation, statements, write-offs, ageing, dunning/collections, overdue alerts. _Done: invoices from deliveries (manual or automatic), manual invoices, credit notes (from returns or manual) and applying them, receipts with allocation and on-account credit, foreign currency with exchange differences, write-offs, ageing, statements. Still to do: deposit, milestone and recurring invoices, dunning and overdue alerts._
 - [ ] AP: supplier invoices, three-way match (PO/GRN/invoice), duplicate-invoice prevention, payment scheduling, batches and approvals, supplier statements, ageing.
 - [ ] Banking and cash: accounts, petty cash, transfers, statement import (CSV/OFX), automatic and manual matching, reconciliation with history.
 - [ ] Expenses: categories, employee claims with receipt upload, approval, reimbursement, tax treatment.
