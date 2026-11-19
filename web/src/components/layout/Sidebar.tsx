@@ -62,6 +62,8 @@ import {
   FileCheck,
   ScanLine,
   PackageSearch,
+  Store,
+  CreditCard,
   Package,
   Percent,
   Ruler,
@@ -136,6 +138,17 @@ const SECTIONS: NavSection[] = [
       { label: "Deliveries", href: "/sales/deliveries", icon: Truck, permission: "sales.delivery.view" },
       { label: "Returns", href: "/sales/returns", icon: RotateCcw, permission: "sales.return.view" },
       { label: "Sales settings", href: "/sales/settings", icon: SlidersHorizontal, permission: "sales.settings.edit" },
+    ],
+  },
+  {
+    label: "Point of Sale",
+    icon: Store,
+    module: "pos",
+    links: [
+      { label: "Register", href: "/pos/register", icon: CreditCard, permission: "pos.sale.create" },
+      { label: "Sales", href: "/pos/sales", icon: Store, permission: "pos.sale.view" },
+      { label: "Cashier shifts", href: "/pos/shifts", icon: Wallet, permission: "pos.cashierShift.view" },
+      { label: "Terminals", href: "/pos/terminals", icon: Tablet, permission: "pos.terminal.view" },
     ],
   },
   {

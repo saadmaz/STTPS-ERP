@@ -126,6 +126,8 @@
 - EHS screens: an incident list and record page (investigate, close), risk assessments with a variable-length hazards editor and activation, and permits to work (approve, reject, close).
 - Warehouse API (`/warehouse`): put-away rules matched most-specific first; a picking-suggestion engine (FIFO, FEFO or zone) over existing stock balances plus a wave-pick endpoint combining several deliveries into one list; a warehouse task queue auto-populated from goods receipts (put-away) and confirmed sales orders (pick), assignable, started, completed and cancelled, and looked up by its scannable number.
 - Warehouse screens: put-away rules, a task list and record page with assign/start/complete/cancel, a Scan page for the barcode/QR flow, and a Picking page for single and wave pick suggestions.
+- POS API (`/pos`): terminals; cashier shifts (open with a float, close reconciling counted cash against the shift's sales); sales that price a cart, issue stock and post revenue, tax and tendered cash/card/QR in one transaction, with split tender and a simple loyalty-points balance (earned on spend, redeemable as a discount); refunds of a chosen subset of lines and same-shift voids, both reversing stock and the ledger.
+- POS screens: a Register page (product search, cart, split payments, a receipt), a sales list and record page (refund, void), cashier shifts (close) and terminals.
 
 ### Changed
 

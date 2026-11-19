@@ -378,7 +378,19 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("warehouse", "task", "warehouse tasks"),
     ],
   }),
-  mod({ key: "pos", name: "POS & Retail", description: "Point of sale, shifts, loyalty and promotions.", group: "advanced", available: false, dependsOn: ["sales", "inventory"] }),
+  mod({
+    key: "pos",
+    name: "POS & Retail",
+    description: "Point of sale, shifts, loyalty and promotions.",
+    group: "advanced",
+    available: true,
+    dependsOn: ["sales", "inventory", "finance"],
+    permissions: [
+      ...entityPermissions("pos", "terminal", "terminals"),
+      ...entityPermissions("pos", "cashierShift", "cashier shifts"),
+      ...entityPermissions("pos", "sale", "sales"),
+    ],
+  }),
   mod({ key: "logistics", name: "Logistics & Fleet", description: "Delivery routes, drivers, vehicles and fleet costs.", group: "advanced", available: false, dependsOn: ["sales"] }),
   mod({ key: "marketing", name: "Marketing", description: "Campaigns, segments and marketing automation.", group: "advanced", available: false, dependsOn: ["crm"] }),
 
