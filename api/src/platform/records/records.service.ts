@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import type { Transaction } from "firebase-admin/firestore";
 import { FirestoreService } from "../../firestore/firestore.service.js";
 import { COLLECTIONS } from "../../firestore/collections.js";
 import { UserDoc } from "../../firestore/models.js";
@@ -213,6 +214,25 @@ export class RecordsService {
   }
 
   // ---- Links ----
+
+  /**
+   * Writes a link inside a module's own transaction (write phase only, no
+   * permission checks: the calling service has already authorised the change).
+   */
+  linkInTx(tx: Transaction, ctx: RequestContext, from: { type: string; id: string }, to: { type: string; id: string }, relation: string): void {
+    const id = `${ctx.companyId}__${from.type}__${from.id}__${relation}__${to.type}__${to.id}`.slice(0, 1400);
+    const doc = this.links.build(ctx, {
+      id,
+      fromType: from.type,
+      fromId: from.id,
+      toType: to.type,
+      toId: to.id,
+      relation,
+      fromKey: `${from.type}:${from.id}`,
+      toKey: `${to.type}:${to.id}`,
+    });
+    tx.set(this.links.ref(id), doc);
+  }
 
   async link(ctx: RequestContext, from: { type: string; id: string }, to: { type: string; id: string }, relation: string): Promise<RecordLinkDoc> {
     await this.assertAccess(ctx, from.type, from.id, "edit");

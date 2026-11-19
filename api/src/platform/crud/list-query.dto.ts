@@ -38,7 +38,7 @@ export class ListQueryDto {
   @MaxLength(200)
   sort?: string;
 
-  @ApiPropertyOptional({ description: "Include archived records" })
+  @ApiPropertyOptional({ description: "Show archived records instead of active ones" })
   @IsOptional()
   @Transform(({ value }) => value === true || value === "true" || value === "1")
   @IsBoolean()

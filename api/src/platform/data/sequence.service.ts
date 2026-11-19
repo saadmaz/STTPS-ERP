@@ -34,6 +34,16 @@ export class SequenceService {
   constructor(private readonly firestore: FirestoreService) {}
 
   async next(tx: Transaction, scope: Scope, key: string, options: SequenceOptions): Promise<string> {
+    const reserved = await this.reserve(tx, scope, key, options);
+    reserved.commit();
+    return reserved.number;
+  }
+
+  /**
+   * Read half of `next`, for transactions that still have reads to do: call
+   * `commit()` once every read is done, before or with the other writes.
+   */
+  async reserve(tx: Transaction, scope: Scope, key: string, options: SequenceOptions): Promise<{ number: string; commit: () => void }> {
     const yearly = options.yearly ?? true;
     const year = yearly ? (options.date ?? new Date()).getUTCFullYear() : null;
     const ref = this.firestore
@@ -41,8 +51,10 @@ export class SequenceService {
       .doc(`${scope.companyId}__${key}${year ? `__${year}` : ""}`);
     const snap = await tx.get(ref);
     const value = (snap.data()?.value ?? 0) + 1;
-    tx.set(ref, { companyId: scope.companyId, key, year, value, updatedAt: new Date().toISOString() });
     const number = String(value).padStart(options.padding ?? 6, "0");
-    return year ? `${options.prefix}-${year}-${number}` : `${options.prefix}-${number}`;
+    return {
+      number: year ? `${options.prefix}-${year}-${number}` : `${options.prefix}-${number}`,
+      commit: () => tx.set(ref, { companyId: scope.companyId, key, year, value, updatedAt: new Date().toISOString() }),
+    };
   }
 }

@@ -93,6 +93,23 @@ export class SearchIndex {
     tx.delete(this.ref(scope, entityType, entityId));
   }
 
+  /** Ids of records of one type whose search entry matches every word of the query (up to `limit`). */
+  async entityIds(scope: Scope, query: string, entityType: string, limit = 500): Promise<string[]> {
+    const parts = words(query).map((w) => w.slice(0, MAX_PREFIX));
+    if (parts.length === 0) return [];
+    const [first, ...rest] = [...parts].sort((a, b) => b.length - a.length);
+    const snap = await this.firestore
+      .collection<SearchDoc>(SEARCH_COLLECTION)
+      .where("terms", "array-contains", `${scope.companyId}|${first}`)
+      .limit(2000)
+      .get();
+    return snap.docs
+      .map((d) => d.data())
+      .filter((d) => d.entityType === entityType && d.tenantId === scope.tenantId && rest.every((r) => d.terms.includes(`${scope.companyId}|${r}`)))
+      .slice(0, limit)
+      .map((d) => d.entityId);
+  }
+
   async search(ctx: RequestContext, query: string, options: { types?: string[]; limit?: number } = {}): Promise<SearchHit[]> {
     const parts = words(query).map((w) => w.slice(0, MAX_PREFIX));
     if (parts.length === 0) return [];

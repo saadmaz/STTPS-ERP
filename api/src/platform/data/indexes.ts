@@ -9,6 +9,8 @@
  * budget is reserved for large transactional collections.
  */
 
+import { CRM_COLLECTIONS, CRM_LISTS } from "../../crm/crm.models.js";
+
 export type Order = "ASCENDING" | "DESCENDING";
 
 export interface IndexSpec {
@@ -18,6 +20,26 @@ export interface IndexSpec {
 
 const asc = (field: string): [string, Order] => [field, "ASCENDING"];
 const desc = (field: string): [string, Order] => [field, "DESCENDING"];
+
+/**
+ * What a large list may filter and sort on through Firestore. Every sort
+ * works alone or with one of the filters; further filters are applied while
+ * paging. Each combination costs one composite index.
+ */
+export interface LargeListSpec {
+  filters: string[];
+  sorts: { field: string; direction: "asc" | "desc" }[];
+}
+
+export function largeListIndexes(collection: string, spec: LargeListSpec): IndexSpec[] {
+  const out: IndexSpec[] = [];
+  for (const sort of spec.sorts) {
+    const order: [string, Order] = [sort.field, sort.direction === "asc" ? "ASCENDING" : "DESCENDING"];
+    out.push({ collection, fields: [asc("companyId"), asc("archived"), order] });
+    for (const filter of spec.filters) out.push({ collection, fields: [asc("companyId"), asc("archived"), asc(filter), order] });
+  }
+  return out;
+}
 
 /** The default list index of TenantRepository: company, not archived, newest first. */
 export function defaultListIndex(collection: string): IndexSpec {
@@ -45,6 +67,13 @@ export const INDEXES: IndexSpec[] = [
     collection: "exchangeRates",
     fields: [asc("companyId"), asc("archivedAt"), asc("fromCurrency"), asc("toCurrency"), desc("effectiveDate")],
   },
+
+  // CRM
+  ...largeListIndexes(CRM_COLLECTIONS.accounts, CRM_LISTS.accounts),
+  ...largeListIndexes(CRM_COLLECTIONS.contacts, CRM_LISTS.contacts),
+  ...largeListIndexes(CRM_COLLECTIONS.leads, CRM_LISTS.leads),
+  ...largeListIndexes(CRM_COLLECTIONS.opportunities, CRM_LISTS.opportunities),
+  ...largeListIndexes(CRM_COLLECTIONS.activities, CRM_LISTS.activities),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */

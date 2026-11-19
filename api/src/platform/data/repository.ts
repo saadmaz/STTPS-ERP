@@ -22,10 +22,12 @@ export interface BaseDoc {
   version: number;
   /** Set when archived (soft-deleted). Archived records are hidden from lists by default. */
   archivedAt: string | null;
+  /** Mirrors archivedAt != null so lists can query active or archived records with one index. */
+  archived?: boolean;
 }
 
 export const BASE_FIELDS = [
-  "id", "tenantId", "companyId", "createdAt", "updatedAt", "createdBy", "updatedBy", "version", "archivedAt",
+  "id", "tenantId", "companyId", "createdAt", "updatedAt", "createdBy", "updatedBy", "version", "archivedAt", "archived",
 ] as const;
 
 /** What a caller supplies to create a document: everything except the base fields (an id may be chosen). */
@@ -156,6 +158,7 @@ export class TenantRepository<T extends BaseDoc> {
       updatedBy: scope.userId ?? null,
       version: 1,
       archivedAt: null,
+      archived: false,
     } as T;
   }
 
@@ -206,6 +209,7 @@ export class TenantRepository<T extends BaseDoc> {
       updatedBy: scope.userId ?? null,
       version: before.version + 1,
     } as T;
+    after.archived = after.archivedAt != null;
     tx.set(this.ref(before.id), after);
     return { before, after };
   }

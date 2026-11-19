@@ -102,7 +102,22 @@ export const MODULES: ModuleDefinition[] = [
   mod({ key: "calendar", name: "Calendar", description: "Shared calendars, events and meetings.", group: "platform", available: false }),
 
   // Core operations
-  mod({ key: "crm", name: "CRM", description: "Leads, contacts, customers, opportunities and activities.", group: "core", available: false }),
+  mod({
+    key: "crm",
+    name: "CRM",
+    description: "Leads, contacts, customers, opportunities and activities.",
+    group: "core",
+    available: true,
+    permissions: [
+      ...entityPermissions("crm", "lead", "leads", { convert: "Convert leads" }),
+      ...entityPermissions("crm", "contact", "contacts"),
+      ...entityPermissions("crm", "account", "customers"),
+      ...entityPermissions("crm", "opportunity", "opportunities"),
+      ...entityPermissions("crm", "activity", "activities"),
+      { code: "crm.settings.edit", name: "Edit CRM settings (scoring, routing)", module: "crm", action: "edit" },
+      { code: "crm.analytics.view", name: "View CRM analytics", module: "crm", action: "view" },
+    ],
+  }),
   mod({ key: "products", name: "Products & Services", description: "Product master, variants, units and pricing.", group: "core", available: false }),
   mod({ key: "sales", name: "Sales", description: "Quotes, orders, fulfilment and returns.", group: "core", available: false, dependsOn: ["products", "crm"] }),
   mod({ key: "inventory", name: "Inventory", description: "Stock, warehouses, movements, counts and traceability.", group: "core", available: false, dependsOn: ["products"] }),

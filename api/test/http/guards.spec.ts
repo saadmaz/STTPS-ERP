@@ -99,7 +99,7 @@ describe("HTTP guard chain", () => {
   it("lists modules for navigation and protects module switches", async () => {
     const res = await http().get("/api/v1/platform/modules").set(as("viewer")).expect(200);
     expect(res.body.find((m: { key: string }) => m.key === "org")).toMatchObject({ enabled: true, core: true });
-    await http().put("/api/v1/platform/modules/crm").set(as("viewer")).send({ enabled: true }).expect(403);
-    await http().put("/api/v1/platform/modules/crm").set(as("admin")).send({ enabled: true }).expect(400);
+    await http().put("/api/v1/platform/modules/sales").set(as("viewer")).send({ enabled: true }).expect(403);
+    await http().put("/api/v1/platform/modules/sales").set(as("admin")).send({ enabled: true }).expect(400);
   });
 });
