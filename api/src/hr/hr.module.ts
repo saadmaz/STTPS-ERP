@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Module, Param, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, HttpCode, Module, Param, Post, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Public } from "../common/decorators/public.decorator.js";
 import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
@@ -34,6 +34,20 @@ import {
 } from "./hr-recruitment.dto.js";
 import { ChecklistService } from "./hr-onboarding.services.js";
 import { AssignItemDto, CancelChecklistDto, CreateChecklistDto, SetItemStatusDto, StartChecklistDto, UpdateChecklistDto } from "./hr-onboarding.dto.js";
+import { AttendanceService, AttendanceSettingsService, DeviceService } from "./hr-attendance.services.js";
+import {
+  ClockActionDto,
+  CreateAttendanceRecordDto,
+  CreateDeviceDto,
+  DecideCorrectionDto,
+  KioskClockDto,
+  MarkAbsentDto,
+  RequestCorrectionDto,
+  SetAttendancePinDto,
+  UpdateAttendanceRecordDto,
+  UpdateAttendanceSettingsDto,
+  UpdateDeviceDto,
+} from "./hr-attendance.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -46,6 +60,9 @@ class HrActionsController {
     private readonly postings: JobPostingService,
     private readonly candidates: CandidateService,
     private readonly checklists: ChecklistService,
+    private readonly attendance: AttendanceService,
+    private readonly attendanceSettings: AttendanceSettingsService,
+    private readonly devices: DeviceService,
   ) {}
 
   @Get("employees/org-chart")
@@ -185,6 +202,161 @@ class HrActionsController {
   hireCandidate(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(HireCandidateDto)) dto: HireCandidateDto) {
     return this.candidates.hire(ctx, id, dto.joiningDate);
   }
+
+  @Post("employees/:id/attendance-pin")
+  @HttpCode(200)
+  @RequirePermission("hr.employee.edit")
+  @ApiOperation({ summary: "Sets this employee's kiosk PIN (never returned by the API)" })
+  setAttendancePin(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(SetAttendancePinDto)) dto: SetAttendancePinDto) {
+    return this.employees.setAttendancePin(ctx, id, dto.pin);
+  }
+
+  @Post("attendance/:id/correction/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.attendanceRecord.edit")
+  @ApiOperation({ summary: "Approves or rejects a correction request" })
+  decideCorrection(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideCorrectionDto)) dto: DecideCorrectionDto) {
+    return this.attendance.decideCorrection(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("attendance/mark-absent")
+  @HttpCode(200)
+  @RequirePermission("hr.attendanceRecord.edit")
+  @ApiOperation({ summary: "Records a day with no clock-in at all" })
+  markAbsent(@Ctx() ctx: RequestContext, @Body(validated(MarkAbsentDto)) dto: MarkAbsentDto) {
+    return this.attendance.markAbsent(ctx, dto.employeeId, dto.date, dto.reason);
+  }
+
+  @Get("attendance/timesheet")
+  @RequirePermission("hr.attendanceRecord.view")
+  @ApiOperation({ summary: "Worked, overtime and late minutes for an employee over a date range" })
+  timesheet(@Ctx() ctx: RequestContext, @Query("employeeId") employeeId: string, @Query("from") from: string, @Query("to") to: string) {
+    return this.attendance.timesheet(ctx, employeeId, from, to);
+  }
+
+  @Get("attendance-settings")
+  @RequirePermission("hr.attendanceRecord.view")
+  getAttendanceSettings(@Ctx() ctx: RequestContext) {
+    return this.attendanceSettings.get(ctx);
+  }
+
+  @Put("attendance-settings")
+  @RequirePermission("hr.attendanceRecord.edit")
+  @ApiOperation({ summary: "The standard shift times used to compute late, early-leave and overtime until Shifts is built" })
+  putAttendanceSettings(@Ctx() ctx: RequestContext, @Body(validated(UpdateAttendanceSettingsDto)) dto: UpdateAttendanceSettingsDto) {
+    return this.attendanceSettings.update(ctx, dto);
+  }
+
+  @Post("devices/:id/issue-key")
+  @HttpCode(200)
+  @RequirePermission("hr.device.edit")
+  @ApiOperation({ summary: "Issues a new bearer key for this kiosk, retiring any previous one; shown once" })
+  issueDeviceKey(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.devices.issueKey(ctx, id);
+  }
+
+  @Post("devices/:id/revoke")
+  @HttpCode(200)
+  @RequirePermission("hr.device.edit")
+  revokeDevice(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.devices.revoke(ctx, id);
+  }
+}
+
+/** Attendance self-service: any signed-in user with a linked employee record, no extra permission. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/attendance")
+class AttendanceSelfServiceController {
+  constructor(private readonly employees: EmployeeService, private readonly attendance: AttendanceService) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me")
+  @ApiOperation({ summary: "Today's attendance record for the signed-in employee, if any" })
+  async me(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    const page = await this.attendance.list(ctx, { where: `employeeId:${employee.id}`, limit: 1 });
+    const today = new Date().toISOString().slice(0, 10);
+    return { employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName }, today: page.items.find((r) => r.date === today) ?? null };
+  }
+
+  @Post("clock-in")
+  @HttpCode(200)
+  async clockIn(@Ctx() ctx: RequestContext, @Body(validated(ClockActionDto)) dto: ClockActionDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.clockIn(ctx, employee.id, dto.method ?? "web", null);
+  }
+
+  @Post("clock-out")
+  @HttpCode(200)
+  async clockOut(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.clockOut(ctx, employee.id);
+  }
+
+  @Post("break/start")
+  @HttpCode(200)
+  async startBreak(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.startBreak(ctx, employee.id);
+  }
+
+  @Post("break/end")
+  @HttpCode(200)
+  async endBreak(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.endBreak(ctx, employee.id);
+  }
+
+  @Post("me/pin")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Sets your own kiosk PIN" })
+  async setMyPin(@Ctx() ctx: RequestContext, @Body(validated(SetAttendancePinDto)) dto: SetAttendancePinDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.employees.setAttendancePin(ctx, employee.id, dto.pin);
+  }
+
+  @Post(":id/correction")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Requests a correction to one of your own attendance records" })
+  async requestCorrection(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(RequestCorrectionDto)) dto: RequestCorrectionDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.requestCorrection(ctx, id, employee.id, dto.requestedClockIn, dto.requestedClockOut, dto.reason);
+  }
+}
+
+/** The kiosk endpoint: authenticates with a device bearer key, never a user session. */
+@ApiTags("Public")
+@Controller("public/attendance")
+class PublicAttendanceController {
+  constructor(private readonly devices: DeviceService, private readonly attendance: AttendanceService) {}
+
+  @Public()
+  @Post("clock")
+  @HttpCode(200)
+  @ApiOperation({ summary: "QR (employee number only) or PIN clock-in/out and breaks, from a registered kiosk" })
+  async clock(@Body(validated(KioskClockDto)) dto: KioskClockDto) {
+    const device = await this.devices.resolveByKey(dto.deviceKey);
+    if (!device) throw new BadRequestException("Unknown or revoked device key");
+    const ctx = { tenantId: device.tenantId, companyId: device.companyId, userId: "device", allPermissions: true, permissions: new Set<string>(), ip: null, userAgent: null } as RequestContext;
+    const employee = await this.attendance.resolveKioskEmployee(ctx, dto.employeeNumber, dto.pin);
+    switch (dto.action) {
+      case "in":
+        return this.attendance.clockIn(ctx, employee.id, dto.pin ? "pin" : "qr", device.deviceId);
+      case "out":
+        return this.attendance.clockOut(ctx, employee.id);
+      case "break_start":
+        return this.attendance.startBreak(ctx, employee.id);
+      case "break_end":
+        return this.attendance.endBreak(ctx, employee.id);
+    }
+  }
 }
 
 /** The public career page: reachable without signing in, scoped to one company by its id. */
@@ -221,12 +393,25 @@ const crud = [
   createMasterDataController({ path: "hr/postings", tag: "HR: Job postings", module: "hr", permission: "hr.jobPosting", service: JobPostingService, createDto: CreateJobPostingDto, updateDto: UpdateJobPostingDto }),
   createMasterDataController({ path: "hr/candidates", tag: "HR: Candidates", module: "hr", permission: "hr.candidate", service: CandidateService, createDto: CreateCandidateDto, updateDto: UpdateCandidateDto }),
   createMasterDataController({ path: "hr/checklists", tag: "HR: Onboarding and offboarding checklists", module: "hr", permission: "hr.checklist", service: ChecklistService, createDto: CreateChecklistDto, updateDto: UpdateChecklistDto }),
+  createMasterDataController({ path: "hr/attendance", tag: "HR: Attendance", module: "hr", permission: "hr.attendanceRecord", service: AttendanceService, createDto: CreateAttendanceRecordDto, updateDto: UpdateAttendanceRecordDto }),
+  createMasterDataController({ path: "hr/devices", tag: "HR: Attendance devices", module: "hr", permission: "hr.device", service: DeviceService, createDto: CreateDeviceDto, updateDto: UpdateDeviceDto }),
 ];
 
-const SERVICES = [EmployeeService, PositionService, JobGradeService, JobRequisitionService, JobPostingService, CandidateService, ChecklistService];
+const SERVICES = [
+  EmployeeService,
+  PositionService,
+  JobGradeService,
+  JobRequisitionService,
+  JobPostingService,
+  CandidateService,
+  ChecklistService,
+  AttendanceService,
+  AttendanceSettingsService,
+  DeviceService,
+];
 
 @Module({
-  controllers: [HrActionsController, PublicCareersController, ...crud],
+  controllers: [HrActionsController, AttendanceSelfServiceController, PublicCareersController, PublicAttendanceController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })

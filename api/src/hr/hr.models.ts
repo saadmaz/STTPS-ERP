@@ -124,6 +124,8 @@ export interface EmployeeDoc extends BaseDoc {
   skills: string[];
   certifications: Certification[];
   employmentHistory: EmploymentHistoryEntry[];
+  /** A PIN for kiosk/device attendance clock-in; never returned by the API (stripped globally, like a password). */
+  attendancePinHash: string | null;
   notes: string | null;
 }
 

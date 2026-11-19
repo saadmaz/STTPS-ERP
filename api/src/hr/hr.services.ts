@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
+import * as bcrypt from "bcryptjs";
 import type { Transaction } from "firebase-admin/firestore";
 import { FirestoreService } from "../firestore/firestore.service.js";
 import { COLLECTIONS } from "../firestore/collections.js";
@@ -31,6 +32,12 @@ const orNull = <V>(v: V | undefined): V | null => (v === undefined ? null : v);
 const today = () => new Date().toISOString().slice(0, 10);
 const SENSITIVE_FIELDS = new Set(["compensation", "bankDetails", "nationalId"]);
 const COMPENSATION_PERMISSION = "hr.employee.compensation";
+const bcryptHash = (value: string) => bcrypt.hash(value, 10);
+
+/** Verifies a kiosk PIN against the employee's stored hash; false when none is set. */
+export async function verifyAttendancePin(employee: EmployeeDoc, pin: string): Promise<boolean> {
+  return employee.attendancePinHash ? bcrypt.compare(pin, employee.attendancePinHash) : false;
+}
 
 // ─── Job grades and positions ──────────────────────────────────────────────────
 
@@ -168,7 +175,7 @@ export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmploy
       contractType: dto.contractType ?? null, contractEndDate: dto.contractEndDate?.slice(0, 10) ?? null, terminationDate: null, terminationReason: null,
       compensation: dto.compensation ? buildCompensation(dto.compensation, "LKR") : null, bankDetails: dto.bankDetails ? buildBankDetails(dto.bankDetails) : null,
       qualifications: dto.qualifications ? buildQualifications(dto.qualifications) : [], skills: dto.skills ?? [],
-      certifications: dto.certifications ? buildCertifications(dto.certifications) : [], employmentHistory: history, notes: orNull(dto.notes),
+      certifications: dto.certifications ? buildCertifications(dto.certifications) : [], employmentHistory: history, attendancePinHash: null, notes: orNull(dto.notes),
     };
   }
 
@@ -263,6 +270,24 @@ export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmploy
 
   protected searchEntry(doc: EmployeeDoc): SearchEntry {
     return { entityType: this.entityType, entityId: doc.id, title: `${doc.firstName} ${doc.lastName}`, subtitle: doc.employeeNumber, keywords: [doc.email, doc.phone] };
+  }
+
+  /** The employee linked to this platform user, for self-service (attendance, and later leave and payslips). */
+  async findByUserId(ctx: RequestContext, userId: string): Promise<EmployeeDoc | null> {
+    const all = await this.loadAll(ctx);
+    return all.find((e) => e.userId === userId) ?? null;
+  }
+
+  /** For kiosk/device identification, where the caller has no session. */
+  async findByEmployeeNumber(ctx: RequestContext, employeeNumber: string): Promise<EmployeeDoc | null> {
+    const all = await this.loadAll(ctx);
+    return all.find((e) => e.employeeNumber === employeeNumber) ?? null;
+  }
+
+  /** Sets or clears the attendance kiosk PIN; hashed, never returned by the API. */
+  async setAttendancePin(ctx: RequestContext, id: string, pin: string | null): Promise<EmployeeDoc> {
+    const attendancePinHash = pin ? await bcryptHash(pin) : null;
+    return (await this.repo.update(ctx, id, { attendancePinHash } as Patch<EmployeeDoc>)).after;
   }
 }
 

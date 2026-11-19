@@ -2,7 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nes
 import { map, Observable } from "rxjs";
 
 /** Fields that must never leave the API, whatever a handler returns. */
-const SECRET_KEYS = new Set(["passwordHash", "mfaSecret", "refreshToken", "secretHash", "apiKeyHash"]);
+const SECRET_KEYS = new Set(["passwordHash", "mfaSecret", "refreshToken", "secretHash", "apiKeyHash", "attendancePinHash", "currentKeyHash"]);
 
 function strip(value: unknown, depth = 0): unknown {
   if (depth > 20 || value === null || typeof value !== "object") return value;
