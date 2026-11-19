@@ -39,6 +39,22 @@ export interface MasterConfig<T extends BaseRecord> {
   details?: (row: T) => { label: string; value: React.ReactNode }[];
   /** Extra content under the details (e.g. fiscal periods). */
   extra?: (row: T) => React.ReactNode;
+  /** Extra header buttons on the record page; call `refresh` with the updated record. */
+  actions?: (row: T, refresh: (row: T) => void) => React.ReactNode;
+  /** Whether the record can be edited in its current state (e.g. not once converted). */
+  editable?: (row: T) => boolean;
+}
+
+interface Duplicate {
+  entityType: string;
+  id: string;
+  label: string;
+  match: string;
+}
+
+function duplicatesOf(error: unknown): Duplicate[] | null {
+  const data = (error as { response?: { status?: number; data?: { duplicates?: Duplicate[] } } })?.response;
+  return data?.status === 409 && Array.isArray(data.data?.duplicates) ? data.data!.duplicates! : null;
 }
 
 function formFrom<T extends BaseRecord>(config: MasterConfig<T>, row: T): FormValues {
@@ -54,15 +70,22 @@ export function MasterListPage<T extends BaseRecord>({ config }: { config: Maste
   const router = useRouter();
   const canCreate = useCan(`${config.permission}.create`);
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<{ values: FormValues; duplicates: Duplicate[] } | null>(null);
   const create = useMutation({
-    mutationFn: (values: FormValues) => config.client.create(toBody(config.fields, values, "create")),
+    mutationFn: ({ values, force }: { values: FormValues; force?: boolean }) =>
+      config.client.create({ ...toBody(config.fields, values, "create"), ...(force ? { allowDuplicate: true } : {}) }),
     onSuccess: (row) => {
       toast.success(`${config.singular} created`);
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: [config.entityType] });
+      setPending(null);
       router.push(`${config.route}/${row.id}`);
     },
-    onError: (e) => toast.error(errorMessage(e)),
+    onError: (e, vars) => {
+      const duplicates = duplicatesOf(e);
+      if (duplicates) setPending({ values: vars.values, duplicates });
+      else toast.error(errorMessage(e));
+    },
   });
 
   const newButton = canCreate ? (
@@ -103,8 +126,35 @@ export function MasterListPage<T extends BaseRecord>({ config }: { config: Maste
           </>
         }
       >
-        <SchemaForm id="create-form" entityType={config.entityType} fields={config.fields} initial={config.defaults ?? {}} mode="create" onSubmit={(v) => create.mutate(v)} />
+        <SchemaForm id="create-form" entityType={config.entityType} fields={config.fields} initial={config.defaults ?? {}} mode="create" onSubmit={(v) => create.mutate({ values: v })} />
       </Drawer>
+      {pending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="alertdialog" aria-modal="true">
+          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setPending(null)} />
+          <div className="relative card w-full max-w-md p-5">
+            <h2 className="font-semibold">Possible duplicate</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">These records look the same. Open one instead, or save anyway.</p>
+            <ul className="mt-3 space-y-1">
+              {pending.duplicates.map((d) => (
+                <li key={`${d.entityType}:${d.id}`} className="text-sm">
+                  <a className="text-blue-700 dark:text-blue-400 hover:underline" href={`/${d.entityType.replace(".", "/")}s/${d.id}`}>
+                    {d.label}
+                  </a>{" "}
+                  <span className="text-xs text-slate-500">same {d.match}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="btn-secondary" onClick={() => setPending(null)}>
+                Cancel
+              </button>
+              <button className="btn-primary" disabled={create.isPending} onClick={() => create.mutate({ values: pending.values, force: true })}>
+                Save anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -162,7 +212,8 @@ export function MasterRecordPage<T extends BaseRecord>({ config, id }: { config:
         actions={
           <>
             {status && <StatusBadge status={status} />}
-            {canEdit && !row.archivedAt && (
+            {!row.archivedAt && config.actions?.(row, refresh)}
+            {canEdit && !row.archivedAt && (config.editable?.(row) ?? true) && (
               <button className="btn-secondary" onClick={() => setEditing(true)}>
                 <Pencil size={15} /> Edit
               </button>
@@ -196,7 +247,7 @@ export function MasterRecordPage<T extends BaseRecord>({ config, id }: { config:
               {(config.details?.(row) ?? []).map((d) => (
                 <div key={d.label}>
                   <dt className="text-xs uppercase tracking-wide text-slate-500">{d.label}</dt>
-                  <dd className="text-sm text-slate-800 dark:text-slate-200 mt-0.5">{d.value ?? "—"}</dd>
+                  <dd className="text-sm text-slate-800 dark:text-slate-200 mt-0.5 whitespace-pre-line">{d.value ?? "—"}</dd>
                 </div>
               ))}
               {custom.map(([k, v]) => (

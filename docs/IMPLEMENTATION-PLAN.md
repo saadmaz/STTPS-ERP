@@ -152,11 +152,11 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 **Goal:** Lead to Cash up to delivery, and Procure to Pay up to goods receipt (§32), on live data.
 
 ### 1.1 CRM (§5): port and extend
-- [ ] Leads with capture (manual, import, web-form endpoint), source and campaign attribution, rule-based scoring, assignment and routing rules, duplicate detection, conversion to contact, customer and opportunity.
-- [ ] Contacts (multiple per organisation, roles, communication preferences), and customers with segments, hierarchy, billing and delivery addresses, payment terms, credit limit, tax details, owner and status.
-- [ ] Opportunity pipeline (Kanban), stages with history, probability, forecast category, competitors, win/loss reasons.
-- [ ] Activities (call, email, meeting, visit, note, task, follow-up) on the shared timeline.
-- [ ] CRM analytics: sources, conversion, pipeline value, cycle time, win/loss, rep performance.
+- [x] Leads with capture (manual, import, web-form endpoint), source and campaign attribution, rule-based scoring, assignment and routing rules, duplicate detection, conversion to contact, customer and opportunity.
+- [x] Contacts (multiple per organisation, roles, communication preferences), and customers with segments, hierarchy, billing and delivery addresses, payment terms, credit limit, tax details, owner and status.
+- [x] Opportunity pipeline (Kanban), stages with history, probability, forecast category, competitors, win/loss reasons.
+- [x] Activities (call, email, meeting, visit, note, task, follow-up) on the shared timeline.
+- [x] CRM analytics: sources, conversion, pipeline value, cycle time, win/loss, rep performance.
 
 ### 1.2 Products and services (§7)
 - [ ] Product master on the existing `Item` model, extended with types (stock, non-stock, service, bundle/kit, manufactured, digital), variants and attributes, units of measure with conversions, barcodes, images, tax category, costing method (FIFO, weighted average, standard), warranty, and lot/serial flags.

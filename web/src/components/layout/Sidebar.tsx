@@ -14,6 +14,11 @@ import {
   ChevronRight,
   ClipboardCheck,
   Coins,
+  Contact,
+  Handshake,
+  KanbanSquare,
+  PhoneCall,
+  Target,
   GitBranch,
   Home,
   Layers,
@@ -53,6 +58,20 @@ const TOP: NavLink[] = [
 ];
 
 const SECTIONS: NavSection[] = [
+  {
+    label: "CRM",
+    icon: Handshake,
+    module: "crm",
+    links: [
+      { label: "Overview", href: "/crm", icon: PieChart, permission: "crm.analytics.view" },
+      { label: "Leads", href: "/crm/leads", icon: Target, permission: "crm.lead.view" },
+      { label: "Customers", href: "/crm/accounts", icon: Building2, permission: "crm.account.view" },
+      { label: "Contacts", href: "/crm/contacts", icon: Contact, permission: "crm.contact.view" },
+      { label: "Opportunities", href: "/crm/opportunities", icon: Briefcase, permission: "crm.opportunity.view" },
+      { label: "Pipeline", href: "/crm/pipeline", icon: KanbanSquare, permission: "crm.opportunity.view" },
+      { label: "Activities", href: "/crm/activities", icon: PhoneCall, permission: "crm.activity.view" },
+    ],
+  },
   {
     label: "Organisation",
     icon: Network,

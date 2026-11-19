@@ -48,6 +48,7 @@
 - Home with work waiting for you, My Work, notifications, approval decisions, and settings for modules, approval workflows, delegations and custom fields.
 - Two-step sign-in with authenticator apps (TOTP) and single-use recovery codes, a signed-in devices list with sign-out per device, and password change, all under Settings, Security.
 - CRM API (`/crm`): customers with automatic numbering, credit limits and hierarchy; contacts; leads with rule-based scoring, routing and duplicate detection; lead conversion into customer, contact and opportunity in one step; opportunity pipeline with stage history, probabilities and win or loss reasons; activities tied to any CRM record; CRM analytics (funnel, pipeline, win rate, sales cycle, rep results).
+- CRM screens: overview with funnel, sources and pipeline; leads with conversion; customers with their contacts and deals; contacts; opportunities with a stage picker and a pipeline board; activities with completion. Creating a likely duplicate shows the matches and asks before saving.
 - Large lists run as indexed Firestore queries with text search through the search index, so customers and leads scale beyond what fits in memory.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
