@@ -198,7 +198,7 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [x] Expenses: categories, employee claims with receipt upload, approval, reimbursement, tax treatment.
 - [x] Budgeting: annual/monthly budgets by department, branch, project and cost centre, revisions, approval, budget vs actual, alerts and hard/soft controls used by procurement. _Over-budget requisitions are flagged to approvers (`overBudget` fact) or refused; threshold notifications come with Phase 6 alerts._
 - [ ] Tax engine: codes, effective-dated rates, inclusive/exclusive pricing, exemptions, registration details, return reports and filing exports, configurable for Sri Lankan VAT/SSCL.
-- [ ] Fixed assets: register, depreciation methods and schedules, monthly depreciation posting, transfers, impairment, disposal.
+- [x] Fixed assets: register, depreciation methods and schedules, monthly depreciation posting, transfers, impairment, disposal.
 - [ ] Multi-currency transactions with realised and unrealised FX gain/loss.
 - [ ] Reports: P&L, balance sheet, cash flow, trial balance, GL and account ledgers, AR/AP ageing, statements, tax, budget vs actual, ratios, with drill-down to source documents.
 

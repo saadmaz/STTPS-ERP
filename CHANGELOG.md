@@ -69,6 +69,8 @@
 - Budget screens: list, budget against actual (totals or by period), submit and revise, and a new-budget form.
 - Expenses module (`/expenses`): categories mapped to expense accounts with a reclaimable tax code, receipt rule and per-line limit; employee claims entered tax-inclusive with the tax split out; receipts attached as files and required before submitting where the category needs them; approval through workflows; posting on approval (expense and input tax against the employee on payables); and reimbursement from the bank. Event `ExpenseClaimApproved`.
 - Expenses screens: claims (submit, reimburse, receipts on the Files tab), new claim, and categories.
+- Assets module (`/assets`): categories with cost, accumulated depreciation and expense accounts, straight-line or declining-balance methods and useful lives; an asset register with serial numbers, location, custodian and a full history; capitalisation (posted, or already posted from a supplier bill); depreciation schedules; a monthly depreciation run that catches up missed months, posts one journal per category and never runs twice for the same month; impairment; transfers; and disposal that clears cost and accumulated depreciation and books the gain or loss.
+- Assets screens: register (capitalise, impair, transfer, dispose, history, schedule), depreciation run and categories.
 - Large lists run as indexed Firestore queries with text search through the search index, so customers and leads scale beyond what fits in memory.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.

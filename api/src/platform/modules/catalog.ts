@@ -214,7 +214,15 @@ export const MODULES: ModuleDefinition[] = [
     dependsOn: ["finance"],
     permissions: [...entityPermissions("expenses", "category", "expense categories"), ...entityPermissions("expenses", "claim", "expense claims")],
   }),
-  mod({ key: "assets", name: "Assets", description: "Asset register, assignment, depreciation and audits.", group: "finance", available: false }),
+  mod({
+    key: "assets",
+    name: "Assets",
+    description: "Asset register, assignment, depreciation and audits.",
+    group: "finance",
+    available: true,
+    dependsOn: ["finance"],
+    permissions: [...entityPermissions("assets", "category", "asset categories"), ...entityPermissions("assets", "asset", "fixed assets")],
+  }),
 
   // People
   mod({ key: "hr", name: "HR & People", description: "Employees, organisation chart, recruitment, attendance, leave and performance.", group: "people", available: false }),

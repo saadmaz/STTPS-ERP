@@ -107,6 +107,7 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(AR_COLLECTIONS.receipts, AR_LISTS.receipts),
   ...largeListIndexes(AP_COLLECTIONS.bills, AP_LISTS.bills),
   ...largeListIndexes(AP_COLLECTIONS.payments, AP_LISTS.payments),
+  ...largeListIndexes("fixedAssets", { filters: ["status", "categoryId"], sorts: [{ field: "createdAt", direction: "desc" }, { field: "code", direction: "asc" }] }),
   ...largeListIndexes("expenseClaims", { filters: ["status", "employeeId"], sorts: [{ field: "createdAt", direction: "desc" }] }),
   { collection: FINANCE_COLLECTIONS.balances, fields: [asc("companyId"), asc("period")] },
   { collection: FINANCE_COLLECTIONS.entries, fields: [asc("companyId"), asc("accountId"), asc("date")] },

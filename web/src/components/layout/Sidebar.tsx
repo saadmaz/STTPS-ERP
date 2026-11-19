@@ -130,6 +130,16 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "Assets",
+    icon: Building2,
+    module: "assets",
+    links: [
+      { label: "Register", href: "/assets/register", icon: Boxes, permission: "assets.asset.view" },
+      { label: "Depreciation run", href: "/assets/depreciation", icon: CalendarRange, permission: "assets.asset.edit" },
+      { label: "Categories", href: "/assets/categories", icon: Tags, permission: "assets.category.view" },
+    ],
+  },
+  {
     label: "Expenses",
     icon: Receipt,
     module: "expenses",
