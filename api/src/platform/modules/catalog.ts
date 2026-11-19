@@ -205,7 +205,15 @@ export const MODULES: ModuleDefinition[] = [
       { code: "finance.reports.view", name: "View financial statements and ledgers", module: "finance", action: "view" },
     ],
   }),
-  mod({ key: "expenses", name: "Expenses", description: "Employee expense claims and reimbursement.", group: "finance", available: false, dependsOn: ["finance"] }),
+  mod({
+    key: "expenses",
+    name: "Expenses",
+    description: "Employee expense claims and reimbursement.",
+    group: "finance",
+    available: true,
+    dependsOn: ["finance"],
+    permissions: [...entityPermissions("expenses", "category", "expense categories"), ...entityPermissions("expenses", "claim", "expense claims")],
+  }),
   mod({ key: "assets", name: "Assets", description: "Asset register, assignment, depreciation and audits.", group: "finance", available: false }),
 
   // People

@@ -67,6 +67,8 @@
 - Banking screens: accounts overview with transfers, and per account: statement upload, lines to match, matching dialog, reconciliation and history.
 - Budgets per fiscal year for the company or a department, branch, cost centre or project, with amounts per period or spread from an annual figure; approval through workflows; revisions that supersede the approved budget; budget against posted actuals per account and period; and controls that flag over-budget requisitions to approvers or refuse them, counting approved requisitions and open purchase orders as commitments.
 - Budget screens: list, budget against actual (totals or by period), submit and revise, and a new-budget form.
+- Expenses module (`/expenses`): categories mapped to expense accounts with a reclaimable tax code, receipt rule and per-line limit; employee claims entered tax-inclusive with the tax split out; receipts attached as files and required before submitting where the category needs them; approval through workflows; posting on approval (expense and input tax against the employee on payables); and reimbursement from the bank. Event `ExpenseClaimApproved`.
+- Expenses screens: claims (submit, reimburse, receipts on the Files tab), new claim, and categories.
 - Large lists run as indexed Firestore queries with text search through the search index, so customers and leads scale beyond what fits in memory.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.

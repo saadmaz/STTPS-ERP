@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   BookOpen,
+  Receipt,
   Banknote,
   Calculator,
   FileSpreadsheet,
@@ -126,6 +127,15 @@ const SECTIONS: NavSection[] = [
       { label: "Balance sheet", href: "/finance/reports/balance-sheet", icon: Calculator, permission: "finance.reports.view" },
       { label: "Posting issues", href: "/finance/issues", icon: TriangleAlert, permission: "finance.journal.view" },
       { label: "Posting rules", href: "/finance/settings", icon: SlidersHorizontal, permission: "finance.settings.edit" },
+    ],
+  },
+  {
+    label: "Expenses",
+    icon: Receipt,
+    module: "expenses",
+    links: [
+      { label: "Expense claims", href: "/expenses/claims", icon: Receipt, permission: "expenses.claim.view" },
+      { label: "Categories", href: "/expenses/categories", icon: Tags, permission: "expenses.category.view" },
     ],
   },
   {
