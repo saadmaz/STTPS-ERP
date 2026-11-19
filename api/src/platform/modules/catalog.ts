@@ -225,7 +225,18 @@ export const MODULES: ModuleDefinition[] = [
   }),
 
   // People
-  mod({ key: "hr", name: "HR & People", description: "Employees, organisation chart, recruitment, attendance, leave and performance.", group: "people", available: false }),
+  mod({
+    key: "hr",
+    name: "HR & People",
+    description: "Employees, organisation chart, recruitment, attendance, leave and performance.",
+    group: "people",
+    available: true,
+    permissions: [
+      ...entityPermissions("hr", "employee", "employees", { compensation: "View and edit salary, bank details and national ID", terminate: "Terminate or reinstate employees" }),
+      ...entityPermissions("hr", "position", "positions"),
+      ...entityPermissions("hr", "jobGrade", "job grades"),
+    ],
+  }),
   mod({ key: "payroll", name: "Payroll", description: "Salary structures, payroll runs, payslips and statutory filings.", group: "people", available: false, dependsOn: ["hr", "finance"] }),
 
   // Operations

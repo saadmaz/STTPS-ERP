@@ -210,7 +210,7 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 
 **Goal:** Hire to Retire (§32) and a compliant Sri Lankan payroll (§11, §12).
 
-- [ ] Employees: full record and the profile tabs from §11, positions, job grades, org chart, employment history, documents and certifications. Sensitive fields are masked by field-level permissions.
+- [x] Employees: full record and the profile tabs from §11, positions, job grades, org chart, employment history, documents and certifications. Sensitive fields are masked by field-level permissions. _The §11 profile tabs map onto the shared record page: personal, employment, compensation, qualifications, certifications and employment history sit on the Details tab, with Documents and Activity from the Phase 0 platform. Attendance, Leave, Payroll, Performance, Assets and Training are later Phase 3 items with nothing to show yet. Record-level scope (Phase 0 open item) is still not done: any `hr.employee.view` holder sees every employee._
 - [ ] Recruitment/ATS: job requisitions with hiring approval, postings, public career page, candidate database, CV upload, the pipeline from §11 (Applied → … → Hired/Rejected), interviews, scorecards, offers.
 - [ ] Onboarding and offboarding checklists that create tasks, user accounts, asset assignments and access provisioning (automation hooks).
 - [ ] Attendance: web/mobile/QR/PIN clock-in, breaks, timesheets, correction requests, late/early/absence, overtime, approval, a device-integration endpoint.

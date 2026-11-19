@@ -6,7 +6,7 @@ Read this file in full before changing anything. It records the conventions the 
 
 - `docs/BLUEPRINT.md` is the product spec. `docs/IMPLEMENTATION-PLAN.md` is the phase plan. Its checkboxes (`- [x]` / `- [ ]`, with *italic notes* on partly done items) are the source of truth for progress.
 - **Pick the next unchecked item in phase order** and build it end to end: API, tests, web screens, docs. Then commit, push and move on. The owner has said not to ask for approval between items.
-- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all). Next: **Phase 3 Workforce** (HR and Sri Lankan payroll), starting with Employees.
+- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all), Phase 3 Employees. Next: **Phase 3 Workforce**, continuing with Recruitment/ATS.
 
 ## 2. Git and release rules (strict)
 
@@ -131,7 +131,8 @@ plan.commitNew(); approval.apply();                                           //
   - **Make the statutory figures configurable data, not code.** That covers EPF (employee 8%, employer 12%), ETF (employer 3%), the APIT tax tables and any stamp duty. Effective-dated rows let changes take effect without a deploy.
   - **Give each rule a test** that works through an example payslip by hand.
   - **Post payroll through `GeneralLedger`:** salaries expense against payroll liabilities (`subtype: "payroll"`), with employees as `partyType: "employee"`.
-- **Employees vs users:** today expense claims use the **user id** as the employee. When an HR employee record exists, link it to the user (`userId` on the employee) instead of changing the claims.
+- **Employees vs users:** `EmployeeDoc.userId` (`api/src/hr/`) now links an employee to the platform user they sign in as, checked against `companyUsers` (not the generic `references` config: users have no `companyId`). Expense claims still key off the **user id** directly — leave that alone; payroll and self-service should resolve the employee from `userId`, not the other way round.
+- **Sensitive HR fields:** `EmployeeDoc.compensation`, `bankDetails` and `nationalId` need `hr.employee.compensation`, checked in `EmployeeService` (read redaction in `get`/`list`/`history`, write guard in `toNew`/`toPatch`) — not the generic Phase 0 record-level-scope engine, which still doesn't exist. Copy this per-field pattern for other sensitive data before that engine lands.
 - **Budget control:** procurement already calls `BudgetService.check`. Any new spending document (projects, maintenance work orders) should call it the same way.
 
 ## 10. Review hotspots (for a later review by a stronger model)
@@ -144,5 +145,6 @@ Areas where subtle errors are most likely and that deserve a careful second look
   - **Disposal gain or loss.**
 - **Three-way match** (`finance/ap.services.ts`, `matchBill`) and the commitments in budget control (`finance/budget.ts`).
 - **Concurrency on hot documents:** stock summaries, GL monthly balances, sequences.
-- **Access control:** the catalog permissions on every route. Record-level scoping (Phase 0 open item) is not done: for example, any user with `expenses.claim.view` sees all claims.
+- **Access control:** the catalog permissions on every route. Record-level scoping (Phase 0 open item) is not done: for example, any user with `expenses.claim.view` sees all claims, and any `hr.employee.view` holder sees every employee (just not their compensation).
+- **Sensitive-field redaction:** `EmployeeService`'s compensation masking is hand-written per field; check it stays in sync if `EmployeeDoc` grows more sensitive fields, and that no new read path (reports, exports, search) bypasses `get`/`list`/`history` and reads the collection directly.
 - **Payroll statutory calculations** (once built).

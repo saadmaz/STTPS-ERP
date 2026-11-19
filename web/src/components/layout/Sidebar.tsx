@@ -154,6 +154,17 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "HR & People",
+    icon: Users,
+    module: "hr",
+    links: [
+      { label: "Employees", href: "/hr/employees", icon: Users, permission: "hr.employee.view" },
+      { label: "Org chart", href: "/hr/org-chart", icon: Network, permission: "hr.employee.view" },
+      { label: "Positions", href: "/hr/positions", icon: Briefcase, permission: "hr.position.view" },
+      { label: "Job grades", href: "/hr/job-grades", icon: Layers, permission: "hr.jobGrade.view" },
+    ],
+  },
+  {
     label: "Procurement",
     icon: ShoppingBag,
     module: "procurement",

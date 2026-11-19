@@ -20,6 +20,7 @@ import { InventoryModule } from "./inventory/inventory.module.js";
 import { SalesModule } from "./sales/sales.module.js";
 import { ProcurementModule } from "./procurement/procurement.module.js";
 import { FinanceModule } from "./finance/finance.module.js";
+import { HrModule } from "./hr/hr.module.js";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { FinanceModule } from "./finance/finance.module.js";
     SalesModule,
     ProcurementModule,
     FinanceModule,
+    HrModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [
