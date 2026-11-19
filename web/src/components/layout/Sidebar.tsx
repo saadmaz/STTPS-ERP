@@ -58,6 +58,8 @@ import {
   Truck,
   Warehouse,
   FolderTree,
+  HardHat,
+  FileCheck,
   Package,
   Percent,
   Ruler,
@@ -302,6 +304,16 @@ const SECTIONS: NavSection[] = [
       { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permission: "quality.inspection.view" },
       { label: "Non-conformances", href: "/quality/non-conformances", icon: TriangleAlert, permission: "quality.nonConformance.view" },
       { label: "Inspection plans", href: "/quality/inspection-plans", icon: ClipboardList, permission: "quality.inspectionPlan.view" },
+    ],
+  },
+  {
+    label: "Health & Safety",
+    icon: HardHat,
+    module: "ehs",
+    links: [
+      { label: "Incidents", href: "/ehs/incidents", icon: TriangleAlert, permission: "ehs.incident.view" },
+      { label: "Risk assessments", href: "/ehs/risk-assessments", icon: ClipboardList, permission: "ehs.riskAssessment.view" },
+      { label: "Permits to work", href: "/ehs/permits", icon: FileCheck, permission: "ehs.permit.view" },
     ],
   },
   {

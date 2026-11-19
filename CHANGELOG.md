@@ -122,6 +122,8 @@
 - MRP screens: demand forecasts, and an MRP run list and record page showing the demand behind the run and its planned production and purchases, with convert and dismiss on each suggested line.
 - Quality API (`/quality`): inspection plans (a checklist of pass/fail, numeric or text items, optionally scoped to a product and stage); inspections created against a plan, completed with per-item responses that derive the overall pass/fail automatically when not given explicitly, or cancelled; non-conformances with corrective and preventive actions through to closure.
 - Quality screens: inspection plans with a variable-length checklist editor, an inspection list and record page (a dynamic complete form built from the plan's own checklist, cancel, a read-only response breakdown), and non-conformances with their corrective/preventive actions and closure.
+- EHS API (`/ehs`): incidents (report, investigate with a root cause and preventive actions, close); risk assessments (hazards scored from 1–5 likelihood and severity, with controls and residual risk, draft until at least one hazard is added then activated); permits to work (requested, approved or rejected, then closed).
+- EHS screens: an incident list and record page (investigate, close), risk assessments with a variable-length hazards editor and activation, and permits to work (approve, reject, close).
 
 ### Changed
 
