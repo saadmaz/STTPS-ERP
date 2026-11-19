@@ -15,6 +15,8 @@ export interface JwtPayload {
   isPlatformAdmin: boolean;
   /** Set on special-purpose tokens (e.g. the MFA step); those are never access tokens. */
   purpose?: string;
+  /** Set on a customer portal token; those authenticate through PortalAuthGuard instead, never a staff route. */
+  scope?: string;
 }
 
 @Injectable()
@@ -32,6 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     if (payload.purpose) throw new UnauthorizedException("Not an access token");
+    if (payload.scope) throw new UnauthorizedException("Not a staff access token");
     const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(payload.sub).get();
     const user = doc.data();
 

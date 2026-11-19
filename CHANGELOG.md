@@ -111,6 +111,9 @@
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
 - Firestore composite indexes generated from a registry (`npm run indexes`), checked by a test.
 - API test suite on the Firestore emulator (`npm test` in `api/`), run in CI.
+- Support desk API (`/support`): SLA policies (per-priority response/resolution-minute targets, calendar time); tickets through the blueprint's status flow (new → open → assigned → in progress → waiting for customer → resolved → closed) with SLA due dates computed on creation, assign, staff/customer replies, escalate (raises priority, reassigns), merge, reopen and a customer satisfaction rating.
+- Customer portal (`/portal`): a separate login for customers (`PortalUserDoc`, its own collection, never the staff `users` one), provisioned by staff only with a one-time setup link (the same hashed-token pattern as Quote public links and attendance device keys) that doubles as a forgotten-password reset; sign-in issues a 24-hour token carrying its own `scope: "portal"` claim, which the staff `JwtStrategy` explicitly rejects as defense in depth. Customers see and manage only their own tickets: list, open a new one, reply, reopen once resolved, and rate satisfaction.
+- Support and portal screens: a ticket list and record page (SLA countdown, assign, reply, status, escalate, merge, reopen), SLA policies with an editable per-priority target table, a portal-logins admin page (provision, reissue setup link, deactivate), and a standalone customer portal (sign-in, set/reset password, my tickets, new ticket, ticket detail with reply and rating).
 
 ### Changed
 

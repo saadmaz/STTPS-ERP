@@ -21,7 +21,9 @@ import {
   FolderKanban,
   GraduationCap,
   HandCoins,
+  Headset,
   Inbox,
+  KeyRound,
   Laptop,
   ListTodo,
   Milestone,
@@ -176,6 +178,16 @@ const SECTIONS: NavSection[] = [
     links: [
       { label: "Work orders", href: "/maintenance/work-orders", icon: Wrench, permission: "maintenance.workOrder.view" },
       { label: "Plans", href: "/maintenance/plans", icon: CalendarClock, permission: "maintenance.plan.view" },
+    ],
+  },
+  {
+    label: "Support",
+    icon: Headset,
+    module: "support",
+    links: [
+      { label: "Tickets", href: "/support/tickets", icon: Headset, permission: "support.ticket.view" },
+      { label: "SLA policies", href: "/support/sla-policies", icon: ClipboardList, permission: "support.slaPolicy.view" },
+      { label: "Portal logins", href: "/support/portal-users", icon: KeyRound, permission: "support.portalUser.view" },
     ],
   },
   {

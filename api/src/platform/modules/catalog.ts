@@ -291,7 +291,19 @@ export const MODULES: ModuleDefinition[] = [
       { code: "projects.billing.edit", name: "Raise an invoice from a project", module: "projects", action: "edit" },
     ],
   }),
-  mod({ key: "support", name: "Support", description: "Tickets, SLAs and the customer portal.", group: "operations", available: false, dependsOn: ["crm"] }),
+  mod({
+    key: "support",
+    name: "Support",
+    description: "Tickets, SLAs and the customer portal.",
+    group: "operations",
+    available: true,
+    dependsOn: ["crm"],
+    permissions: [
+      ...entityPermissions("support", "slaPolicy", "SLA policies"),
+      ...entityPermissions("support", "ticket", "tickets", { manage: "Assign, escalate, merge and reopen any ticket" }),
+      ...entityPermissions("support", "portalUser", "customer portal logins"),
+    ],
+  }),
   mod({
     key: "maintenance",
     name: "Maintenance",
