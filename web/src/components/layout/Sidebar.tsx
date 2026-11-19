@@ -19,6 +19,8 @@ import {
   CalendarHeart,
   Clock,
   FolderKanban,
+  FileStack,
+  FolderOpen,
   GraduationCap,
   HandCoins,
   Headset,
@@ -253,6 +255,15 @@ const SECTIONS: NavSection[] = [
       { label: "My Calendar", href: "/calendar", icon: Calendar },
       { label: "Company Calendar", href: "/calendar/company", icon: Calendar, permission: "calendar.event.view" },
       { label: "Events", href: "/calendar/events", icon: Calendar, permission: "calendar.event.view" },
+    ],
+  },
+  {
+    label: "Documents",
+    icon: FileStack,
+    module: "documents",
+    links: [
+      { label: "Documents", href: "/documents/records", icon: FileStack, permission: "documents.document.view" },
+      { label: "Folders", href: "/documents/folders", icon: FolderOpen, permission: "documents.folder.view" },
     ],
   },
   {

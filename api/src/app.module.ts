@@ -26,6 +26,7 @@ import { ProjectsModule } from "./projects/projects.module.js";
 import { CalendarModule } from "./calendar/calendar.module.js";
 import { MaintenanceModule } from "./maintenance/maintenance.module.js";
 import { SupportModule } from "./support/support.module.js";
+import { DocumentsModule } from "./documents/documents.module.js";
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { SupportModule } from "./support/support.module.js";
     CalendarModule,
     MaintenanceModule,
     SupportModule,
+    DocumentsModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [

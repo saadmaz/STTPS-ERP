@@ -98,7 +98,17 @@ export const MODULES: ModuleDefinition[] = [
       { code: "workflow.request.manage", name: "Cancel any approval request", module: "workflow", action: "manage" },
     ],
   }),
-  mod({ key: "documents", name: "Documents", description: "Files, versions and document management.", group: "platform", available: false }),
+  mod({
+    key: "documents",
+    name: "Documents",
+    description: "Files, versions and document management.",
+    group: "platform",
+    available: true,
+    permissions: [
+      ...entityPermissions("documents", "folder", "document folders"),
+      ...entityPermissions("documents", "document", "documents"),
+    ],
+  }),
   mod({
     key: "calendar",
     name: "Calendar",
