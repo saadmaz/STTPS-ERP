@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Paths that never require authentication
-const PUBLIC_PATHS = ["/login", "/register"];
+// /q/<token> is the customer quote page: reached from an emailed link, never signed in.
+const PUBLIC_PATHS = ["/login", "/register", "/q"];
 
 // Static/system paths that should bypass middleware entirely
 const BYPASS_PREFIXES = [

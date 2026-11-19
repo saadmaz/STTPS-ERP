@@ -14,6 +14,9 @@ import {
   ChevronRight,
   ClipboardCheck,
   Coins,
+  FileText,
+  RotateCcw,
+  ShoppingCart,
   Truck,
   Warehouse,
   FolderTree,
@@ -77,6 +80,17 @@ const SECTIONS: NavSection[] = [
       { label: "Opportunities", href: "/crm/opportunities", icon: Briefcase, permission: "crm.opportunity.view" },
       { label: "Pipeline", href: "/crm/pipeline", icon: KanbanSquare, permission: "crm.opportunity.view" },
       { label: "Activities", href: "/crm/activities", icon: PhoneCall, permission: "crm.activity.view" },
+    ],
+  },
+  {
+    label: "Sales",
+    icon: ShoppingCart,
+    module: "sales",
+    links: [
+      { label: "Quotes", href: "/sales/quotes", icon: FileText, permission: "sales.quote.view" },
+      { label: "Orders", href: "/sales/orders", icon: ShoppingCart, permission: "sales.order.view" },
+      { label: "Deliveries", href: "/sales/deliveries", icon: Truck, permission: "sales.delivery.view" },
+      { label: "Returns", href: "/sales/returns", icon: RotateCcw, permission: "sales.return.view" },
     ],
   },
   {
