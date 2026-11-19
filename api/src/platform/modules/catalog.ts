@@ -261,10 +261,23 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("hr", "payrollRun", "payroll runs"),
     ],
   }),
-  mod({ key: "payroll", name: "Payroll", description: "Salary structures, payroll runs, payslips and statutory filings.", group: "people", available: false, dependsOn: ["hr", "finance"] }),
-
   // Operations
-  mod({ key: "projects", name: "Projects", description: "Projects, tasks, time tracking and project billing.", group: "operations", available: false }),
+  mod({
+    key: "projects",
+    name: "Projects",
+    description: "Projects, tasks, time tracking and project billing.",
+    group: "operations",
+    available: true,
+    permissions: [
+      ...entityPermissions("projects", "project", "projects"),
+      ...entityPermissions("projects", "phase", "project phases"),
+      ...entityPermissions("projects", "milestone", "milestones"),
+      ...entityPermissions("projects", "projectCost", "project costs"),
+      { code: "tasks.allTasks.view", name: "View every task and time entry, not just my own", module: "projects", action: "view" },
+      { code: "tasks.timeEntry.approve", name: "Approve time entries", module: "projects", action: "edit" },
+      { code: "projects.billing.edit", name: "Raise an invoice from a project", module: "projects", action: "edit" },
+    ],
+  }),
   mod({ key: "support", name: "Support", description: "Tickets, SLAs and the customer portal.", group: "operations", available: false, dependsOn: ["crm"] }),
   mod({ key: "maintenance", name: "Maintenance", description: "Work orders, maintenance plans and field service.", group: "operations", available: false, dependsOn: ["assets"] }),
 

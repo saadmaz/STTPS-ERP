@@ -24,6 +24,7 @@ import { SHIFT_COLLECTIONS, SHIFT_LISTS } from "../../hr/hr-shifts.models.js";
 import { LEAVE_COLLECTIONS, LEAVE_LISTS } from "../../hr/hr-leave.models.js";
 import { PERFORMANCE_COLLECTIONS, PERFORMANCE_LISTS } from "../../hr/hr-performance.models.js";
 import { PAYROLL_COLLECTIONS, PAYROLL_LISTS } from "../../hr/hr-payroll.models.js";
+import { TASK_COLLECTIONS, TASK_LISTS } from "../../tasks/tasks.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -132,6 +133,10 @@ export const INDEXES: IndexSpec[] = [
   ...largeListIndexes(PERFORMANCE_COLLECTIONS.goals, PERFORMANCE_LISTS.goals),
   ...largeListIndexes(PERFORMANCE_COLLECTIONS.reviews, PERFORMANCE_LISTS.reviews),
   ...largeListIndexes(PAYROLL_COLLECTIONS.payslips, PAYROLL_LISTS.payslips),
+
+  // Tasks and My Work
+  ...largeListIndexes(TASK_COLLECTIONS.tasks, TASK_LISTS.tasks),
+  ...largeListIndexes(TASK_COLLECTIONS.timeEntries, TASK_LISTS.timeEntries),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */
