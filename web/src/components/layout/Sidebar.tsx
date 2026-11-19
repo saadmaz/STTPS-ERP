@@ -119,6 +119,7 @@ const SECTIONS: NavSection[] = [
       { label: "Payables ageing", href: "/finance/payables", icon: CalendarRange, permission: "finance.bill.view" },
       { label: "Bank and cash", href: "/finance/bank", icon: Landmark, permission: "finance.bank.view" },
       { label: "Journals", href: "/finance/journals", icon: BookOpen, permission: "finance.journal.view" },
+      { label: "Budgets", href: "/finance/budgets", icon: Target, permission: "finance.budget.view" },
       { label: "Chart of accounts", href: "/finance/accounts", icon: FolderTree, permission: "finance.account.view" },
       { label: "Trial balance", href: "/finance/reports/trial-balance", icon: Scale, permission: "finance.reports.view" },
       { label: "Profit and loss", href: "/finance/reports/profit-and-loss", icon: FileSpreadsheet, permission: "finance.reports.view" },

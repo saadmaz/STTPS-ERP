@@ -65,6 +65,8 @@
 - Payables screens: supplier bills (match status, post with override, pay, debit note, apply debit), supplier payments, payment run, payables ageing, supplier statements, and a Bill action on posted goods receipts.
 - Banking and cash: bank and cash accounts with book balances, transfers between them, statement import from CSV (flexible columns, separators and date formats) or OFX/QFX with duplicates skipped, automatic matching of exact amounts within a week, manual matching to one or more ledger lines, posting bank charges or interest straight from a statement line, and reconciliation to the statement balance with the outstanding items recorded; reconciled lines can no longer be unmatched.
 - Banking screens: accounts overview with transfers, and per account: statement upload, lines to match, matching dialog, reconciliation and history.
+- Budgets per fiscal year for the company or a department, branch, cost centre or project, with amounts per period or spread from an annual figure; approval through workflows; revisions that supersede the approved budget; budget against posted actuals per account and period; and controls that flag over-budget requisitions to approvers or refuse them, counting approved requisitions and open purchase orders as commitments.
+- Budget screens: list, budget against actual (totals or by period), submit and revise, and a new-budget form.
 - Large lists run as indexed Firestore queries with text search through the search index, so customers and leads scale beyond what fits in memory.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.

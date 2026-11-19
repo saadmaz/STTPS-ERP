@@ -196,6 +196,7 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("finance", "receipt", "customer receipts"),
       ...entityPermissions("finance", "bill", "supplier bills and debit notes"),
       ...entityPermissions("finance", "payment", "supplier payments"),
+      ...entityPermissions("finance", "budget", "budgets"),
       { code: "finance.bank.view", name: "View bank accounts, statements and reconciliations", module: "finance", action: "view" },
       { code: "finance.bank.edit", name: "Transfer money, import statements, match and reconcile", module: "finance", action: "edit" },
       { code: "finance.bill.override", name: "Post supplier bills that do not match the order and receipts", module: "finance", action: "edit" },

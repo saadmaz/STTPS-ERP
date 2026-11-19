@@ -47,8 +47,8 @@ export function parseDate(raw: string, order: "YMD" | "DMY" | "MDY" = "YMD"): st
   if (/^\d{8}/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
   const parts = s.split(/[-/.\s]/).filter(Boolean);
   if (parts.length < 3) throw new BadRequestException(`Cannot read the date "${raw}"`);
-  let [y, m, d] = order === "YMD" || parts[0]!.length === 4 ? parts : order === "DMY" ? [parts[2], parts[1], parts[0]] : [parts[2], parts[0], parts[1]];
-  if (y!.length === 2) y = `20${y}`;
+  const [y0, m, d] = order === "YMD" || parts[0]!.length === 4 ? parts : order === "DMY" ? [parts[2], parts[1], parts[0]] : [parts[2], parts[0], parts[1]];
+  const y = y0!.length === 2 ? `20${y0}` : y0;
   const iso = `${y}-${m!.padStart(2, "0")}-${d!.padStart(2, "0")}`;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || Number.isNaN(Date.parse(iso))) throw new BadRequestException(`Cannot read the date "${raw}"`);
   return iso;
@@ -79,7 +79,7 @@ function cells(row: string, sep: string): string[] {
 
 /** CSV with a header row: date, description/narration/details, amount or debit+credit (withdrawal/deposit), optional reference. */
 export function parseCsv(content: string, order: "YMD" | "DMY" | "MDY" = "YMD", currency = "LKR"): ParsedLine[] {
-  const rows = content.replace(/^﻿/, "").split(/\r?\n/).filter((r) => r.trim());
+  const rows = content.replace(/^\uFEFF/, "").split(/\r?\n/).filter((r) => r.trim());
   if (rows.length < 2) throw new BadRequestException("The file has no transactions");
   const sep = [",", ";", "\t"].sort((a, b) => rows[0]!.split(b).length - rows[0]!.split(a).length)[0]!;
   const header = cells(rows[0]!, sep).map((h) => h.toLowerCase());

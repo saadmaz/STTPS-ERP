@@ -19,6 +19,7 @@ import { PRODUCT_COLLECTIONS, ProductDoc } from "../products/products.models.js"
 import { InventoryLedger } from "../inventory/inventory.ledger.js";
 import { SalesSettingsService } from "../sales/sales.services.js";
 import { ExchangeRateService } from "../org/org.services.js";
+import { BudgetService } from "../finance/budget.js";
 import {
   GoodsReceiptDoc,
   PROCUREMENT_COLLECTIONS,
@@ -167,6 +168,7 @@ export class RequisitionService extends MasterDataService<RequisitionDoc, Requis
     unique: UniqueService,
     private readonly approvals: ApprovalsService,
     private readonly events: EventBusService,
+    private readonly budgets: BudgetService,
   ) {
     super(fs, audit, unique, {
       module: "procurement",
@@ -227,12 +229,21 @@ export class RequisitionService extends MasterDataService<RequisitionDoc, Requis
   async submit(ctx: RequestContext, id: string): Promise<RequisitionDoc> {
     const doc = await this.repo.get(ctx, id);
     if (!["draft", "rejected"].includes(doc.status)) throw new BadRequestException("Only draft requisitions can be submitted");
+    const budget = await this.budgets.check(ctx, {
+      date: doc.requiredDate ?? new Date().toISOString(), amount: doc.estimatedTotal, departmentId: doc.departmentId, costCentreId: doc.costCentreId, projectId: doc.projectId, excludeRequisitionId: id,
+    });
+    if (budget?.overBudget && budget.control === "block") {
+      throw new BadRequestException(`Over budget ${budget.code}: ${fromMinor(Math.max(0, budget.available), doc.currency)} available, ${fromMinor(doc.estimatedTotal, doc.currency)} requested`);
+    }
     const prepared = await this.approvals.prepare(ctx, {
       entityType: this.entityType,
       entityId: id,
-      entityLabel: `${doc.number} · ${fromMinor(doc.estimatedTotal, doc.currency)} ${doc.currency}`,
+      entityLabel: `${doc.number} · ${fromMinor(doc.estimatedTotal, doc.currency)} ${doc.currency}${budget?.overBudget ? " · over budget" : ""}`,
       link: `/procurement/requisitions/${id}`,
-      facts: { amount: doc.estimatedTotal, departmentId: doc.departmentId, costCentreId: doc.costCentreId, projectId: doc.projectId, requesterDepartmentId: doc.departmentId },
+      facts: {
+        amount: doc.estimatedTotal, departmentId: doc.departmentId, costCentreId: doc.costCentreId, projectId: doc.projectId, requesterDepartmentId: doc.departmentId,
+        overBudget: budget?.overBudget ?? false, budgetAvailable: budget?.available ?? null,
+      },
     });
     return this.firestore.runTransaction(async (tx) => {
       const before = await this.repo.get(ctx, id, tx);

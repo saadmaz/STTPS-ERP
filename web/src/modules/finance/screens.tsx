@@ -15,8 +15,9 @@ import { EmptyState, ErrorState, Field, PageHeader, Spinner } from "@/components
 import { Account, FINANCE_SCREENS as CORE_SCREENS, financeApi, Journal, useAccountName, useAccounts } from "./config";
 import { AR_SCREENS, NewArDocument } from "./receivables";
 import { AP_FORM_KINDS, AP_SCREENS, NewApDocument } from "./payables";
+import { BUDGET_SCREENS, NewBudget } from "./budgets";
 
-const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS, ...AP_SCREENS };
+const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS, ...AP_SCREENS, ...BUDGET_SCREENS };
 
 export function FinanceList({ entity }: { entity: string }) {
   const config = FINANCE_SCREENS[entity];
@@ -218,6 +219,7 @@ const cents = (v: string) => Math.round(Number(v || "0") * 100);
 
 export function NewFinanceDocument({ kind }: { kind: string }) {
   if (kind === "journal") return <NewJournal />;
+  if (kind === "budget") return <NewBudget />;
   return AP_FORM_KINDS.includes(kind) ? <NewApDocument kind={kind} /> : <NewArDocument kind={kind} />;
 }
 

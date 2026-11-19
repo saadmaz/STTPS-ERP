@@ -9,6 +9,7 @@ import { SalesModule } from "../sales/sales.module.js";
 import { InvoiceService, ReceiptService, ReceivablesService } from "./ar.services.js";
 import { BillService, PayablesService, PaymentService } from "./ap.services.js";
 import { BankService } from "./bank.services.js";
+import { BudgetService, CreateBudgetDto, UpdateBudgetDto } from "./budget.js";
 import { CreateFromLineDto, ImportStatementDto, MatchLineDto, ReconcileDto, TransferDto } from "./bank.dto.js";
 import { ApplyDebitDto, BillFromReceiptDto, CreateBillDto, CreatePaymentDto, PaymentRunDto, PostBillDto, UpdateBillDto, UpdatePaymentDto } from "./ap.dto.js";
 import { ApplyCreditDto, CreateInvoiceDto, CreateReceiptDto, UpdateInvoiceDto, UpdateReceiptDto, WriteOffDto } from "./ar.dto.js";
@@ -45,7 +46,29 @@ class FinanceController {
     private readonly payments: PaymentService,
     private readonly payables: PayablesService,
     private readonly bank: BankService,
+    private readonly budgets: BudgetService,
   ) {}
+
+  @Post("budgets/:id/submit")
+  @HttpCode(200)
+  @RequirePermission("finance.budget.edit")
+  @ApiOperation({ summary: "Approve the budget (through a workflow when one applies); a revision supersedes the one it revises" })
+  submitBudget(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.budgets.submit(ctx, id);
+  }
+
+  @Post("budgets/:id/revise")
+  @HttpCode(200)
+  @RequirePermission("finance.budget.create")
+  reviseBudget(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.budgets.revise(ctx, id);
+  }
+
+  @Get("budgets/:id/vs-actual")
+  @RequirePermission("finance.budget.view")
+  budgetVsActual(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.budgets.vsActual(ctx, id);
+  }
 
   @Get("bank/accounts")
   @RequirePermission("finance.bank.view")
@@ -327,11 +350,12 @@ const crud = [
   createMasterDataController({ path: "finance/journals", tag: "Finance: Journals", module: "finance", permission: "finance.journal", service: JournalService, createDto: CreateJournalDto, updateDto: UpdateJournalDto }),
   createMasterDataController({ path: "finance/invoices", tag: "Finance: Invoices and credit notes", module: "finance", permission: "finance.invoice", service: InvoiceService, createDto: CreateInvoiceDto, updateDto: UpdateInvoiceDto }),
   createMasterDataController({ path: "finance/receipts", tag: "Finance: Customer receipts", module: "finance", permission: "finance.receipt", service: ReceiptService, createDto: CreateReceiptDto, updateDto: UpdateReceiptDto }),
+  createMasterDataController({ path: "finance/budgets", tag: "Finance: Budgets", module: "finance", permission: "finance.budget", service: BudgetService, createDto: CreateBudgetDto, updateDto: UpdateBudgetDto }),
   createMasterDataController({ path: "finance/bills", tag: "Finance: Supplier bills and debit notes", module: "finance", permission: "finance.bill", service: BillService, createDto: CreateBillDto, updateDto: UpdateBillDto }),
   createMasterDataController({ path: "finance/payments", tag: "Finance: Supplier payments", module: "finance", permission: "finance.payment", service: PaymentService, createDto: CreatePaymentDto, updateDto: UpdatePaymentDto }),
 ];
 
-const SERVICES = [BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
+const SERVICES = [BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
 
 @Module({
   imports: [OrgModule, SalesModule],

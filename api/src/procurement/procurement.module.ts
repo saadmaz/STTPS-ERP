@@ -8,6 +8,7 @@ import { OrgModule } from "../org/org.module.js";
 import { ProductsModule } from "../products/products.module.js";
 import { InventoryModule } from "../inventory/inventory.module.js";
 import { SalesModule } from "../sales/sales.module.js";
+import { FinanceModule } from "../finance/finance.module.js";
 import {
   GoodsReceiptService,
   ProcurementAnalyticsService,
@@ -176,7 +177,7 @@ const crud = [
 const SERVICES = [ProcurementAnalyticsService, SupplierService, RequisitionService, PurchaseOrderService, RfqService, GoodsReceiptService, SupplierReturnService];
 
 @Module({
-  imports: [OrgModule, ProductsModule, InventoryModule, SalesModule],
+  imports: [OrgModule, ProductsModule, InventoryModule, SalesModule, FinanceModule],
   controllers: [ProcurementActionsController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
