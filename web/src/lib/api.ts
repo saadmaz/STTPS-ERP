@@ -130,10 +130,33 @@ function clean(params: object): Record<string, unknown> {
   return Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ""));
 }
 
+export interface SignedIn {
+  accessToken: string;
+  user: Record<string, unknown> & { defaultCompanyId?: string };
+}
+
+export interface SessionInfo {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  lastUsedAt: string;
+  current: boolean;
+}
+
 // ─── Auth and companies ──────────────────────────────────────────────────
 
 export const authApi = {
-  login: (email: string, password: string) => data<{ accessToken: string; user: Record<string, unknown> & { defaultCompanyId?: string } }>(api.post("/auth/login", { email, password })),
+  login: (email: string, password: string) =>
+    data<SignedIn | { mfaRequired: true; mfaToken: string }>(api.post("/auth/login", { email, password })),
+  verifyMfa: (mfaToken: string, code: string) => data<SignedIn>(api.post("/auth/mfa/verify", { mfaToken, code })),
+  sessions: () => data<SessionInfo[]>(api.get("/auth/sessions")),
+  revokeSession: (id: string) => data(api.delete(`/auth/sessions/${id}`)),
+  revokeOtherSessions: () => data<{ revoked: number }>(api.post("/auth/sessions/revoke-others")),
+  changePassword: (currentPassword: string, newPassword: string) => data(api.post("/auth/change-password", { currentPassword, newPassword })),
+  mfaSetup: () => data<{ secret: string; otpauthUrl: string }>(api.post("/auth/mfa/setup")),
+  mfaEnable: (code: string) => data<{ recoveryCodes: string[] }>(api.post("/auth/mfa/enable", { code })),
+  mfaDisable: (code: string) => data(api.post("/auth/mfa/disable", { code })),
   logout: () => data(api.post("/auth/logout")),
   me: () => data<Record<string, unknown>>(api.get("/auth/me")),
   register: (body: {

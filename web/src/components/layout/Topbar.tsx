@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Building2, ChevronDown, LogOut, Menu, Moon, Search, Sun, UserCheck } from "lucide-react";
+import { Bell, Building2, ChevronDown, LogOut, Menu, Moon, Search, ShieldCheck, Sun, UserCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { notificationsApi } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
@@ -194,6 +194,9 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5 truncate">{user?.email}</p>
               </div>
+              <Link href="/settings/security" onClick={() => setUserOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+                <ShieldCheck size={15} className="text-slate-400" /> Security
+              </Link>
               <Link href="/settings/delegations" onClick={() => setUserOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
                 <UserCheck size={15} className="text-slate-400" /> My delegations
               </Link>

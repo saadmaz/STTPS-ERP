@@ -13,6 +13,8 @@ export interface JwtPayload {
   tenantId: string;
   isSuperAdmin: boolean;
   isPlatformAdmin: boolean;
+  /** Set on special-purpose tokens (e.g. the MFA step); those are never access tokens. */
+  purpose?: string;
 }
 
 @Injectable()
@@ -29,6 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    if (payload.purpose) throw new UnauthorizedException("Not an access token");
     const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(payload.sub).get();
     const user = doc.data();
 

@@ -122,8 +122,8 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 ### 0.3 Access and administration (§3, §30)
 - [x] Module activation per tenant and company. The API rejects calls into disabled modules, and `web` navigation hides them (§2).
 - [ ] Record-level scope on roles (own / team / branch / company / all) and field-level masking for sensitive fields such as salary and bank details.
-- [ ] Delegation, user suspension, session and device list with revoke, password policy.
-- [ ] MFA (TOTP; `mfaEnabled` and `mfaSecret` already exist on `UserDoc`).
+- [x] Delegation, user suspension, session and device list with revoke, password policy.
+- [x] MFA (TOTP; `mfaEnabled` and `mfaSecret` already exist on `UserDoc`).
 - [ ] Audit trail writes from every mutating service: user, action, entity, id, before/after, reason, IP and device. Includes a viewer in `admin` and on each record.
 
 ### 0.4 Shared services (§3, §22, §24, §34)

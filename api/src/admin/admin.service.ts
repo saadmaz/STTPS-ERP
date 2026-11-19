@@ -20,6 +20,7 @@ import {
   AssignUserToCompanyDto,
 } from "./dto/admin.dto.js";
 import * as bcrypt from "bcryptjs";
+import { assertStrongPassword } from "../auth/security.js";
 
 const PLATFORM_SLUG = "_platform";
 
@@ -235,6 +236,7 @@ export class AdminService {
     const existing = await indexRef.get();
     if (existing.exists) throw new ConflictException("Email already exists in this tenant");
 
+    assertStrongPassword(dto.password, dto.email);
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const now = new Date().toISOString();
     const userId = this.firestore.newId(COLLECTIONS.users);
@@ -330,11 +332,17 @@ export class AdminService {
 
   async resetUserPassword(userId: string, newPassword: string) {
     if (newPassword.length < 8) throw new BadRequestException("Password must be at least 8 characters");
+    assertStrongPassword(newPassword);
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(userId).update({
       passwordHash,
       updatedAt: new Date().toISOString(),
     });
+    // Sign the user out everywhere: whoever knew the old password loses access.
+    const sessions = await this.firestore.collection(COLLECTIONS.sessions).where("userId", "==", userId).get();
+    const batch = this.firestore.db.batch();
+    sessions.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
   }
 
   // ── Roles ──────────────────────────────────────────────────────────────────

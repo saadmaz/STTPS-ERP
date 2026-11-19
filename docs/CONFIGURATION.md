@@ -18,6 +18,7 @@ Copy `api/.env.example` to `api/.env` for local work; never commit it. In Cloudf
 | `PORT` | Listening port, default `3001` |
 | `NODE_ENV` | `development` or `production` |
 | `FRONTEND_URL`, `ADMIN_URL` | Allowed CORS origins; must match the deployed `web` and `admin` origins exactly |
+| `MFA_ENCRYPTION_KEY` | Optional key for encrypting MFA secrets; defaults to a key derived from `JWT_SECRET`. Changing either makes existing enrolments unreadable, so users would have to enrol again. **Secret** |
 | `BACKGROUND_WORKERS` | Set to `off` to stop the job worker and permission sync in this process (tests set it); leave unset in production |
 | `RESEND_API_KEY` | Resend API key for notification email. Without it, email is logged instead of sent. **Secret** |
 | `EMAIL_FROM` | Sender for notification email, default `STTPS ERP <no-reply@sttps.co>` |

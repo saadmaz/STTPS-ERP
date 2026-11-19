@@ -37,7 +37,8 @@ interface AuthContextType {
   activeCompany: Company | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mfaToken: string } | null>;
+  verifyMfa: (mfaToken: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   switchCompany: (companyId: string) => void;
 }
@@ -88,13 +89,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queueMicrotask(() => (token ? void loadUser() : setIsLoading(false)));
   }, [loadUser]);
 
-  const login = async (email: string, password: string) => {
-    const result = await authApi.login(email, password);
+  const finishLogin = async (result: { accessToken: string; user: { defaultCompanyId?: string } }) => {
     sessionStorage.setItem("access_token", result.accessToken);
-    if (result.user.defaultCompanyId) {
-      sessionStorage.setItem("company_id", result.user.defaultCompanyId);
-    }
+    if (result.user.defaultCompanyId) sessionStorage.setItem("company_id", result.user.defaultCompanyId);
     await loadUser();
+  };
+
+  /** Returns an MFA token when a second step is needed; otherwise signs in. */
+  const login = async (email: string, password: string): Promise<{ mfaToken: string } | null> => {
+    const result = await authApi.login(email, password);
+    if ("mfaRequired" in result) return { mfaToken: result.mfaToken };
+    await finishLogin(result);
+    return null;
+  };
+
+  const verifyMfa = async (mfaToken: string, code: string) => {
+    await finishLogin(await authApi.verifyMfa(mfaToken, code));
   };
 
   const logout = async () => {
@@ -130,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        verifyMfa,
         logout,
         switchCompany,
       }}

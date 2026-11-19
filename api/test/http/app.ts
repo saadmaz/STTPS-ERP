@@ -1,8 +1,9 @@
-import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { JwtService } from "@nestjs/jwt";
 import { randomUUID } from "node:crypto";
 import { AppModule } from "../../src/app.module.js";
+import { configureApp } from "../../src/configure-app.js";
 import { FirestoreService } from "../../src/firestore/firestore.service.js";
 import { COLLECTIONS } from "../../src/firestore/collections.js";
 
@@ -14,10 +15,7 @@ process.env.STORAGE_DRIVER = "memory";
 export async function createApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication();
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true, transformOptions: { enableImplicitConversion: true } }),
-  );
-  app.setGlobalPrefix("api/v1");
+  configureApp(app);
   await app.init();
   return app;
 }

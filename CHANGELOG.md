@@ -46,6 +46,7 @@
 - Standard list screens (search, sort, filters, archived toggle, column chooser, saved views, CSV export) and record pages (details, custom fields, tags, activity with comments, files, related records, edit, archive and restore).
 - Screens for branches, departments, teams, cost centres, business units, fiscal years (with period opening, closing and locking) and exchange rates.
 - Home with work waiting for you, My Work, notifications, approval decisions, and settings for modules, approval workflows, delegations and custom fields.
+- Two-step sign-in with authenticator apps (TOTP) and single-use recovery codes, a signed-in devices list with sign-out per device, and password change, all under Settings, Security.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
 - Firestore composite indexes generated from a registry (`npm run indexes`), checked by a test.
@@ -61,6 +62,10 @@
 ### Security
 
 - Every API route now requires a signed-in user unless marked public, and permissions are checked against a verified company membership. Previously the permission guard ran before authentication and rejected every protected route.
+- Refresh tokens are stored only as SHA-256 hashes, so a database read no longer exposes usable sessions. Existing sessions end with this release; users sign in again.
+- Five failed sign-ins lock the email for 15 minutes, and unknown emails take as long to reject as wrong passwords.
+- Passwords need 10 or more characters with a letter and a digit. Changing a password or having it reset signs out other devices.
+- MFA secrets are encrypted at rest (AES-256-GCM) and TOTP codes cannot be replayed.
 - User and company updates accept only their editable fields. Previously any signed-in user could set privilege flags such as `isSuperAdmin` or `isPlatformAdmin` on any user of their tenant.
 - User management, company creation and company settings now require the matching permission or tenant administrator rights.
 - Password hashes and MFA secrets are stripped from every API response.

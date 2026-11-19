@@ -5,6 +5,7 @@ import { CompanyDoc, CompanyUserDoc, RoleDoc, UserDoc, UserRoleDoc } from "../fi
 import { CreateUserDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import * as bcrypt from "bcryptjs";
+import { assertStrongPassword } from "../auth/security.js";
 
 @Injectable()
 export class UserService {
@@ -41,6 +42,7 @@ export class UserService {
     const existing = await indexRef.get();
     if (existing.exists) throw new ConflictException("Email already exists in this organization");
 
+    assertStrongPassword(dto.password, dto.email);
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const now = new Date().toISOString();
     const id = this.firestore.newId(COLLECTIONS.users);
@@ -70,7 +72,10 @@ export class UserService {
     if (data.firstName !== undefined) update.firstName = data.firstName;
     if (data.lastName !== undefined) update.lastName = data.lastName;
     if (data.phone !== undefined) update.phone = data.phone;
-    if (data.password) update.passwordHash = await bcrypt.hash(data.password, 12);
+    if (data.password) {
+      assertStrongPassword(data.password);
+      update.passwordHash = await bcrypt.hash(data.password, 12);
+    }
     await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).update(update);
     const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id).get();
     return doc.data();

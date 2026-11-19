@@ -47,7 +47,13 @@ export interface UserDoc {
   isSuperAdmin: boolean;
   isPlatformAdmin: boolean;
   mfaEnabled: boolean;
+  /** TOTP secret, encrypted (see auth/security.ts seal). */
   mfaSecret: string | null;
+  mfaPendingSecret?: string | null;
+  /** Last TOTP time step accepted, so codes cannot be replayed. */
+  mfaLastStep?: number | null;
+  /** SHA-256 hashes of unused recovery codes. */
+  mfaRecoveryHashes?: string[];
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -93,12 +99,14 @@ export interface UserRoleDoc {
 }
 
 export interface SessionDoc {
-  refreshToken: string; // also the doc ID
+  /** SHA-256 of the refresh token; also the doc id. The token itself is never stored. */
+  id: string;
   userId: string;
   expiresAt: string;
   ipAddress: string | null;
   userAgent: string | null;
   createdAt: string;
+  lastUsedAt?: string;
 }
 
 export interface AuditLogDoc {
