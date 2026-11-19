@@ -137,11 +137,11 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [ ] Import/export framework (CSV/XLSX in, CSV/XLSX/PDF out), run as background jobs.
 
 ### 0.5 UI system in `web` (§34–§36)
-- [ ] Design-system components: `DataTable` (sorting, multi-filter, saved views, column chooser, bulk actions, inline edit, totals, density), `RecordPage` layout (header, tabs for overview, details, related, documents, activity, history), forms, empty/loading/error states, confirmations and undo toasts.
-- [ ] Command palette (⌘K) with quick-create and record search, keyboard shortcuts, breadcrumbs, dark/light theme.
-- [ ] Permission-aware and module-aware sidebar following the §2 navigation.
+- [x] Design-system components: `DataTable` (sorting, multi-filter, saved views, column chooser, bulk actions, inline edit, totals, density), `RecordPage` layout (header, tabs for overview, details, related, documents, activity, history), forms, empty/loading/error states, confirmations and undo toasts.
+- [x] Command palette (⌘K) with quick-create and record search, keyboard shortcuts, breadcrumbs, dark/light theme.
+- [x] Permission-aware and module-aware sidebar following the §2 navigation.
 - [ ] Home dashboard framework: widget registry (KPI, chart, table, list, tasks, approvals, alerts), per-user layouts, role default dashboards (§4).
-- [ ] My Work: tasks, approvals waiting on me, requests and notifications (§25, foundation part).
+- [x] My Work: tasks, approvals waiting on me, requests and notifications (§25, foundation part).
 
 **Exit:** a new module can be built using only the shared repository, events, approvals, audit, documents, custom fields and UI components, with no bespoke plumbing.
 

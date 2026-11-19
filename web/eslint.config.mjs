@@ -6,7 +6,7 @@ import nextTs from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", ".open-next/**", ".wrangler/**", "node_modules/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".open-next/**", ".wrangler/**", "node_modules/**", "legacy/**", "next-env.d.ts"]),
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",

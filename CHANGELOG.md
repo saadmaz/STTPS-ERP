@@ -42,6 +42,10 @@
 - Record features for every record type (`/records/:type/:id/...`): comments with @mentions that notify, tags, links between records, one activity timeline (changes, comments and approval decisions) and file attachments.
 - Files on Cloudflare R2 through presigned upload and download URLs, with size verification, versions, and forced downloads for content types that could run script.
 - Custom fields per record type (`/settings/custom-fields`) with typed validation, saved list views (private or shared), and global search (`/search`) that only returns record types the user may view.
+- Staff app rebuilt on a shared UI system: navigation driven by the enabled modules and the user's permissions, a command palette (Ctrl K) with global search, a notifications bell with unread counts, dark mode, and a mobile navigation drawer.
+- Standard list screens (search, sort, filters, archived toggle, column chooser, saved views, CSV export) and record pages (details, custom fields, tags, activity with comments, files, related records, edit, archive and restore).
+- Screens for branches, departments, teams, cost centres, business units, fiscal years (with period opening, closing and locking) and exchange rates.
+- Home with work waiting for you, My Work, notifications, approval decisions, and settings for modules, approval workflows, delegations and custom fields.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
 - Firestore composite indexes generated from a registry (`npm run indexes`), checked by a test.
@@ -49,6 +53,7 @@
 
 ### Changed
 
+- The old module screens, which called API modules that are switched off, moved to `web/legacy/` as reference until each module is rebuilt.
 - API upgraded to NestJS 12 (ES modules), firebase-admin 14 and TypeScript 6. `web` and `admin` upgraded to Next.js 16, zod 4 and the flat ESLint config of `eslint-config-next` 16. All three apps report no known vulnerabilities.
 - The unported Prisma modules moved to `api/legacy/` as reference code; Prisma is no longer installed.
 - Dependabot removed; dependencies are now updated directly by maintainers.

@@ -86,6 +86,16 @@ describe("HTTP guard chain", () => {
     await http().put(`/api/v1/companies/${t.companyId}`).set(as("admin")).send({ parentId: other.companyId }).expect(400);
   });
 
+  it("returns the workspace context and the company directory for the UI", async () => {
+    const ctx = await http().get("/api/v1/me/context").set(as("viewer")).expect(200);
+    expect(ctx.body).toMatchObject({ companyId: t.companyId, allPermissions: false, permissions: ["org.branch.view"] });
+    expect(ctx.body.modules).toEqual(expect.arrayContaining(["platform", "org", "workflow"]));
+    const directory = await http().get("/api/v1/me/directory").set(as("viewer")).expect(200);
+    // Only users assigned to the company, without secrets.
+    expect(directory.body.map((u: { id: string }) => u.id)).toEqual([`${t.tenantId}_viewer`]);
+    expect(directory.body[0]).not.toHaveProperty("passwordHash");
+  });
+
   it("lists modules for navigation and protects module switches", async () => {
     const res = await http().get("/api/v1/platform/modules").set(as("viewer")).expect(200);
     expect(res.body.find((m: { key: string }) => m.key === "org")).toMatchObject({ enabled: true, core: true });

@@ -6,6 +6,9 @@ import { Ctx, RequestContext } from "../context/request-context.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { ApprovalsService } from "../approvals/approvals.service.js";
 import { ModulesService } from "../modules/modules.service.js";
+import { FirestoreService } from "../../firestore/firestore.service.js";
+import { COLLECTIONS } from "../../firestore/collections.js";
+import { CompanyUserDoc, UserDoc } from "../../firestore/models.js";
 
 export class NotificationPreferencesDto {
   @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) inApp?: string[];
@@ -21,7 +24,22 @@ export class MeController {
     private readonly notifications: NotificationsService,
     private readonly approvals: ApprovalsService,
     private readonly modules: ModulesService,
+    private readonly firestore: FirestoreService,
   ) {}
+
+  @Get("directory")
+  @ApiOperation({ summary: "Active people of the selected company, for user pickers and mentions" })
+  async directory(@Ctx() ctx: RequestContext) {
+    const links = await this.firestore.collection<CompanyUserDoc>(COLLECTIONS.companyUsers).where("companyId", "==", ctx.companyId).get();
+    const ids = links.docs.map((d) => d.data().userId);
+    if (ids.length === 0) return [];
+    const users = await this.firestore.db.getAll(...ids.map((id) => this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(id)));
+    return users
+      .map((u) => u.data() as UserDoc | undefined)
+      .filter((u): u is UserDoc => !!u && u.isActive && u.tenantId === ctx.tenantId)
+      .map((u) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, avatar: u.avatar }))
+      .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+  }
 
   @Get("notifications")
   list(@CurrentUser("id") userId: string, @Query("unread") unread?: string, @Query("limit") limit?: string) {
@@ -53,6 +71,20 @@ export class MeController {
   @Put("notification-preferences")
   setPreferences(@CurrentUser("id") userId: string, @Body() dto: NotificationPreferencesDto) {
     return this.notifications.setPreferences(userId, dto);
+  }
+
+  @Get("context")
+  @ApiOperation({ summary: "Permissions and enabled modules in the selected company, for showing or hiding UI" })
+  async context(@Ctx() ctx: RequestContext) {
+    const modules = await this.modules.list(ctx.tenantId);
+    return {
+      tenantId: ctx.tenantId,
+      companyId: ctx.companyId,
+      userId: ctx.userId,
+      allPermissions: ctx.allPermissions,
+      permissions: [...ctx.permissions].sort(),
+      modules: modules.filter((m) => m.enabled).map((m) => m.key),
+    };
   }
 
   @Get("work")

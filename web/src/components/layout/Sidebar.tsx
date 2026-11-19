@@ -4,291 +4,153 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { clsx } from "clsx";
+import { useQuery } from "@tanstack/react-query";
 import {
-  LayoutDashboard,
-  DollarSign,
-  ShoppingCart,
-  Package,
-  Factory,
-  Users,
-  Wrench,
-  Truck,
-  BarChart3,
-  Settings,
+  Boxes,
+  Briefcase,
+  Building2,
+  CalendarRange,
   ChevronDown,
   ChevronRight,
-  Building2,
-  ClipboardList,
-  FileText,
-  CreditCard,
-  Receipt,
-  Banknote,
-  Briefcase,
-  ShieldCheck,
-  Globe,
-  AlertTriangle,
-  HardHat,
+  ClipboardCheck,
+  Coins,
+  GitBranch,
+  Home,
+  Layers,
+  ListChecks,
+  Network,
+  PieChart,
+  Settings,
+  SlidersHorizontal,
+  UserCheck,
+  Users,
+  Workflow,
 } from "lucide-react";
+import { platformApi } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace";
 
-interface NavItem {
+interface NavLink {
   label: string;
-  href?: string;
+  href: string;
   icon: React.ElementType;
-  children?: NavItem[];
-  badge?: string;
+  /** Shown only with this permission. */
+  permission?: string;
+  /** Shown only to tenant administrators. */
+  adminOnly?: boolean;
 }
 
-const navigation: NavItem[] = [
+interface NavSection {
+  label: string;
+  icon: React.ElementType;
+  module?: string;
+  links: NavLink[];
+}
+
+const TOP: NavLink[] = [
+  { label: "Home", href: "/dashboard", icon: Home },
+  { label: "My Work", href: "/my-work", icon: ListChecks },
+];
+
+const SECTIONS: NavSection[] = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Finance",
-    icon: DollarSign,
-    children: [
-      { label: "Overview", href: "/finance", icon: BarChart3 },
-      { label: "Chart of Accounts", href: "/finance/accounts", icon: ClipboardList },
-      { label: "Journal Entries", href: "/finance/journals", icon: FileText },
-      { label: "Trial Balance", href: "/finance/trial-balance", icon: BarChart3 },
-      { label: "Accounts Payable", href: "/finance/ap", icon: CreditCard },
-      { label: "Accounts Receivable", href: "/finance/ar", icon: Receipt },
-      { label: "Cash & Bank", href: "/finance/bank", icon: Banknote },
-      { label: "Fixed Assets", href: "/finance/assets", icon: Building2 },
-      { label: "Budgets", href: "/finance/budgets", icon: DollarSign },
-      { label: "P&L Report", href: "/finance/reports/pl", icon: BarChart3 },
-      { label: "Balance Sheet", href: "/finance/reports/balance-sheet", icon: BarChart3 },
-      { label: "Fiscal Periods", href: "/finance/periods", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "Procurement",
-    icon: ShoppingCart,
-    children: [
-      { label: "Overview", href: "/procurement", icon: BarChart3 },
-      { label: "Requisitions", href: "/procurement/requisitions", icon: ClipboardList },
-      { label: "Purchase Orders", href: "/procurement/orders", icon: ShoppingCart },
-      { label: "Goods Receipts", href: "/procurement/receipts", icon: Truck },
-      { label: "Suppliers", href: "/procurement/suppliers", icon: Truck },
-    ],
-  },
-  {
-    label: "Inventory",
-    icon: Package,
-    children: [
-      { label: "Overview", href: "/inventory", icon: BarChart3 },
-      { label: "Items", href: "/inventory/items", icon: Package },
-      { label: "Warehouses", href: "/inventory/warehouses", icon: Building2 },
-      { label: "Stock Levels", href: "/inventory/stock-levels", icon: ClipboardList },
-      { label: "Stock Movements", href: "/inventory/movements", icon: Truck },
-      { label: "Stock Count", href: "/inventory/count", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "Manufacturing",
-    icon: Factory,
-    children: [
-      { label: "Overview", href: "/manufacturing", icon: BarChart3 },
-      { label: "Production Orders", href: "/manufacturing/orders", icon: Factory },
-      { label: "Bill of Materials", href: "/manufacturing/bom", icon: ClipboardList },
-      { label: "Work Centers", href: "/manufacturing/work-centers", icon: Settings },
-      { label: "Routings", href: "/manufacturing/routings", icon: ClipboardList },
-      { label: "MRP", href: "/manufacturing/mrp", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "CRM",
-    icon: Users,
-    children: [
-      { label: "Overview", href: "/crm", icon: BarChart3 },
-      { label: "Leads", href: "/crm/leads", icon: Users },
-      { label: "Opportunities", href: "/crm/opportunities", icon: BarChart3 },
-      { label: "Accounts", href: "/crm/accounts", icon: Building2 },
-      { label: "Contacts", href: "/crm/contacts", icon: Users },
-      { label: "Activities", href: "/crm/activities", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "Sales",
-    icon: Briefcase,
-    children: [
-      { label: "Overview", href: "/sales", icon: BarChart3 },
-      { label: "Quotations", href: "/sales/quotes", icon: FileText },
-      { label: "Sales Orders", href: "/sales/orders", icon: ClipboardList },
-      { label: "Deliveries", href: "/sales/deliveries", icon: Truck },
-      { label: "Price Lists", href: "/sales/price-lists", icon: DollarSign },
-    ],
-  },
-  {
-    label: "Human Resources",
-    icon: Users,
-    children: [
-      { label: "Overview", href: "/hr", icon: BarChart3 },
-      { label: "Employees", href: "/hr/employees", icon: Users },
-      { label: "Leave", href: "/hr/leave", icon: ClipboardList },
-      { label: "Payroll", href: "/hr/payroll", icon: Banknote },
-      { label: "Recruitment", href: "/hr/recruitment", icon: Briefcase },
-    ],
-  },
-  {
-    label: "Asset Management",
-    icon: Wrench,
-    children: [
-      { label: "Overview", href: "/eam", icon: BarChart3 },
-      { label: "Assets", href: "/eam/assets", icon: Building2 },
-      { label: "Work Orders", href: "/eam/work-orders", icon: ClipboardList },
-      { label: "Maintenance Plans", href: "/eam/plans", icon: Settings },
-    ],
-  },
-  {
-    label: "Field Service",
-    icon: Truck,
-    children: [
-      { label: "Overview", href: "/fsm", icon: BarChart3 },
-      { label: "Service Orders", href: "/fsm/orders", icon: ClipboardList },
-      { label: "Technicians", href: "/fsm/technicians", icon: Users },
-      { label: "Contracts", href: "/fsm/contracts", icon: FileText },
-    ],
-  },
-  {
-    label: "Projects",
-    icon: Globe,
-    children: [
-      { label: "Overview", href: "/projects", icon: BarChart3 },
-      { label: "Tasks", href: "/projects/tasks", icon: ClipboardList },
-      { label: "Timesheets", href: "/projects/timesheets", icon: FileText },
-    ],
-  },
-  {
-    label: "Quality",
-    icon: ShieldCheck,
-    children: [
-      { label: "Overview", href: "/quality", icon: BarChart3 },
-      { label: "Inspections", href: "/quality/inspections", icon: ClipboardList },
-      { label: "Non-Conformances", href: "/quality/ncr", icon: ShieldCheck },
-      { label: "Audits", href: "/quality/audits", icon: FileText },
-    ],
-  },
-  {
-    label: "EHS",
-    icon: HardHat,
-    children: [
-      { label: "Overview", href: "/ehs", icon: BarChart3 },
-      { label: "Incidents", href: "/ehs/incidents", icon: AlertTriangle },
-      { label: "Risk Assessments", href: "/ehs/risks", icon: ShieldCheck },
-      { label: "Permits to Work", href: "/ehs/permits", icon: FileText },
-    ],
-  },
-  {
-    label: "Analytics",
-    icon: BarChart3,
-    children: [
-      { label: "Dashboards", href: "/analytics", icon: BarChart3 },
-      { label: "Reports", href: "/analytics/reports", icon: FileText },
+    label: "Organisation",
+    icon: Network,
+    module: "org",
+    links: [
+      { label: "Branches", href: "/org/branches", icon: Building2, permission: "org.branch.view" },
+      { label: "Departments", href: "/org/departments", icon: GitBranch, permission: "org.department.view" },
+      { label: "Teams", href: "/org/teams", icon: Users, permission: "org.team.view" },
+      { label: "Cost centres", href: "/org/cost-centres", icon: PieChart, permission: "org.costCentre.view" },
+      { label: "Business units", href: "/org/business-units", icon: Briefcase, permission: "org.businessUnit.view" },
+      { label: "Fiscal years", href: "/org/fiscal-years", icon: CalendarRange, permission: "org.fiscalYear.view" },
+      { label: "Exchange rates", href: "/org/exchange-rates", icon: Coins, permission: "org.exchangeRate.view" },
     ],
   },
   {
     label: "Settings",
     icon: Settings,
-    children: [
+    links: [
       { label: "Companies", href: "/settings/companies", icon: Building2 },
-      { label: "Users & Roles", href: "/settings/users", icon: Users },
-      { label: "System", href: "/settings/system", icon: Settings },
+      { label: "Users", href: "/settings/users", icon: Users, permission: "platform.user.view" },
+      { label: "Modules", href: "/settings/modules", icon: Boxes, adminOnly: true },
+      { label: "Approval workflows", href: "/settings/workflows", icon: Workflow, permission: "workflow.definition.view" },
+      { label: "My delegations", href: "/settings/delegations", icon: UserCheck },
+      { label: "Custom fields", href: "/settings/custom-fields", icon: SlidersHorizontal, permission: "platform.customField.view" },
+      { label: "System", href: "/settings/system", icon: Layers, adminOnly: true },
     ],
   },
 ];
 
-function NavItemComponent({ item, depth = 0 }: { item: NavItem; depth?: number }) {
+export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const pathname = usePathname();
-  const isActive = item.href ? pathname === item.href || pathname.startsWith(item.href + "/") : false;
-  const hasChildren = item.children && item.children.length > 0;
+  const { can, context, moduleEnabled } = useWorkspace();
+  const modules = useQuery({ queryKey: ["modules"], queryFn: platformApi.modules, staleTime: 5 * 60_000 });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const isParentActive = hasChildren
-    ? item.children!.some(
-        (child) => child.href && (pathname === child.href || pathname.startsWith(child.href + "/")),
-      )
-    : false;
+  const allowed = (l: NavLink) => (l.adminOnly ? !!context?.allPermissions : !l.permission || can(l.permission));
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const comingSoon = (modules.data ?? []).filter((m) => !m.available);
 
-  const [isOpen, setIsOpen] = useState(isParentActive || isActive);
+  const link = (l: NavLink, nested = false) => (
+    <Link
+      key={l.href}
+      href={l.href}
+      onClick={onNavigate}
+      className={clsx(
+        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+        nested && "pl-9",
+        isActive(l.href) ? "bg-sidebar-active text-white" : "text-sidebar-text hover:bg-sidebar-hover hover:text-white",
+      )}
+    >
+      <l.icon size={16} />
+      {l.label}
+    </Link>
+  );
 
-  if (hasChildren) {
-    return (
-      <div>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={clsx(
-            "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
-            isParentActive
-              ? "text-white bg-blue-600/20"
-              : "text-slate-400 hover:text-white hover:bg-slate-800",
-          )}
-        >
-          <item.icon size={16} className="flex-shrink-0" />
-          <span className="flex-1 text-left font-medium">{item.label}</span>
-          {isOpen ? (
-            <ChevronDown size={14} className="text-slate-500" />
-          ) : (
-            <ChevronRight size={14} className="text-slate-500" />
-          )}
-        </button>
-        {isOpen && (
-          <div className="mt-0.5 ml-2 pl-3 border-l border-slate-700/60 space-y-0.5">
-            {item.children!.map((child) => (
-              <NavItemComponent key={child.href || child.label} item={child} depth={depth + 1} />
+  return (
+    <aside
+      className={clsx(
+        "fixed inset-y-0 left-0 z-30 w-64 bg-sidebar-bg flex flex-col transition-transform lg:static lg:translate-x-0",
+        open ? "translate-x-0" : "-translate-x-full",
+      )}
+      aria-label="Main navigation"
+    >
+      <div className="h-16 flex items-center gap-2 px-5 border-b border-white/10">
+        <ClipboardCheck className="text-blue-400" size={22} />
+        <span className="text-white font-semibold">STTPS ERP</span>
+      </div>
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        {TOP.map((l) => link(l))}
+        {SECTIONS.filter((s) => !s.module || moduleEnabled(s.module)).map((s) => {
+          const links = s.links.filter(allowed);
+          if (links.length === 0) return null;
+          const isCollapsed = collapsed[s.label] ?? !links.some((l) => isActive(l.href));
+          return (
+            <div key={s.label} className="pt-2">
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-sidebar-text hover:text-white"
+                onClick={() => setCollapsed({ ...collapsed, [s.label]: !isCollapsed })}
+                aria-expanded={!isCollapsed}
+              >
+                <s.icon size={16} />
+                <span className="flex-1 text-left font-medium">{s.label}</span>
+                {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {!isCollapsed && <div className="space-y-0.5">{links.map((l) => link(l, true))}</div>}
+            </div>
+          );
+        })}
+        {comingSoon.length > 0 && (
+          <div className="pt-4">
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Coming soon</p>
+            {comingSoon.map((m) => (
+              <p key={m.key} className="px-3 py-1 text-xs text-slate-500" title={m.description}>
+                {m.name}
+              </p>
             ))}
           </div>
         )}
-      </div>
-    );
-  }
-
-  return (
-    <Link
-      href={item.href!}
-      className={clsx(
-        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
-        isActive
-          ? "text-white bg-blue-600 font-medium"
-          : "text-slate-400 hover:text-white hover:bg-slate-800",
-      )}
-    >
-      <item.icon size={15} className="flex-shrink-0" />
-      <span>{item.label}</span>
-      {item.badge && (
-        <span className="ml-auto text-xs bg-blue-500 text-white rounded-full px-1.5 py-0.5">
-          {item.badge}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-export function Sidebar() {
-  return (
-    <aside className="w-60 bg-slate-900 h-screen flex flex-col flex-shrink-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 h-16 border-b border-slate-800">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">S</span>
-        </div>
-        <div>
-          <span className="text-white font-bold text-base tracking-tight">STTPS</span>
-          <p className="text-slate-500 text-xs leading-none">Enterprise ERP</p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
-        {navigation.map((item) => (
-          <NavItemComponent key={item.href || item.label} item={item} />
-        ))}
       </nav>
-
-      {/* Bottom */}
-      <div className="border-t border-slate-800 p-3">
-        <p className="text-xs text-slate-600 text-center">v0.8.0 — Phase 8</p>
-      </div>
     </aside>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "./api";
 
 interface Company {
@@ -48,10 +49,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const loadUser = useCallback(async () => {
     try {
-      const profile = await authApi.me();
+      const profile = (await authApi.me()) as unknown as AuthUser;
       setUser(profile);
 
       const userCompanies = profile.companyUsers?.map(
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authApi.logout();
     } finally {
       sessionStorage.clear();
+      queryClient.clear();
       document.cookie = "sttps_session=; path=/; max-age=0";
       setUser(null);
       setCompanies([]);
@@ -111,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const switchCompany = (companyId: string) => {
     const company = companies.find((c) => c.id === companyId);
     if (company) {
+      // Drop every cached query so no data from the previous company is shown.
+      queryClient.clear();
       setActiveCompany(company);
       sessionStorage.setItem("company_id", companyId);
     }
