@@ -281,6 +281,18 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "Manufacturing",
+    icon: Factory,
+    module: "manufacturing",
+    links: [
+      { label: "Production orders", href: "/manufacturing/production-orders", icon: Factory, permission: "manufacturing.productionOrder.view" },
+      { label: "Bills of materials", href: "/manufacturing/boms", icon: ClipboardList, permission: "manufacturing.bom.view" },
+      { label: "Routings", href: "/manufacturing/routings", icon: Repeat, permission: "manufacturing.routing.view" },
+      { label: "Work centres", href: "/manufacturing/work-centres", icon: Warehouse, permission: "manufacturing.workCentre.view" },
+      { label: "Machines", href: "/manufacturing/machines", icon: Wrench, permission: "manufacturing.machine.view" },
+    ],
+  },
+  {
     label: "Procurement",
     icon: ShoppingBag,
     module: "procurement",
