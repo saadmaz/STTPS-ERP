@@ -16,8 +16,9 @@ import { Account, FINANCE_SCREENS as CORE_SCREENS, financeApi, Journal, useAccou
 import { AR_SCREENS, NewArDocument } from "./receivables";
 import { AP_FORM_KINDS, AP_SCREENS, NewApDocument } from "./payables";
 import { BUDGET_SCREENS, NewBudget } from "./budgets";
+import { CashFlowPage, EXTRA_SCREENS, RatiosPage, RevalueAction, TaxReportPage } from "./extras";
 
-const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS, ...AP_SCREENS, ...BUDGET_SCREENS };
+const FINANCE_SCREENS = { ...CORE_SCREENS, ...AR_SCREENS, ...AP_SCREENS, ...BUDGET_SCREENS, ...EXTRA_SCREENS };
 
 export function FinanceList({ entity }: { entity: string }) {
   const config = FINANCE_SCREENS[entity];
@@ -89,7 +90,7 @@ export function FinanceHome() {
   ];
   return (
     <div className="space-y-6">
-      <PageHeader title="Finance" subtitle={`Base currency ${settings.data!.baseCurrency}`} actions={<Link className="btn-primary" href="/finance/new/journal"><Plus size={15} /> Journal</Link>} />
+      <PageHeader title="Finance" subtitle={`Base currency ${settings.data!.baseCurrency}`} actions={<><RevalueAction /><Link className="btn-primary" href="/finance/new/journal"><Plus size={15} /> Journal</Link></>} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k) => <div key={k.label} className="stat-card"><p className="text-xl font-semibold">{k.value}</p><p className="text-sm text-slate-500">{k.label}</p></div>)}
       </div>
@@ -110,6 +111,9 @@ export function FinanceHome() {
           ["Trial balance", "/finance/reports/trial-balance"],
           ["Profit and loss", "/finance/reports/profit-and-loss"],
           ["Balance sheet", "/finance/reports/balance-sheet"],
+          ["Cash flow", "/finance/reports/cash-flow"],
+          ["Tax return", "/finance/reports/tax"],
+          ["Ratios", "/finance/reports/ratios"],
         ].map(([label, href]) => <Link key={href} href={href!} className="card p-5 font-medium hover:border-blue-400"><BookOpen size={16} className="inline mr-2" />{label}</Link>)}
       </div>
     </div>
@@ -368,6 +372,9 @@ const REPORTS: Record<string, () => React.ReactElement> = {
   "trial-balance": TrialBalance,
   "profit-and-loss": ProfitAndLoss,
   "balance-sheet": BalanceSheetReport,
+  tax: TaxReportPage,
+  "cash-flow": CashFlowPage,
+  ratios: RatiosPage,
 };
 
 export function FinanceReport({ report }: { report: string }) {

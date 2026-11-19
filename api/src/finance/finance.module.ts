@@ -10,6 +10,7 @@ import { InvoiceService, ReceiptService, ReceivablesService } from "./ar.service
 import { BillService, PayablesService, PaymentService } from "./ap.services.js";
 import { BankService } from "./bank.services.js";
 import { BudgetService, CreateBudgetDto, UpdateBudgetDto } from "./budget.js";
+import { CreateRecurringJournalDto, FinanceAnalysisService, FinanceExtrasController, RecurringJournalService, TaxReportService, UpdateRecurringJournalDto } from "./extras.js";
 import { AssetCategoryService, AssetsController, CreateAssetCategoryDto, CreateAssetDto, FixedAssetService, UpdateAssetCategoryDto, UpdateAssetDto } from "./assets.js";
 import { CreateExpenseCategoryDto, CreateExpenseClaimDto, ExpenseCategoryService, ExpenseClaimService, ExpensesController, UpdateExpenseCategoryDto, UpdateExpenseClaimDto } from "./expenses.js";
 import { CreateFromLineDto, ImportStatementDto, MatchLineDto, ReconcileDto, TransferDto } from "./bank.dto.js";
@@ -354,6 +355,7 @@ const crud = [
   createMasterDataController({ path: "finance/receipts", tag: "Finance: Customer receipts", module: "finance", permission: "finance.receipt", service: ReceiptService, createDto: CreateReceiptDto, updateDto: UpdateReceiptDto }),
   createMasterDataController({ path: "expenses/categories", tag: "Expenses: Categories", module: "expenses", permission: "expenses.category", service: ExpenseCategoryService, createDto: CreateExpenseCategoryDto, updateDto: UpdateExpenseCategoryDto }),
   createMasterDataController({ path: "expenses/claims", tag: "Expenses: Claims", module: "expenses", permission: "expenses.claim", service: ExpenseClaimService, createDto: CreateExpenseClaimDto, updateDto: UpdateExpenseClaimDto }),
+  createMasterDataController({ path: "finance/recurring", tag: "Finance: Recurring journals", module: "finance", permission: "finance.journal", service: RecurringJournalService, createDto: CreateRecurringJournalDto, updateDto: UpdateRecurringJournalDto }),
   createMasterDataController({ path: "assets/categories", tag: "Assets: Categories", module: "assets", permission: "assets.category", service: AssetCategoryService, createDto: CreateAssetCategoryDto, updateDto: UpdateAssetCategoryDto }),
   createMasterDataController({ path: "assets/register", tag: "Assets: Register", module: "assets", permission: "assets.asset", service: FixedAssetService, createDto: CreateAssetDto, updateDto: UpdateAssetDto }),
   createMasterDataController({ path: "finance/budgets", tag: "Finance: Budgets", module: "finance", permission: "finance.budget", service: BudgetService, createDto: CreateBudgetDto, updateDto: UpdateBudgetDto }),
@@ -361,11 +363,11 @@ const crud = [
   createMasterDataController({ path: "finance/payments", tag: "Finance: Supplier payments", module: "finance", permission: "finance.payment", service: PaymentService, createDto: CreatePaymentDto, updateDto: UpdatePaymentDto }),
 ];
 
-const SERVICES = [AssetCategoryService, FixedAssetService, ExpenseCategoryService, ExpenseClaimService, BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
+const SERVICES = [RecurringJournalService, TaxReportService, FinanceAnalysisService, AssetCategoryService, FixedAssetService, ExpenseCategoryService, ExpenseClaimService, BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
 
 @Module({
   imports: [OrgModule, SalesModule],
-  controllers: [FinanceController, ExpensesController, AssetsController, ...crud],
+  controllers: [FinanceController, FinanceExtrasController, ExpensesController, AssetsController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })

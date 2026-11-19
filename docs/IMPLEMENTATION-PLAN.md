@@ -190,17 +190,17 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 **Goal:** finance becomes the financial source of truth, fed automatically by Phase 1 events (§10).
 
 - [x] Chart of accounts: hierarchy, groups, restrictions, opening balances, and posting rules mapping each event type to accounts.
-- [ ] General ledger: manual, automatic and recurring journals, approval, posting, reversal, period locking, trial balance. _Done except recurring journals._
+- [x] General ledger: manual, automatic and recurring journals, approval, posting, reversal, period locking, trial balance. _Recurring journals run on demand (“Run due now”); a scheduled trigger comes with the Phase 7 scheduler._
 - [x] Automatic postings from domain events: delivery → COGS, invoice → AR/revenue/tax, GRN → inventory/GRNI, supplier invoice → AP, payments. _Stock value, customer invoices, credit notes, receipts, write-offs, supplier bills, debit notes and payments all post automatically._
 - [ ] AR: invoices from order or delivery, deposit, milestone and recurring invoices, credit and debit notes, payments and allocation, statements, write-offs, ageing, dunning/collections, overdue alerts. _Done: invoices from deliveries (manual or automatic), manual invoices, credit notes (from returns or manual) and applying them, receipts with allocation and on-account credit, foreign currency with exchange differences, write-offs, ageing, statements. Still to do: deposit, milestone and recurring invoices, dunning and overdue alerts._
 - [x] AP: supplier invoices, three-way match (PO/GRN/invoice), duplicate-invoice prevention, payment scheduling, batches and approvals, supplier statements, ageing. _Payment batches run without a separate approval step; approvals can be added through a workflow on `finance.payment`._
 - [x] Banking and cash: accounts, petty cash, transfers, statement import (CSV/OFX), automatic and manual matching, reconciliation with history.
 - [x] Expenses: categories, employee claims with receipt upload, approval, reimbursement, tax treatment.
 - [x] Budgeting: annual/monthly budgets by department, branch, project and cost centre, revisions, approval, budget vs actual, alerts and hard/soft controls used by procurement. _Over-budget requisitions are flagged to approvers (`overBudget` fact) or refused; threshold notifications come with Phase 6 alerts._
-- [ ] Tax engine: codes, effective-dated rates, inclusive/exclusive pricing, exemptions, registration details, return reports and filing exports, configurable for Sri Lankan VAT/SSCL.
+- [ ] Tax engine: codes, effective-dated rates, inclusive/exclusive pricing, exemptions, registration details, return reports and filing exports, configurable for Sri Lankan VAT/SSCL. _Done: tax codes and rates (VAT, SSCL or any other as codes), tax-inclusive expense receipts, the tax return by code with CSV export. Still to do: effective-dated rates, inclusive pricing on sales, customer exemptions._
 - [x] Fixed assets: register, depreciation methods and schedules, monthly depreciation posting, transfers, impairment, disposal.
-- [ ] Multi-currency transactions with realised and unrealised FX gain/loss.
-- [ ] Reports: P&L, balance sheet, cash flow, trial balance, GL and account ledgers, AR/AP ageing, statements, tax, budget vs actual, ratios, with drill-down to source documents.
+- [x] Multi-currency transactions with realised and unrealised FX gain/loss.
+- [x] Reports: P&L, balance sheet, cash flow, trial balance, GL and account ledgers, AR/AP ageing, statements, tax, budget vs actual, ratios, with drill-down to source documents.
 
 **Exit:** the Finance day-in-the-life (§44) runs end to end, and the trial balance always balances.
 
