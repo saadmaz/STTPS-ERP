@@ -61,6 +61,12 @@ export class MilestoneService extends MasterDataService<MilestoneDoc, CreateMile
     return all.filter((m) => m.projectId === projectId);
   }
 
+  /** Every milestone due in range, for the company calendar. */
+  async dueInRange(ctx: RequestContext, from: string, to: string): Promise<MilestoneDoc[]> {
+    const all = await this.loadAll(ctx);
+    return all.filter((m) => m.dueDate && m.dueDate >= from && m.dueDate <= to);
+  }
+
   protected searchEntry(doc: MilestoneDoc): SearchEntry {
     return { entityType: this.entityType, entityId: doc.id, title: doc.name, subtitle: doc.status };
   }

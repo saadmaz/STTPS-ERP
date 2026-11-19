@@ -99,7 +99,15 @@ export const MODULES: ModuleDefinition[] = [
     ],
   }),
   mod({ key: "documents", name: "Documents", description: "Files, versions and document management.", group: "platform", available: false }),
-  mod({ key: "calendar", name: "Calendar", description: "Shared calendars, events and meetings.", group: "platform", available: false }),
+  mod({
+    key: "calendar",
+    name: "Calendar",
+    description: "Shared calendars, events and meetings.",
+    group: "platform",
+    available: true,
+    dependsOn: ["hr", "projects"],
+    permissions: [...entityPermissions("calendar", "event", "events")],
+  }),
 
   // Core operations
   mod({

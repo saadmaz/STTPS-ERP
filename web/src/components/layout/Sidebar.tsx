@@ -9,6 +9,7 @@ import {
   Boxes,
   Briefcase,
   Building2,
+  Calendar,
   CalendarRange,
   ChevronDown,
   ChevronRight,
@@ -218,6 +219,16 @@ const SECTIONS: NavSection[] = [
       { label: "Loans and advances", href: "/hr/loans", icon: HandCoins, permission: "hr.loan.view" },
       { label: "Statutory rates", href: "/hr/statutory-rates", icon: Receipt, permission: "hr.statutoryRate.view" },
       { label: "APIT brackets", href: "/hr/apit-brackets", icon: Receipt, permission: "hr.apitBracket.view" },
+    ],
+  },
+  {
+    label: "Calendar",
+    icon: Calendar,
+    module: "calendar",
+    links: [
+      { label: "My Calendar", href: "/calendar", icon: Calendar },
+      { label: "Company Calendar", href: "/calendar/company", icon: Calendar, permission: "calendar.event.view" },
+      { label: "Events", href: "/calendar/events", icon: Calendar, permission: "calendar.event.view" },
     ],
   },
   {

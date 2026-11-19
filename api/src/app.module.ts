@@ -23,6 +23,7 @@ import { FinanceModule } from "./finance/finance.module.js";
 import { HrModule } from "./hr/hr.module.js";
 import { TasksModule } from "./tasks/tasks.module.js";
 import { ProjectsModule } from "./projects/projects.module.js";
+import { CalendarModule } from "./calendar/calendar.module.js";
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ProjectsModule } from "./projects/projects.module.js";
     HrModule,
     TasksModule,
     ProjectsModule,
+    CalendarModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [

@@ -49,12 +49,12 @@ export class TaskService extends MasterDataService<TaskDoc, CreateTaskDto, Updat
     return patch;
   }
 
-  /** My own tasks and tasks I'm a collaborator on (collaborators aren't indexed, so this scans the assignee list plus an in-memory check). */
+  /** Tasks assigned to me (indexed), plus tasks I created or am a collaborator on that aren't already in that set (an in-memory scan, since neither is indexed). */
   async forUser(ctx: RequestContext, userId: string): Promise<TaskDoc[]> {
     const mine = await this.list(ctx, { where: `assigneeId:${userId}`, limit: 200 });
     const all = await this.loadAll(ctx);
-    const collaborating = all.filter((t) => t.assigneeId !== userId && t.collaboratorIds.includes(userId));
-    return [...mine.items, ...collaborating];
+    const others = all.filter((t) => t.assigneeId !== userId && (t.ownerId === userId || t.collaboratorIds.includes(userId)));
+    return [...mine.items, ...others];
   }
 
   async forProject(ctx: RequestContext, projectId: string): Promise<TaskDoc[]> {
