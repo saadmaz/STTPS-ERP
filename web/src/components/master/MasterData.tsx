@@ -41,6 +41,8 @@ export interface MasterConfig<T extends BaseRecord> {
   extra?: (row: T) => React.ReactNode;
   /** Extra header buttons on the record page; call `refresh` with the updated record. */
   actions?: (row: T, refresh: (row: T) => void) => React.ReactNode;
+  /** Route of a dedicated create page; the New button links there instead of opening the drawer. */
+  createHref?: string;
   /** Whether the record can be edited in its current state (e.g. not once converted). */
   editable?: (row: T) => boolean;
 }
@@ -88,12 +90,17 @@ export function MasterListPage<T extends BaseRecord>({ config }: { config: Maste
     },
   });
 
-  const newButton = canCreate ? (
+  const newButton = !canCreate ? null : config.createHref ? (
+    <Link href={config.createHref} className="btn-primary">
+      <Plus size={16} />
+      New {config.singular.toLowerCase()}
+    </Link>
+  ) : (
     <button className="btn-primary" onClick={() => setOpen(true)}>
       <Plus size={16} />
       New {config.singular.toLowerCase()}
     </button>
-  ) : null;
+  );
 
   return (
     <div>

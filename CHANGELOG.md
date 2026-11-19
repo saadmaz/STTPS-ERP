@@ -51,6 +51,8 @@
 - CRM screens: overview with funnel, sources and pipeline; leads with conversion; customers with their contacts and deals; contacts; opportunities with a stage picker and a pipeline board; activities with completion. Creating a likely duplicate shows the matches and asks before saving.
 - Products API (`/products`): product master with automatic SKUs, product types, units of measure with conversions, barcodes, variants, bundles, costing method, lot, serial and expiry tracking flags; categories; price lists with quantity breaks and validity dates, activated through the approval engine; discount rules by product, category, customer or segment; a pricing endpoint that resolves customer list, default list or product price and applies discounts. Customers can carry their own price list.
 - Product screens: products, categories, units of measure, price lists with their prices and activation, and discount rules.
+- Inventory (`/inventory`): an append-only stock ledger with balances per warehouse and lot, per-product position and value, weighted-average, FIFO or standard costing, lot, expiry and serial-number tracking, negative-stock policy, reservations, warehouses and bin locations, adjustments with reasons and approval, transfers through in-transit, stock counts that lock the warehouse and post differences, reorder points with low-stock alerts, and reports for valuation, reorder, expiring lots, slow-moving stock, ageing and the ledger. Every posting publishes a `StockMoved` event for finance.
+- Inventory screens: stock and value, reorder, expiring lots and the ledger; adjustments and transfers with a line editor; stock counts; warehouses with their stock.
 - Large lists run as indexed Firestore queries with text search through the search index, so customers and leads scale beyond what fits in memory.
 - My Work (`/me/work`): approvals waiting for me and my open requests.
 - Module activation per tenant (`/platform/modules`) with dependency checks, and a code-defined permission catalogue synced to Firestore.
@@ -63,6 +65,11 @@
 - API upgraded to NestJS 12 (ES modules), firebase-admin 14 and TypeScript 6. `web` and `admin` upgraded to Next.js 16, zod 4 and the flat ESLint config of `eslint-config-next` 16. All three apps report no known vulnerabilities.
 - The unported Prisma modules moved to `api/legacy/` as reference code; Prisma is no longer installed.
 - Dependabot removed; dependencies are now updated directly by maintainers.
+
+### Fixed
+
+- Records built from validated request bodies (for example approval workflow conditions) could not be saved, because Firestore rejects class instances; documents are now stored as plain objects.
+- The API closes its Firestore connections on shutdown.
 
 ### Security
 

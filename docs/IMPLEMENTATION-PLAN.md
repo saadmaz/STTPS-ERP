@@ -169,10 +169,10 @@ The order follows blueprint §41/§42. Tier 1 (core plus finance) comes first, b
 - [ ] Sales analytics: revenue, AOV, margin, by product/customer/branch/rep, quote conversion.
 
 ### 1.4 Inventory and warehouse (§8)
-- [ ] Immutable stock ledger with on-hand, available, reserved, in-transit and on-order projections, and valuation.
-- [ ] Adjustments with reasons and approval, transfers between warehouses, counts and cycle counts with stock locks, negative-stock policy.
-- [ ] Lot/batch, serial and expiry tracking with traceability, plus reorder points and safety stock with a low-stock event.
-- [ ] Reports: on hand, valuation, movement, ageing, slow/fast moving, expiry, reorder, variance.
+- [x] Immutable stock ledger with on-hand, available, reserved, in-transit and on-order projections, and valuation.
+- [x] Adjustments with reasons and approval, transfers between warehouses, counts and cycle counts with stock locks, negative-stock policy.
+- [x] Lot/batch, serial and expiry tracking with traceability, plus reorder points and safety stock with a low-stock event.
+- [x] Reports: on hand, valuation, movement, ageing, slow/fast moving, expiry, reorder, variance.
 
 ### 1.5 Procurement (§9)
 - [ ] Suppliers: categories, bank details, certifications, documents, status, performance score.

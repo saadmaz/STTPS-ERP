@@ -14,6 +14,8 @@ import {
   ChevronRight,
   ClipboardCheck,
   Coins,
+  Truck,
+  Warehouse,
   FolderTree,
   Package,
   Percent,
@@ -87,6 +89,18 @@ const SECTIONS: NavSection[] = [
       { label: "Units", href: "/products/uoms", icon: Ruler, permission: "products.uom.view" },
       { label: "Price lists", href: "/products/price-lists", icon: Tags, permission: "products.priceList.view" },
       { label: "Discount rules", href: "/products/discounts", icon: Percent, permission: "products.discountRule.view" },
+    ],
+  },
+  {
+    label: "Inventory",
+    icon: Warehouse,
+    module: "inventory",
+    links: [
+      { label: "Stock", href: "/inventory/stock", icon: Boxes, permission: "inventory.stock.view" },
+      { label: "Adjustments", href: "/inventory/adjustments", icon: SlidersHorizontal, permission: "inventory.adjustment.view" },
+      { label: "Transfers", href: "/inventory/transfers", icon: Truck, permission: "inventory.transfer.view" },
+      { label: "Stock counts", href: "/inventory/counts", icon: ClipboardCheck, permission: "inventory.count.view" },
+      { label: "Warehouses", href: "/inventory/warehouses", icon: Warehouse, permission: "inventory.warehouse.view" },
     ],
   },
   {

@@ -133,7 +133,24 @@ export const MODULES: ModuleDefinition[] = [
     ],
   }),
   mod({ key: "sales", name: "Sales", description: "Quotes, orders, fulfilment and returns.", group: "core", available: false, dependsOn: ["products", "crm"] }),
-  mod({ key: "inventory", name: "Inventory", description: "Stock, warehouses, movements, counts and traceability.", group: "core", available: false, dependsOn: ["products"] }),
+  mod({
+    key: "inventory",
+    name: "Inventory",
+    description: "Stock, warehouses, movements, counts and traceability.",
+    group: "core",
+    available: true,
+    dependsOn: ["products"],
+    permissions: [
+      ...entityPermissions("inventory", "warehouse", "warehouses and bin locations"),
+      ...entityPermissions("inventory", "adjustment", "stock adjustments"),
+      ...entityPermissions("inventory", "transfer", "stock transfers"),
+      ...entityPermissions("inventory", "count", "stock counts", { approve: "Post stock counts" }),
+      { code: "inventory.stock.view", name: "View stock levels and movements", module: "inventory", action: "view" },
+      { code: "inventory.stock.edit", name: "Edit reorder settings", module: "inventory", action: "edit" },
+      { code: "inventory.valuation.view", name: "View stock value and costs", module: "inventory", action: "view" },
+      { code: "inventory.settings.edit", name: "Edit inventory settings", module: "inventory", action: "edit" },
+    ],
+  }),
   mod({ key: "procurement", name: "Procurement", description: "Suppliers, requisitions, purchase orders and receipts.", group: "core", available: false, dependsOn: ["products"] }),
 
   // Finance

@@ -1,4 +1,5 @@
 import { ConflictException, NotFoundException } from "@nestjs/common";
+import { DocumentReference as AdminDocumentReference, FieldValue, Timestamp } from "firebase-admin/firestore";
 import type {
   CollectionReference,
   DocumentReference,
@@ -148,7 +149,7 @@ export class TenantRepository<T extends BaseDoc> {
     const now = new Date().toISOString();
     const { id, ...rest } = data as NewDoc<T> & { id?: string };
     return {
-      ...(rest as object),
+      ...(plain(rest) as object),
       id: id ?? this.newId(),
       tenantId: scope.tenantId,
       companyId: scope.companyId,
@@ -201,7 +202,7 @@ export class TenantRepository<T extends BaseDoc> {
     if (expectedVersion !== undefined && before.version !== expectedVersion) {
       throw new ConflictException(`${this.entityName} was changed by someone else; reload and try again`);
     }
-    const clean = stripBaseFields(patch as Record<string, unknown>);
+    const clean = plain(stripBaseFields(patch as Record<string, unknown>)) as Record<string, unknown>;
     const after = {
       ...before,
       ...clean,
@@ -221,6 +222,21 @@ export class TenantRepository<T extends BaseDoc> {
   restore(scope: Scope, id: string, tx?: Transaction): Promise<WriteResult<T>> {
     return this.update(scope, id, { archivedAt: null } as unknown as Patch<T>, { tx });
   }
+}
+
+/**
+ * Firestore stores only plain objects; DTO class instances (validated request
+ * bodies) and undefined values are converted here so no service has to care.
+ */
+export function plain<V>(value: V): V {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((v) => plain(v)) as V;
+  if (value instanceof Date) return value.toISOString() as V;
+  // Firestore's own types (sentinels, timestamps, references) must keep their prototype.
+  if (value instanceof FieldValue || value instanceof Timestamp || value instanceof AdminDocumentReference) return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) if (v !== undefined) out[k] = plain(v);
+  return out as V;
 }
 
 function stripBaseFields(patch: Record<string, unknown>): Record<string, unknown> {
