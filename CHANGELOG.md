@@ -120,6 +120,8 @@
 - Manufacturing screens: work centres and machines, bills of materials and routings (a variable-length line/operation editor, activate/obsolete), and production orders (release, start, record output, complete an operation, log downtime, cancel) with a read-only materials and operations breakdown.
 - MRP API (`/manufacturing/demand-forecasts`, `/manufacturing/mrp-runs`): demand forecasts (a manual quantity per product and month) feed a run alongside sales orders' undelivered quantity; each run nets that demand against on-hand stock, stock already on order and existing production orders, and suggests a planned production order (exploding the product's BOM one level into component demand) or a planned purchase for every shortage, each convertible into a real production order or purchase requisition, or dismissed.
 - MRP screens: demand forecasts, and an MRP run list and record page showing the demand behind the run and its planned production and purchases, with convert and dismiss on each suggested line.
+- Quality API (`/quality`): inspection plans (a checklist of pass/fail, numeric or text items, optionally scoped to a product and stage); inspections created against a plan, completed with per-item responses that derive the overall pass/fail automatically when not given explicitly, or cancelled; non-conformances with corrective and preventive actions through to closure.
+- Quality screens: inspection plans with a variable-length checklist editor, an inspection list and record page (a dynamic complete form built from the plan's own checklist, cancel, a read-only response breakdown), and non-conformances with their corrective/preventive actions and closure.
 
 ### Changed
 

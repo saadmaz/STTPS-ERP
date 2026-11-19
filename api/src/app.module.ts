@@ -28,6 +28,7 @@ import { MaintenanceModule } from "./maintenance/maintenance.module.js";
 import { SupportModule } from "./support/support.module.js";
 import { DocumentsModule } from "./documents/documents.module.js";
 import { ManufacturingModule } from "./manufacturing/manufacturing.module.js";
+import { QualityModule } from "./quality/quality.module.js";
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ManufacturingModule } from "./manufacturing/manufacturing.module.js";
     SupportModule,
     DocumentsModule,
     ManufacturingModule,
+    QualityModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [

@@ -295,6 +295,16 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "Quality",
+    icon: ShieldCheck,
+    module: "quality",
+    links: [
+      { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permission: "quality.inspection.view" },
+      { label: "Non-conformances", href: "/quality/non-conformances", icon: TriangleAlert, permission: "quality.nonConformance.view" },
+      { label: "Inspection plans", href: "/quality/inspection-plans", icon: ClipboardList, permission: "quality.inspectionPlan.view" },
+    ],
+  },
+  {
     label: "Procurement",
     icon: ShoppingBag,
     module: "procurement",
