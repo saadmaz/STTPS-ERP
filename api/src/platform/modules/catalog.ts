@@ -292,7 +292,15 @@ export const MODULES: ModuleDefinition[] = [
     ],
   }),
   mod({ key: "support", name: "Support", description: "Tickets, SLAs and the customer portal.", group: "operations", available: false, dependsOn: ["crm"] }),
-  mod({ key: "maintenance", name: "Maintenance", description: "Work orders, maintenance plans and field service.", group: "operations", available: false, dependsOn: ["assets"] }),
+  mod({
+    key: "maintenance",
+    name: "Maintenance",
+    description: "Work orders, maintenance plans and field service.",
+    group: "operations",
+    available: true,
+    dependsOn: ["assets"],
+    permissions: [...entityPermissions("maintenance", "plan", "maintenance plans"), ...entityPermissions("maintenance", "workOrder", "work orders")],
+  }),
 
   // Advanced operations
   mod({ key: "manufacturing", name: "Manufacturing", description: "BOMs, routings, production orders and MRP.", group: "advanced", available: false, dependsOn: ["inventory"] }),

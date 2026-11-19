@@ -170,6 +170,15 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "Maintenance",
+    icon: Wrench,
+    module: "maintenance",
+    links: [
+      { label: "Work orders", href: "/maintenance/work-orders", icon: Wrench, permission: "maintenance.workOrder.view" },
+      { label: "Plans", href: "/maintenance/plans", icon: CalendarClock, permission: "maintenance.plan.view" },
+    ],
+  },
+  {
     label: "Expenses",
     icon: Receipt,
     module: "expenses",
