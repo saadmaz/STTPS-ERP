@@ -67,6 +67,21 @@ export interface OrderLine extends SalesLine {
   returned: number;
 }
 
+/** A deposit or milestone invoice to raise ahead of (or instead of) invoicing from delivery. */
+export interface BillingScheduleEntry {
+  entryId: string;
+  label: string;
+  kind: "deposit" | "milestone";
+  /** A percentage of the order's net (pre-tax) total, or a fixed amount in the order currency. */
+  basis: "percent" | "amount";
+  /** Hundredths of a percent for `basis: "percent"`; minor units for `basis: "amount"`. */
+  value: number;
+  taxCode: string | null;
+  dueDate: string | null;
+  status: "pending" | "invoiced" | "cancelled";
+  invoiceId: string | null;
+}
+
 export interface OrderDoc extends BaseDoc {
   number: string;
   accountId: string;
@@ -90,6 +105,8 @@ export interface OrderDoc extends BaseDoc {
   cancelReason: string | null;
   ownerUserId: string | null;
   notes: string | null;
+  /** Deposit and milestone invoices to raise against this order, ahead of delivery. */
+  billingSchedule: BillingScheduleEntry[];
 }
 
 export interface DeliveryLine {

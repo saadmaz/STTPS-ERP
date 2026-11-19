@@ -18,6 +18,7 @@ import {
   DeliverDto,
   FailDeliveryDto,
   SalesSettingsDto,
+  SetBillingScheduleDto,
   UpdateDeliveryDto,
   UpdateOrderDto,
   UpdateQuoteDto,
@@ -108,6 +109,13 @@ class SalesActionsController {
   @RequirePermission("sales.order.delete")
   cancelOrder(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelDto)) dto: CancelDto) {
     return this.orders.cancel(ctx, id, dto.reason);
+  }
+
+  @Put("orders/:id/billing-schedule")
+  @RequirePermission("sales.order.edit")
+  @ApiOperation({ summary: "Set the order's deposit/milestone billing schedule (replaces it, while nothing on it is invoiced yet)" })
+  setBillingSchedule(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(SetBillingScheduleDto)) dto: SetBillingScheduleDto) {
+    return this.orders.setBillingSchedule(ctx, id, dto.entries);
   }
 
   @Post("deliveries/:id/pick")

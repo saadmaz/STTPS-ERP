@@ -14,7 +14,7 @@ import { SearchEntry } from "../platform/search/search-index.js";
 import { ExchangeRateService } from "../org/org.services.js";
 import { CRM_COLLECTIONS } from "../crm/crm.models.js";
 import { PRODUCT_COLLECTIONS, ProductDoc } from "../products/products.models.js";
-import { SalesSettingsService } from "../sales/sales.services.js";
+import { OrderService, SalesSettingsService } from "../sales/sales.services.js";
 import { DeliveryDoc, OrderDoc, ReturnDoc, SALES_COLLECTIONS } from "../sales/sales.models.js";
 import { AR_COLLECTIONS, AR_LISTS, InvoiceDoc, InvoiceLine, ReceiptDoc } from "./ar.models.js";
 import { CreateInvoiceDto, CreateReceiptDto, InvoiceLineDto, UpdateInvoiceDto, UpdateReceiptDto } from "./ar.dto.js";
@@ -23,7 +23,7 @@ import { GeneralLedger, LineInput } from "./ledger.service.js";
 const orNull = <V>(v: V | undefined): V | null => (v === undefined ? null : v);
 const today = () => new Date().toISOString().slice(0, 10);
 const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
-const OPEN = ["posted", "partially_paid"] as const;
+export const OPEN = ["posted", "partially_paid"] as const;
 
 interface Customer {
   id: string;
@@ -32,10 +32,12 @@ interface Customer {
   code: string;
   currency: string;
   paymentTermsDays: number;
+  email: string | null;
+  ownerUserId: string | null;
   archivedAt: string | null;
 }
 
-async function customer(fs: FirestoreService, scope: Scope, id: string): Promise<Customer> {
+export async function customer(fs: FirestoreService, scope: Scope, id: string): Promise<Customer> {
   const c = (await fs.collection(CRM_COLLECTIONS.accounts).doc(id).get()).data() as Customer | undefined;
   if (!c || c.companyId !== scope.companyId || c.archivedAt) throw new BadRequestException("Customer not found");
   return { ...c, id };
@@ -88,6 +90,7 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
     private readonly rates: ExchangeRateService,
     private readonly events: EventBusService,
     private readonly modules: ModulesService,
+    private readonly orders: OrderService,
   ) {
     super(fs, audit, unique, {
       module: "finance",
@@ -181,10 +184,12 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
     const date = dto.date?.slice(0, 10) ?? today();
     const totals = invoiceTotals(b.lines);
     return {
-      number: "", kind, customerId: b.customer.id, orderId: b.orderId ?? null, deliveryId: b.deliveryId ?? null, returnId: b.returnId ?? null,
+      number: "", kind, invoiceType: dto.invoiceType ?? "standard", customerId: b.customer.id, orderId: b.orderId ?? orNull(dto.orderId), deliveryId: b.deliveryId ?? null, returnId: b.returnId ?? null,
+      scheduleEntryId: orNull(dto.scheduleEntryId), recurringScheduleId: orNull(dto.recurringScheduleId), appliedToInvoiceId: null,
       creditedInvoiceId: orNull(dto.creditedInvoiceId), customerReference: orNull(dto.customerReference), date,
       dueDate: dto.dueDate?.slice(0, 10) ?? (kind === "invoice" ? addDays(date, b.customer.paymentTermsDays) : date), currency: b.currency, rate: b.rate,
-      lines: b.lines, totals, baseTotal: 0, amountPaid: 0, balanceDue: totals.total, status: "draft", journalId: null, postedAt: null, applications: [], notes: orNull(dto.notes),
+      lines: b.lines, totals, baseTotal: 0, amountPaid: 0, balanceDue: totals.total, status: "draft", journalId: null, postedAt: null, applications: [],
+      dunningLevel: 0, lastReminderAt: null, notes: orNull(dto.notes),
     };
   }
 
@@ -212,7 +217,7 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
     const settings = await this.ledger.settings(ctx, tx);
     const base = settings?.baseCurrency ?? "LKR";
     const credit = inv.kind === "invoice";
-    const incomeRole = credit ? "revenue" : "salesReturns";
+    const incomeRole = !credit ? "salesReturns" : inv.invoiceType === "deposit" ? "customerDeposits" : "revenue";
     const byAccount = new Map<string, number>();
     for (const l of inv.lines) {
       const acc = l.accountId ?? this.ledger.account(settings, incomeRole);
@@ -310,6 +315,68 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
       built: { lines, customer: c, currency: order.currency, rate: await this.rateFor(ctx, order.currency, date), orderId: order.id, deliveryId: null, returnId },
     });
     return post ? this.post(ctx, cn.id) : cn;
+  }
+
+  /**
+   * Drafts a deposit or milestone invoice for one entry of an order's billing
+   * schedule, at a percentage of the order's net total or a fixed amount. A
+   * deposit posts to customer deposits (a liability) instead of revenue.
+   */
+  async fromScheduleEntry(ctx: RequestContext, orderId: string, entryId: string, post = false): Promise<InvoiceDoc> {
+    const order = await this.orders.repo.get(ctx, orderId);
+    if (order.status === "cancelled" || order.status === "closed") throw new BadRequestException(`A ${order.status} order cannot be invoiced`);
+    const entry = order.billingSchedule.find((e) => e.entryId === entryId);
+    if (!entry) throw new BadRequestException("Billing schedule entry not found");
+    if (entry.status !== "pending") throw new BadRequestException("This schedule entry is already invoiced or cancelled");
+    const net = order.totals.total - order.totals.tax;
+    const amount = entry.basis === "percent" ? applyRate(net, entry.value, 4) : entry.value;
+    if (amount <= 0) throw new BadRequestException("The schedule amount must be positive");
+    const c = await customer(this.firestore, ctx, order.accountId);
+    // A deposit carries no tax of its own: tax is recognised once, on the final invoice. "" (not undefined) stops buildLines defaulting to the settings tax code.
+    const taxCode = entry.kind === "deposit" ? "" : entry.taxCode ?? undefined;
+    const inv = await this.create(ctx, {
+      customerId: c.id, currency: order.currency, customerReference: order.customerReference ?? undefined,
+      invoiceType: entry.kind, orderId: order.id, scheduleEntryId: entry.entryId,
+      lines: [{ description: entry.label, qty: "1", unitPrice: fromMinor(amount, order.currency), taxCode }],
+    });
+    await this.orders.markScheduleInvoiced(ctx, orderId, entryId, inv.id);
+    return post ? this.post(ctx, inv.id) : inv;
+  }
+
+  /**
+   * Uses up a fully-paid deposit against an open invoice of the same
+   * customer and currency: the customer deposits liability is cleared
+   * against the invoice's receivable, for the deposit's full amount.
+   */
+  async applyDeposit(ctx: RequestContext, depositInvoiceId: string, invoiceId: string): Promise<{ deposit: InvoiceDoc; invoice: InvoiceDoc }> {
+    return this.firestore.runTransaction(async (tx) => {
+      const dep = await this.repo.get(ctx, depositInvoiceId, tx);
+      const inv = await this.repo.get(ctx, invoiceId, tx);
+      if (dep.kind !== "invoice" || dep.invoiceType !== "deposit") throw new BadRequestException("Choose a deposit invoice");
+      if (dep.status !== "paid") throw new BadRequestException("The deposit must be fully paid before it is applied");
+      if (dep.appliedToInvoiceId) throw new BadRequestException("This deposit is already applied");
+      if (inv.kind !== "invoice" || !OPEN.includes(inv.status as never)) throw new BadRequestException("Choose an open invoice");
+      if (dep.customerId !== inv.customerId || dep.currency !== inv.currency) throw new BadRequestException("Same customer and currency only");
+      const amount = dep.totals.total;
+      if (amount > inv.balanceDue) throw new BadRequestException(`The deposit of ${fromMinor(amount, inv.currency)} ${inv.currency} is more than the ${fromMinor(inv.balanceDue, inv.currency)} due`);
+      const settings = await this.ledger.settings(ctx, tx);
+      const base = toBase(amount, dep.rate, dep.currency, settings?.baseCurrency ?? "LKR");
+      const party = { partyType: "customer" as const, partyId: inv.customerId };
+      const plan = await this.ledger.prepare(tx, ctx, {
+        date: today(), source: "system", memo: `Deposit ${dep.number} applied to ${inv.number}`,
+        reference: { entityType: this.entityType, entityId: inv.id, label: inv.number },
+        lines: [
+          { accountId: this.ledger.account(settings, "customerDeposits"), debit: base, description: dep.number, ...party },
+          { accountId: this.ledger.account(settings, "receivable"), credit: base, description: `Deposit ${dep.number}`, ...party },
+        ],
+      }, { withNumber: true });
+      plan.commitNew();
+      const date = today();
+      const { after: invoice } = this.repo.applyUpdate(ctx, tx, inv, settle(inv, amount, { applications: [...inv.applications, { documentId: dep.id, amount, date }] }));
+      const { after: deposit } = this.repo.applyUpdate(ctx, tx, dep, { appliedToInvoiceId: inv.id });
+      this.audit.record(ctx, { module: "finance", action: "deposit_applied", entity: this.entityType, entityId: inv.id, after: { depositInvoiceId: dep.id, amount } }, tx);
+      return { deposit, invoice };
+    });
   }
 
   /** Uses a posted credit note to settle part of an open invoice (no ledger effect: both sit on receivables). */

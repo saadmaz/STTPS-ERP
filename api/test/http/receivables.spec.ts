@@ -144,4 +144,55 @@ describe("Finance: receivables from invoice to cash", () => {
     expect(cns).toHaveLength(1);
     expect(cns[0]).toMatchObject({ status: "posted", creditedInvoiceId: invs[0].id, totals: { total: 118_000 } });
   });
+
+  it("raises a deposit invoice against an order's billing schedule, then applies it once paid", async () => {
+    const order = await http().post("/api/v1/sales/orders").set(as()).send({ accountId: customer, lines: [{ productId: tile, qty: "4" }] }).expect(201);
+    await http().put(`/api/v1/sales/orders/${order.body.id}/billing-schedule`).set(as())
+      .send({ entries: [{ label: "Deposit", kind: "deposit", basis: "percent", value: "25" }] }).expect(200);
+    await http().put(`/api/v1/sales/orders/${order.body.id}/billing-schedule`).set(as())
+      .send({ entries: [{ label: "Deposit", kind: "deposit", basis: "percent", value: "25", taxCode: "VAT" }] }).expect(400);
+    await http().post(`/api/v1/sales/orders/${order.body.id}/confirm`).set(as()).expect(200);
+    const entryId = (await http().get(`/api/v1/sales/orders/${order.body.id}`).set(as()).expect(200)).body.billingSchedule[0].entryId;
+
+    // Order net total is 400,000 (4 x 1000.00 before 18% VAT); a 25% deposit is 100,000, with no tax of its own.
+    const dep = await http().post(`/api/v1/finance/invoices/from-schedule/${order.body.id}/${entryId}`).set(as()).expect(200);
+    expect(dep.body).toMatchObject({ invoiceType: "deposit", orderId: order.body.id, scheduleEntryId: entryId, status: "draft" });
+    expect(dep.body.totals).toEqual({ subtotal: 100_000, discount: 0, tax: 0, total: 100_000 });
+    await http().post(`/api/v1/finance/invoices/from-schedule/${order.body.id}/${entryId}`).set(as()).expect(400);
+    await http().post(`/api/v1/finance/invoices/${dep.body.id}/post`).set(as()).expect(200);
+    expect(await balanceOf("2250")).toBe(100_000);
+
+    const receipt = await http().post("/api/v1/finance/receipts").set(as())
+      .send({ customerId: customer, amount: "1000", allocations: [{ invoiceId: dep.body.id, amount: "1000" }] }).expect(201);
+    expect(receipt.body.allocations).toEqual([{ invoiceId: dep.body.id, amount: 100_000 }]);
+    expect((await http().get(`/api/v1/finance/invoices/${dep.body.id}`).set(as()).expect(200)).body.status).toBe("paid");
+
+    const dn = await http().post("/api/v1/sales/deliveries").set(as()).send({ orderId: order.body.id }).expect(201);
+    await http().post(`/api/v1/sales/deliveries/${dn.body.id}/dispatch`).set(as()).expect(200);
+    const final = await http().post(`/api/v1/finance/invoices/from-delivery/${dn.body.id}`).set(as()).expect(200);
+    expect(final.body.totals).toEqual({ subtotal: 400_000, discount: 0, tax: 72_000, total: 472_000 });
+    await http().post(`/api/v1/finance/invoices/${final.body.id}/post`).set(as()).expect(200);
+
+    await http().post(`/api/v1/finance/invoices/${dep.body.id}/apply-deposit`).set(as()).send({ invoiceId: "missing" }).expect(404);
+    const applied = await http().post(`/api/v1/finance/invoices/${dep.body.id}/apply-deposit`).set(as()).send({ invoiceId: final.body.id }).expect(200);
+    expect(applied.body.deposit).toMatchObject({ appliedToInvoiceId: final.body.id });
+    expect(applied.body.invoice).toMatchObject({ status: "partially_paid", balanceDue: 372_000 });
+    expect(await balanceOf("2250")).toBe(0);
+    await http().post(`/api/v1/finance/invoices/${dep.body.id}/apply-deposit`).set(as()).send({ invoiceId: final.body.id }).expect(400);
+  });
+
+  it("raises a milestone invoice as ordinary revenue, taxed as usual", async () => {
+    const order = await http().post("/api/v1/sales/orders").set(as()).send({ accountId: customer, lines: [{ productId: tile, qty: "2" }] }).expect(201);
+    await http().put(`/api/v1/sales/orders/${order.body.id}/billing-schedule`).set(as())
+      .send({ entries: [{ label: "Design milestone", kind: "milestone", basis: "amount", value: "500" }] }).expect(200);
+    const entryId = (await http().get(`/api/v1/sales/orders/${order.body.id}`).set(as()).expect(200)).body.billingSchedule[0].entryId;
+    const before = await balanceOf("4100");
+
+    const inv = await http().post(`/api/v1/finance/invoices/from-schedule/${order.body.id}/${entryId}`).set(as()).expect(200);
+    expect(inv.body).toMatchObject({ invoiceType: "milestone", orderId: order.body.id, scheduleEntryId: entryId });
+    expect(inv.body.totals).toEqual({ subtotal: 50_000, discount: 0, tax: 9_000, total: 59_000 });
+    await http().post(`/api/v1/finance/invoices/${inv.body.id}/post`).set(as()).expect(200);
+    expect(await balanceOf("4100")).toBe(before + 50_000);
+    expect((await http().get(`/api/v1/sales/orders/${order.body.id}`).set(as()).expect(200)).body.billingSchedule[0]).toMatchObject({ status: "invoiced", invoiceId: inv.body.id });
+  });
 });

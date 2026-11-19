@@ -20,6 +20,11 @@ export class InvoiceLineDto {
 export class CreateInvoiceDto {
   @ApiProperty() @IsString() customerId!: string;
   @IsOptional() @IsIn(["invoice", "credit_note"]) kind?: "invoice" | "credit_note";
+  @ApiPropertyOptional({ description: "Deposit invoices post to customer deposits instead of revenue; milestone and recurring are plain revenue invoices" })
+  @IsOptional() @IsIn(["standard", "deposit", "milestone", "recurring"]) invoiceType?: "standard" | "deposit" | "milestone" | "recurring";
+  @ApiPropertyOptional({ description: "The order this deposit or milestone invoice belongs to" }) @IsOptional() @IsString() orderId?: string;
+  @IsOptional() @IsString() scheduleEntryId?: string;
+  @IsOptional() @IsString() recurringScheduleId?: string;
   @IsOptional() @IsString() creditedInvoiceId?: string;
   @IsOptional() @IsISO8601({ strict: true }) date?: string;
   @IsOptional() @IsISO8601({ strict: true }) dueDate?: string;
@@ -60,6 +65,10 @@ export class UpdateReceiptDto {
 export class ApplyCreditDto {
   @IsString() invoiceId!: string;
   @Matches(MONEY) amount!: string;
+}
+
+export class ApplyDepositDto {
+  @ApiProperty({ description: "The invoice to apply this fully-paid deposit to" }) @IsString() invoiceId!: string;
 }
 
 export class WriteOffDto {

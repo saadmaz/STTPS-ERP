@@ -118,6 +118,21 @@ export class SalesSettingsDto {
   @IsOptional() @IsString() defaultWarehouseId?: string;
 }
 
+export class BillingScheduleEntryDto {
+  @ApiProperty() @IsString() @Length(1, 120) label!: string;
+  @ApiProperty({ enum: ["deposit", "milestone"] }) @IsIn(["deposit", "milestone"]) kind!: "deposit" | "milestone";
+  @ApiProperty({ enum: ["percent", "amount"] }) @IsIn(["percent", "amount"]) basis!: "percent" | "amount";
+  @ApiProperty({ description: "A percentage (e.g. \"25\") of the order's net total, or a fixed amount in the order currency" }) @Matches(MONEY) value!: string;
+  @IsOptional() @IsString() @MaxLength(20) taxCode?: string;
+  @IsOptional() @IsISO8601({ strict: true }) dueDate?: string;
+}
+
+export class SetBillingScheduleDto {
+  @ApiProperty({ type: [BillingScheduleEntryDto] })
+  @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => BillingScheduleEntryDto)
+  entries!: BillingScheduleEntryDto[];
+}
+
 export class CommentDto {
   @IsOptional() @IsString() @MaxLength(1000) comment?: string;
 }

@@ -7,6 +7,7 @@ import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { OrgModule } from "../org/org.module.js";
 import { SalesModule } from "../sales/sales.module.js";
 import { InvoiceService, ReceiptService, ReceivablesService } from "./ar.services.js";
+import { ArExtrasController, CreateRecurringInvoiceDto, DunningService, RecurringInvoiceService, UpdateRecurringInvoiceDto } from "./ar-extras.js";
 import { BillService, PayablesService, PaymentService } from "./ap.services.js";
 import { BankService } from "./bank.services.js";
 import { BudgetService, CreateBudgetDto, UpdateBudgetDto } from "./budget.js";
@@ -15,7 +16,7 @@ import { AssetCategoryService, AssetsController, CreateAssetCategoryDto, CreateA
 import { CreateExpenseCategoryDto, CreateExpenseClaimDto, ExpenseCategoryService, ExpenseClaimService, ExpensesController, UpdateExpenseCategoryDto, UpdateExpenseClaimDto } from "./expenses.js";
 import { CreateFromLineDto, ImportStatementDto, MatchLineDto, ReconcileDto, TransferDto } from "./bank.dto.js";
 import { ApplyDebitDto, BillFromReceiptDto, CreateBillDto, CreatePaymentDto, PaymentRunDto, PostBillDto, UpdateBillDto, UpdatePaymentDto } from "./ap.dto.js";
-import { ApplyCreditDto, CreateInvoiceDto, CreateReceiptDto, UpdateInvoiceDto, UpdateReceiptDto, WriteOffDto } from "./ar.dto.js";
+import { ApplyCreditDto, ApplyDepositDto, CreateInvoiceDto, CreateReceiptDto, UpdateInvoiceDto, UpdateReceiptDto, WriteOffDto } from "./ar.dto.js";
 import { AccountService, AutoPostingService, FinanceReportsService, FinanceSettingsService, JournalService } from "./finance.services.js";
 import { GeneralLedger } from "./ledger.service.js";
 import { CreateAccountDto, CreateJournalDto, FinanceSettingsDto, ReverseJournalDto, SetupFinanceDto, UpdateAccountDto, UpdateJournalDto } from "./finance.dto.js";
@@ -253,6 +254,22 @@ class FinanceController {
     return this.invoices.fromReturn(ctx, returnId);
   }
 
+  @Post("invoices/from-schedule/:orderId/:entryId")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.create")
+  @ApiOperation({ summary: "Draft a deposit or milestone invoice for one entry of an order's billing schedule" })
+  fromSchedule(@Ctx() ctx: RequestContext, @Param("orderId") orderId: string, @Param("entryId") entryId: string) {
+    return this.invoices.fromScheduleEntry(ctx, orderId, entryId);
+  }
+
+  @Post("invoices/:id/apply-deposit")
+  @HttpCode(200)
+  @RequirePermission("finance.invoice.edit")
+  @ApiOperation({ summary: "Use this fully-paid deposit invoice to settle part of an open invoice" })
+  applyDeposit(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ApplyDepositDto)) dto: ApplyDepositDto) {
+    return this.invoices.applyDeposit(ctx, id, dto.invoiceId);
+  }
+
   @Get("receivables/ageing")
   @RequirePermission("finance.invoice.view")
   ageing(@Ctx() ctx: RequestContext, @Query("asOf") asOf?: string) {
@@ -356,6 +373,7 @@ const crud = [
   createMasterDataController({ path: "expenses/categories", tag: "Expenses: Categories", module: "expenses", permission: "expenses.category", service: ExpenseCategoryService, createDto: CreateExpenseCategoryDto, updateDto: UpdateExpenseCategoryDto }),
   createMasterDataController({ path: "expenses/claims", tag: "Expenses: Claims", module: "expenses", permission: "expenses.claim", service: ExpenseClaimService, createDto: CreateExpenseClaimDto, updateDto: UpdateExpenseClaimDto }),
   createMasterDataController({ path: "finance/recurring", tag: "Finance: Recurring journals", module: "finance", permission: "finance.journal", service: RecurringJournalService, createDto: CreateRecurringJournalDto, updateDto: UpdateRecurringJournalDto }),
+  createMasterDataController({ path: "finance/recurring-invoices", tag: "Finance: Recurring invoices", module: "finance", permission: "finance.invoice", service: RecurringInvoiceService, createDto: CreateRecurringInvoiceDto, updateDto: UpdateRecurringInvoiceDto }),
   createMasterDataController({ path: "assets/categories", tag: "Assets: Categories", module: "assets", permission: "assets.category", service: AssetCategoryService, createDto: CreateAssetCategoryDto, updateDto: UpdateAssetCategoryDto }),
   createMasterDataController({ path: "assets/register", tag: "Assets: Register", module: "assets", permission: "assets.asset", service: FixedAssetService, createDto: CreateAssetDto, updateDto: UpdateAssetDto }),
   createMasterDataController({ path: "finance/budgets", tag: "Finance: Budgets", module: "finance", permission: "finance.budget", service: BudgetService, createDto: CreateBudgetDto, updateDto: UpdateBudgetDto }),
@@ -363,11 +381,11 @@ const crud = [
   createMasterDataController({ path: "finance/payments", tag: "Finance: Supplier payments", module: "finance", permission: "finance.payment", service: PaymentService, createDto: CreatePaymentDto, updateDto: UpdatePaymentDto }),
 ];
 
-const SERVICES = [RecurringJournalService, TaxReportService, FinanceAnalysisService, AssetCategoryService, FixedAssetService, ExpenseCategoryService, ExpenseClaimService, BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
+const SERVICES = [RecurringJournalService, TaxReportService, FinanceAnalysisService, AssetCategoryService, FixedAssetService, ExpenseCategoryService, ExpenseClaimService, BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService, RecurringInvoiceService, DunningService];
 
 @Module({
   imports: [OrgModule, SalesModule],
-  controllers: [FinanceController, FinanceExtrasController, ExpensesController, AssetsController, ...crud],
+  controllers: [FinanceController, FinanceExtrasController, ArExtrasController, ExpensesController, AssetsController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })

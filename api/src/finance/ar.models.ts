@@ -26,11 +26,19 @@ export interface InvoiceLine {
 export interface InvoiceDoc extends BaseDoc {
   number: string;
   kind: "invoice" | "credit_note";
+  /** `deposit` posts to customer deposits (a liability) instead of revenue; `milestone` and `recurring` are plain revenue invoices, tagged for reporting. */
+  invoiceType: "standard" | "deposit" | "milestone" | "recurring";
   customerId: string;
   orderId: string | null;
   deliveryId: string | null;
   returnId: string | null;
-  /** For credit notes: the invoice being credited, if any. */
+  /** For a deposit or milestone invoice: the order's billing schedule entry it was raised from. */
+  scheduleEntryId: string | null;
+  /** For a recurring invoice: the schedule that generated it. */
+  recurringScheduleId: string | null;
+  /** For a deposit invoice once used up: the invoice it was applied to. */
+  appliedToInvoiceId: string | null;
+  /** For a credit note: the invoice being credited, if any. */
   creditedInvoiceId: string | null;
   customerReference: string | null;
   date: string;
@@ -50,6 +58,9 @@ export interface InvoiceDoc extends BaseDoc {
   postedAt: string | null;
   /** Credit applied from credit notes (or, on a credit note, to invoices). */
   applications: { documentId: string; amount: number; date: string }[];
+  /** Dunning level reached so far (0 = no reminder sent); see the dunning policy in ar-extras.ts. */
+  dunningLevel: number;
+  lastReminderAt: string | null;
   notes: string | null;
 }
 
@@ -71,6 +82,6 @@ export interface ReceiptDoc extends BaseDoc {
 }
 
 export const AR_LISTS: Record<"invoices" | "receipts", LargeListSpec> = {
-  invoices: { filters: ["status", "customerId", "kind"], sorts: [{ field: "date", direction: "desc" }, { field: "createdAt", direction: "desc" }] },
+  invoices: { filters: ["status", "customerId", "kind", "invoiceType"], sorts: [{ field: "date", direction: "desc" }, { field: "createdAt", direction: "desc" }] },
   receipts: { filters: ["customerId", "status"], sorts: [{ field: "date", direction: "desc" }] },
 };

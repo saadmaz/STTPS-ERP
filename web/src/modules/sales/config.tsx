@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Ban, CheckCircle2, Copy, FileCheck, PackageCheck, Repeat, RotateCcw, Send, ShoppingCart, Truck } from "lucide-react";
+import { Ban, CheckCircle2, Copy, FileCheck, PackageCheck, Pencil, Plus, Repeat, RotateCcw, Send, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { api, BaseRecord, crud, errorMessage } from "@/lib/api";
 import { formatDate, formatDateTime, humanize } from "@/lib/format";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, minorToDecimal } from "@/lib/money";
 import { useCan } from "@/lib/workspace";
 import { MasterConfig } from "@/components/master/MasterData";
 import { ConfirmDialog, StatusBadge } from "@/components/ui/kit";
@@ -52,6 +52,17 @@ export interface Quote extends BaseRecord {
   customerComment: string | null;
   orderId: string | null;
 }
+export interface BillingScheduleEntry {
+  entryId: string;
+  label: string;
+  kind: "deposit" | "milestone";
+  basis: "percent" | "amount";
+  value: number;
+  taxCode: string | null;
+  dueDate: string | null;
+  status: "pending" | "invoiced" | "cancelled";
+  invoiceId: string | null;
+}
 export interface Order extends BaseRecord {
   number: string;
   accountId: string;
@@ -66,6 +77,7 @@ export interface Order extends BaseRecord {
   status: string;
   holdReasons: string[];
   cancelReason: string | null;
+  billingSchedule: BillingScheduleEntry[];
 }
 interface Delivery extends BaseRecord {
   number: string;
@@ -259,6 +271,113 @@ function NewDelivery({ order }: { order: Order }) {
   return <button className="btn-primary" onClick={() => run.mutate()} disabled={run.isPending}><Truck size={15} /> Deliver</button>;
 }
 
+function RaiseScheduleInvoice({ orderId, entryId }: { orderId: string; entryId: string }) {
+  const router = useRouter();
+  const can = useCan("finance.invoice.create");
+  const run = useMutation({
+    mutationFn: () => salesApi.post<{ id: string }>(`/finance/invoices/from-schedule/${orderId}/${entryId}`),
+    onSuccess: (inv) => router.push(`/finance/invoices/${inv.id}`),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can) return null;
+  return <button className="btn-ghost" onClick={() => run.mutate()} disabled={run.isPending}><FileCheck size={15} /> Raise invoice</button>;
+}
+
+interface ScheduleRow { label: string; kind: "deposit" | "milestone"; basis: "percent" | "amount"; value: string; taxCode: string }
+const blankScheduleRow = (): ScheduleRow => ({ label: "", kind: "deposit", basis: "percent", value: "", taxCode: "" });
+
+function EditBillingSchedule({ order, onSaved }: { order: Order; onSaved: (o: Order) => void }) {
+  const can = useCan("sales.order.edit");
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<ScheduleRow[]>(() =>
+    order.billingSchedule.length
+      ? order.billingSchedule.map((e) => ({ label: e.label, kind: e.kind, basis: e.basis, value: e.basis === "percent" ? String(e.value / 100) : minorToDecimal(e.value, order.currency), taxCode: e.taxCode ?? "" }))
+      : [blankScheduleRow()],
+  );
+  const save = useMutation({
+    mutationFn: () =>
+      api.put(`/sales/orders/${order.id}/billing-schedule`, {
+        entries: rows.filter((r) => r.label && r.value).map((r) => ({ label: r.label, kind: r.kind, basis: r.basis, value: r.value, taxCode: r.kind === "milestone" && r.taxCode ? r.taxCode : undefined })),
+      }).then((res) => res.data as Order),
+    onSuccess: (o) => { toast.success("Billing schedule saved"); setOpen(false); onSaved(o); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const set = (i: number, patch: Partial<ScheduleRow>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  if (!can) return null;
+  const locked = order.billingSchedule.some((e) => e.status !== "pending");
+  return (
+    <>
+      <button className="btn-ghost" onClick={() => setOpen(true)} disabled={locked} title={locked ? "Some entries are already invoiced; raise or cancel them individually" : undefined}>
+        <Pencil size={15} /> Billing schedule
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <form className="card p-5 w-full max-w-3xl space-y-4 bg-white dark:bg-slate-900" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+            <h2 className="font-semibold">Deposit and milestone invoices for {order.number}</h2>
+            <p className="text-sm text-slate-500">A deposit carries no tax of its own: tax is recognised once, on the final invoice. A milestone is an ordinary revenue invoice, taxed as usual.</p>
+            <div className="space-y-2">
+              {rows.map((r, i) => (
+                <div key={i} className="grid grid-cols-12 gap-2">
+                  <input className="input-base col-span-4" placeholder="Label" value={r.label} onChange={(e) => set(i, { label: e.target.value })} aria-label="Label" />
+                  <select className="input-base col-span-2" value={r.kind} onChange={(e) => set(i, { kind: e.target.value as ScheduleRow["kind"] })} aria-label="Kind">
+                    <option value="deposit">Deposit</option>
+                    <option value="milestone">Milestone</option>
+                  </select>
+                  <select className="input-base col-span-2" value={r.basis} onChange={(e) => set(i, { basis: e.target.value as ScheduleRow["basis"] })} aria-label="Basis">
+                    <option value="percent">% of order</option>
+                    <option value="amount">Fixed amount</option>
+                  </select>
+                  <input className="input-base col-span-2" placeholder={r.basis === "percent" ? "25" : "1000.00"} value={r.value} onChange={(e) => set(i, { value: e.target.value })} aria-label="Value" />
+                  <input className="input-base col-span-1" placeholder="Tax" value={r.taxCode} onChange={(e) => set(i, { taxCode: e.target.value })} disabled={r.kind === "deposit"} aria-label="Tax code" />
+                  <button type="button" className="btn-ghost col-span-1" onClick={() => setRows(rows.filter((_, j) => j !== i))} aria-label="Remove line"><Trash2 size={15} /></button>
+                </div>
+              ))}
+              <button type="button" className="btn-ghost text-blue-600" onClick={() => setRows([...rows, blankScheduleRow()])}><Plus size={14} /> Entry</button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
+              <button className="btn-primary" disabled={save.isPending}>Save</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
+  );
+}
+
+function OrderBillingSchedule({ order }: { order: Order }) {
+  const [schedule, setSchedule] = useState(order.billingSchedule);
+  const withSchedule = { ...order, billingSchedule: schedule };
+  return (
+    <section className="card">
+      <div className="px-4 py-4 flex items-center justify-between">
+        <h2 className="font-semibold">Billing schedule</h2>
+        <EditBillingSchedule order={withSchedule} onSaved={(o) => setSchedule(o.billingSchedule)} />
+      </div>
+      {schedule.length > 0 && (
+        <table className="table-base">
+          <thead><tr><th>Label</th><th>Kind</th><th>Amount</th><th>Due</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {schedule.map((e) => (
+              <tr key={e.entryId}>
+                <td>{e.label}</td>
+                <td>{humanize(e.kind)}</td>
+                <td>{e.basis === "percent" ? `${e.value / 100}%` : formatMoney(e.value, order.currency)}</td>
+                <td>{e.dueDate ? formatDate(e.dueDate) : "—"}</td>
+                <td><StatusBadge status={e.status} /></td>
+                <td>
+                  {e.status === "pending" && <RaiseScheduleInvoice orderId={order.id} entryId={e.entryId} />}
+                  {e.invoiceId && <Link className="text-blue-700 dark:text-blue-400 hover:underline" href={`/finance/invoices/${e.invoiceId}`}>Open invoice</Link>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 const orders: MasterConfig<Order> = {
   entityType: "sales.order",
   permission: "sales.order",
@@ -301,7 +420,7 @@ const orders: MasterConfig<Order> = {
     { label: "On hold for", value: r.holdReasons.length ? r.holdReasons.map(humanize).join(", ") : null },
     { label: "Cancelled because", value: r.cancelReason },
   ],
-  extra: (r) => <LinesSummary lines={r.lines} totals={r.totals} currency={r.currency} showFulfilment />,
+  extra: (r) => <div className="space-y-6"><LinesSummary lines={r.lines} totals={r.totals} currency={r.currency} showFulfilment /><OrderBillingSchedule order={r} /></div>,
 };
 
 function DeliveryLines({ d }: { d: Delivery }) {

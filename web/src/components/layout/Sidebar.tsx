@@ -115,6 +115,7 @@ const SECTIONS: NavSection[] = [
       { label: "Invoices", href: "/finance/invoices", icon: FileText, permission: "finance.invoice.view" },
       { label: "Customer receipts", href: "/finance/receipts", icon: Coins, permission: "finance.receipt.view" },
       { label: "Receivables ageing", href: "/finance/receivables", icon: CalendarRange, permission: "finance.invoice.view" },
+      { label: "Recurring invoices", href: "/finance/recurring-invoices", icon: CalendarRange, permission: "finance.invoice.view" },
       { label: "Supplier bills", href: "/finance/bills", icon: ClipboardList, permission: "finance.bill.view" },
       { label: "Supplier payments", href: "/finance/payments", icon: Banknote, permission: "finance.payment.view" },
       { label: "Payables ageing", href: "/finance/payables", icon: CalendarRange, permission: "finance.bill.view" },

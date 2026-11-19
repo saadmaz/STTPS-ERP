@@ -22,6 +22,7 @@ import { PRODUCT_COLLECTIONS, ProductDoc } from "../products/products.models.js"
 import { PricingService } from "../products/products.services.js";
 import { InventoryLedger } from "../inventory/inventory.ledger.js";
 import {
+  BillingScheduleEntry,
   DeliveryDoc,
   DeliveryLine,
   OrderDoc,
@@ -35,6 +36,7 @@ import {
   Totals,
 } from "./sales.models.js";
 import {
+  BillingScheduleEntryDto,
   CreateDeliveryDto,
   CreateOrderDto,
   CreateQuoteDto,
@@ -479,6 +481,7 @@ export class OrderService extends MasterDataService<OrderDoc, OrderInput, OrderP
       cancelReason: null,
       ownerUserId: dto.ownerUserId ?? ctx.userId,
       notes: orNull(dto.notes),
+      billingSchedule: [],
     };
   }
 
@@ -623,6 +626,36 @@ export class OrderService extends MasterDataService<OrderDoc, OrderInput, OrderP
 
   protected searchEntry(doc: OrderDoc): SearchEntry {
     return { entityType: this.entityType, entityId: doc.id, title: doc.number, subtitle: `${fromMinor(doc.totals.total, doc.currency)} ${doc.currency}`, keywords: [doc.customerReference] };
+  }
+
+  /**
+   * Replaces the order's deposit/milestone billing schedule. Only while
+   * nothing on it has been invoiced yet; raise or cancel entries one at a
+   * time after that.
+   */
+  async setBillingSchedule(ctx: RequestContext, id: string, entries: BillingScheduleEntryDto[]): Promise<OrderDoc> {
+    const before = await this.repo.get(ctx, id);
+    if (["cancelled", "closed"].includes(before.status)) throw new BadRequestException(`A ${before.status} order cannot have a billing schedule`);
+    if (before.billingSchedule.some((e) => e.status !== "pending")) throw new BadRequestException("Some entries are already invoiced or cancelled; this schedule can no longer be replaced");
+    const percentTotal = entries.filter((e) => e.basis === "percent").reduce((a, e) => a + pct(e.value), 0);
+    if (percentTotal > 10_000) throw new BadRequestException("Percentages add up to more than 100%");
+    if (entries.some((e) => e.kind === "deposit" && e.taxCode)) throw new BadRequestException("Deposit entries carry no tax; it is recognised when the final invoice is raised");
+    const billingSchedule: BillingScheduleEntry[] = entries.map((e) => ({
+      entryId: randomUUID().slice(0, 8), label: e.label, kind: e.kind, basis: e.basis,
+      value: e.basis === "percent" ? pct(e.value) : toMinor(e.value, before.currency),
+      taxCode: e.taxCode ?? null, dueDate: e.dueDate?.slice(0, 10) ?? null, status: "pending", invoiceId: null,
+    }));
+    return (await this.repo.update(ctx, id, { billingSchedule })).after;
+  }
+
+  /** Marks a billing schedule entry invoiced; called by finance once the invoice is drafted. */
+  async markScheduleInvoiced(ctx: RequestContext, id: string, entryId: string, invoiceId: string): Promise<OrderDoc> {
+    const before = await this.repo.get(ctx, id);
+    const entry = before.billingSchedule.find((e) => e.entryId === entryId);
+    if (!entry) throw new BadRequestException("Billing schedule entry not found");
+    if (entry.status !== "pending") throw new BadRequestException("This schedule entry is already invoiced or cancelled");
+    const billingSchedule = before.billingSchedule.map((e) => (e.entryId === entryId ? { ...e, status: "invoiced" as const, invoiceId } : e));
+    return (await this.repo.update(ctx, id, { billingSchedule })).after;
   }
 }
 

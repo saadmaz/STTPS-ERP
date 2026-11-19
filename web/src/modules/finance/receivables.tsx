@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Ban, CheckCircle2, FileMinus, FileText, Plus, ReceiptText, Trash2 } from "lucide-react";
+import { Ban, Bell, CheckCircle2, FileMinus, FileText, Play, Plus, ReceiptText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, BaseRecord, crud, errorMessage } from "@/lib/api";
 import { formatDate, humanize } from "@/lib/format";
@@ -32,10 +32,14 @@ export interface InvoiceLine {
 export interface Invoice extends BaseRecord {
   number: string;
   kind: "invoice" | "credit_note";
+  invoiceType: "standard" | "deposit" | "milestone" | "recurring";
   customerId: string;
   orderId: string | null;
   deliveryId: string | null;
   returnId: string | null;
+  scheduleEntryId: string | null;
+  recurringScheduleId: string | null;
+  appliedToInvoiceId: string | null;
   creditedInvoiceId: string | null;
   customerReference: string | null;
   date: string;
@@ -48,6 +52,8 @@ export interface Invoice extends BaseRecord {
   status: string;
   journalId: string | null;
   applications: { documentId: string; amount: number; date: string }[];
+  dunningLevel: number;
+  lastReminderAt: string | null;
   notes: string | null;
 }
 export interface Receipt extends BaseRecord {
@@ -183,6 +189,46 @@ function WriteOff({ inv, refresh }: { inv: Invoice; refresh: (i: Invoice) => voi
   );
 }
 
+function ApplyDeposit({ dep, refresh }: { dep: Invoice; refresh: (i: Invoice) => void }) {
+  const can = useCan("finance.invoice.edit");
+  const [open, setOpen] = useState(false);
+  const [invoiceId, setInvoiceId] = useState("");
+  const invoices = useQuery({
+    queryKey: ["finance.invoice", "open-for", dep.customerId],
+    queryFn: () => arApi.invoices.list({ where: `customerId:${dep.customerId}`, limit: 100 }),
+    enabled: open,
+  });
+  const run = useMutation({
+    mutationFn: () => arApi.post<{ deposit: Invoice }>(`/finance/invoices/${dep.id}/apply-deposit`, { invoiceId }),
+    onSuccess: (r) => { toast.success("Deposit applied"); setOpen(false); refresh(r.deposit); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can) return null;
+  const choices = (invoices.data?.items ?? []).filter((i) => i.kind === "invoice" && i.invoiceType !== "deposit" && ["posted", "partially_paid"].includes(i.status) && i.currency === dep.currency);
+  return (
+    <>
+      <button className="btn-primary" onClick={() => setOpen(true)}><FileMinus size={15} /> Apply deposit</button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <form className="card p-5 w-full max-w-md space-y-4 bg-white dark:bg-slate-900" onSubmit={(e) => { e.preventDefault(); run.mutate(); }}>
+            <h2 className="font-semibold">Apply {dep.number}</h2>
+            <Field label="Invoice" required hint={`The full deposit of ${formatMoney(dep.totals.total, dep.currency)} will be applied`}>
+              <select className="input-base" value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)}>
+                <option value="">Choose…</option>
+                {choices.map((i) => <option key={i.id} value={i.id}>{i.number} · due {formatMoney(i.balanceDue, i.currency)}</option>)}
+              </select>
+            </Field>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
+              <button className="btn-primary" disabled={!invoiceId || run.isPending}>Apply</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
+  );
+}
+
 const invoices: MasterConfig<Invoice> = {
   entityType: "finance.invoice",
   permission: "finance.invoice",
@@ -195,6 +241,7 @@ const invoices: MasterConfig<Invoice> = {
   columns: [
     { key: "number", label: "Number" },
     { key: "customerId", label: "Customer", render: (r) => <CustomerLink id={r.customerId} /> },
+    { key: "invoiceType", label: "Type", render: (r) => (r.invoiceType === "standard" ? humanize(r.kind) : humanize(r.invoiceType)) },
     { key: "date", label: "Date", render: (r) => formatDate(r.date) },
     { key: "dueDate", label: "Due", render: (r) => (r.kind === "invoice" ? formatDate(r.dueDate) : "") },
     { key: "total", label: "Total", render: (r) => `${r.kind === "credit_note" ? "-" : ""}${formatMoney(r.totals.total, r.currency)}`, text: (r) => String(r.totals.total / 100) },
@@ -202,7 +249,8 @@ const invoices: MasterConfig<Invoice> = {
     { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
   ],
   filters: [
-    { key: "kind", label: "Type", options: opts(["invoice", "credit_note"]) },
+    { key: "kind", label: "Kind", options: opts(["invoice", "credit_note"]) },
+    { key: "invoiceType", label: "Type", options: opts(["standard", "deposit", "milestone", "recurring"]) },
     { key: "status", label: "Status", options: opts(["draft", "posted", "partially_paid", "paid", "written_off", "cancelled"]) },
   ],
   fields: [
@@ -221,6 +269,7 @@ const invoices: MasterConfig<Invoice> = {
       {r.kind === "invoice" && ["posted", "partially_paid"].includes(r.status) && <Link className="btn-primary" href={`/finance/new/receipt?customer=${r.customerId}&invoice=${r.id}`}><ReceiptText size={15} /> Record payment</Link>}
       {r.kind === "invoice" && ["posted", "partially_paid", "paid"].includes(r.status) && <Link className="btn-ghost" href={`/finance/new/invoice?credit=${r.id}`}><FileMinus size={15} /> Credit note</Link>}
       {r.kind === "credit_note" && ["posted", "partially_paid"].includes(r.status) && <ApplyCredit cn={r} refresh={refresh} />}
+      {r.invoiceType === "deposit" && r.status === "paid" && !r.appliedToInvoiceId && <ApplyDeposit dep={r} refresh={refresh} />}
       {r.kind === "invoice" && ["posted", "partially_paid"].includes(r.status) && <WriteOff inv={r} refresh={refresh} />}
     </>
   ),
@@ -230,7 +279,10 @@ const invoices: MasterConfig<Invoice> = {
     { label: "Sales order", value: r.orderId ? <Link className={linkCls} href={`/sales/orders/${r.orderId}`}>Open order</Link> : null },
     { label: "Delivery", value: r.deliveryId ? <Link className={linkCls} href={`/sales/deliveries/${r.deliveryId}`}>Open delivery</Link> : null },
     { label: "Credits", value: r.creditedInvoiceId ? <Link className={linkCls} href={`/finance/invoices/${r.creditedInvoiceId}`}>Original invoice</Link> : null },
+    { label: "Deposit applied to", value: r.appliedToInvoiceId ? <Link className={linkCls} href={`/finance/invoices/${r.appliedToInvoiceId}`}>Open invoice</Link> : null },
+    { label: "Recurring schedule", value: r.recurringScheduleId ? <Link className={linkCls} href={`/finance/recurring-invoices/${r.recurringScheduleId}`}>Open schedule</Link> : null },
     { label: "Journal", value: r.journalId ? <Link className={linkCls} href={`/finance/journals/${r.journalId}`}>Open journal</Link> : null },
+    { label: "Dunning", value: r.dunningLevel ? `Level ${r.dunningLevel}${r.lastReminderAt ? ` · last sent ${formatDate(r.lastReminderAt)}` : ""}` : null },
     { label: "Notes", value: r.notes },
   ],
   extra: (r) => <InvoiceLines inv={r} />,
@@ -284,9 +336,67 @@ const receipts: MasterConfig<Receipt> = {
   extra: (r) => <Allocations r={r} />,
 };
 
+export interface RecurringInvoice extends BaseRecord {
+  code: string;
+  customerId: string;
+  currency: string;
+  frequency: string;
+  nextRunDate: string;
+  endDate: string | null;
+  autoPost: boolean;
+  status: string;
+  runs: number;
+  lastInvoiceId: string | null;
+}
+
+function RunRecurringInvoicesDue() {
+  const can = useCan("finance.invoice.edit");
+  const run = useMutation({
+    mutationFn: () => api.post("/finance/recurring-invoices/run-due", {}).then((r) => r.data as { created: unknown[]; failed: { error: string }[] }),
+    onSuccess: (r) => { if (r.failed.length) toast.error(r.failed.map((f) => f.error).join("; ")); toast.success(`${r.created.length} invoice(s) generated`); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can) return null;
+  return <button className="btn-primary" onClick={() => run.mutate()} disabled={run.isPending}><Play size={15} /> Run due now</button>;
+}
+
+const recurringInvoices: MasterConfig<RecurringInvoice> = {
+  entityType: "finance.recurringInvoice",
+  permission: "finance.invoice",
+  plural: "Recurring invoices",
+  singular: "Recurring invoice",
+  description: "Create a schedule with the API; it generates an invoice for the same customer and lines on each due date, re-priced at current tax rates, when “Run due now” is used.",
+  route: "/finance/recurring-invoices",
+  client: crud<RecurringInvoice>("/finance/recurring-invoices"),
+  defaultSort: "code",
+  columns: [
+    { key: "code", label: "Code" },
+    { key: "customerId", label: "Customer", render: (r) => <CustomerLink id={r.customerId} /> },
+    { key: "frequency", label: "Every", render: (r) => humanize(r.frequency) },
+    { key: "nextRunDate", label: "Next", render: (r) => formatDate(r.nextRunDate) },
+    { key: "runs", label: "Runs" },
+    { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  ],
+  fields: [
+    { key: "status", label: "Status", type: "select", options: [{ value: "active", label: "Active" }, { value: "paused", label: "Paused" }] },
+    { key: "endDate", label: "End date", type: "date" },
+    { key: "autoPost", label: "Post automatically", type: "boolean" },
+  ],
+  title: (r) => r.code,
+  subtitle: (r) => `${humanize(r.frequency)} · next ${formatDate(r.nextRunDate)}`,
+  status: (r) => r.status,
+  editable: (r) => r.status !== "ended",
+  actions: () => <RunRecurringInvoicesDue />,
+  details: (r) => [
+    { label: "Customer", value: <CustomerLink id={r.customerId} /> },
+    { label: "Last invoice", value: r.lastInvoiceId ? <Link className={linkCls} href={`/finance/invoices/${r.lastInvoiceId}`}>Open invoice</Link> : null },
+  ],
+};
+
 export const AR_SCREENS: Record<string, MasterConfig<never>> = {
   invoices: invoices as unknown as MasterConfig<never>,
   receipts: receipts as unknown as MasterConfig<never>,
+  "recurring-invoices": recurringInvoices as unknown as MasterConfig<never>,
 };
 
 // ─── Forms ────────────────────────────────────────────────────────────────────
@@ -442,6 +552,17 @@ interface Ageing {
   total: number;
 }
 
+function SendReminders() {
+  const can = useCan("finance.invoice.edit");
+  const run = useMutation({
+    mutationFn: () => api.post("/finance/receivables/send-reminders", {}).then((r) => r.data as { notified: unknown[] }),
+    onSuccess: (r) => toast.success(r.notified.length ? `${r.notified.length} reminder(s) sent` : "Nothing newly overdue"),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can) return null;
+  return <button className="btn-secondary" onClick={() => run.mutate()} disabled={run.isPending}><Bell size={15} /> Send reminders</button>;
+}
+
 export function AgeingPage() {
   const name = useCustomerName();
   const q = useQuery({ queryKey: ["finance-ageing"], queryFn: () => api.get("/finance/receivables/ageing").then((r) => r.data as Ageing) });
@@ -451,7 +572,7 @@ export function AgeingPage() {
   const m = (n: number) => (n ? formatMoney(n, "LKR") : "");
   return (
     <div className="space-y-6">
-      <PageHeader title="Receivables ageing" subtitle={`As at ${formatDate(a.asOf)} · days past due`} />
+      <PageHeader title="Receivables ageing" subtitle={`As at ${formatDate(a.asOf)} · days past due`} actions={<SendReminders />} />
       {a.lines.length === 0 ? <EmptyState title="Nothing outstanding" /> : (
         <section className="card overflow-x-auto">
           <table className="table-base">
