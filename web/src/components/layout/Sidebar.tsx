@@ -117,6 +117,7 @@ const SECTIONS: NavSection[] = [
       { label: "Supplier bills", href: "/finance/bills", icon: ClipboardList, permission: "finance.bill.view" },
       { label: "Supplier payments", href: "/finance/payments", icon: Banknote, permission: "finance.payment.view" },
       { label: "Payables ageing", href: "/finance/payables", icon: CalendarRange, permission: "finance.bill.view" },
+      { label: "Bank and cash", href: "/finance/bank", icon: Landmark, permission: "finance.bank.view" },
       { label: "Journals", href: "/finance/journals", icon: BookOpen, permission: "finance.journal.view" },
       { label: "Chart of accounts", href: "/finance/accounts", icon: FolderTree, permission: "finance.account.view" },
       { label: "Trial balance", href: "/finance/reports/trial-balance", icon: Scale, permission: "finance.reports.view" },

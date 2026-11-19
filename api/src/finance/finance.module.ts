@@ -8,6 +8,8 @@ import { OrgModule } from "../org/org.module.js";
 import { SalesModule } from "../sales/sales.module.js";
 import { InvoiceService, ReceiptService, ReceivablesService } from "./ar.services.js";
 import { BillService, PayablesService, PaymentService } from "./ap.services.js";
+import { BankService } from "./bank.services.js";
+import { CreateFromLineDto, ImportStatementDto, MatchLineDto, ReconcileDto, TransferDto } from "./bank.dto.js";
 import { ApplyDebitDto, BillFromReceiptDto, CreateBillDto, CreatePaymentDto, PaymentRunDto, PostBillDto, UpdateBillDto, UpdatePaymentDto } from "./ap.dto.js";
 import { ApplyCreditDto, CreateInvoiceDto, CreateReceiptDto, UpdateInvoiceDto, UpdateReceiptDto, WriteOffDto } from "./ar.dto.js";
 import { AccountService, AutoPostingService, FinanceReportsService, FinanceSettingsService, JournalService } from "./finance.services.js";
@@ -42,7 +44,85 @@ class FinanceController {
     private readonly bills: BillService,
     private readonly payments: PaymentService,
     private readonly payables: PayablesService,
+    private readonly bank: BankService,
   ) {}
+
+  @Get("bank/accounts")
+  @RequirePermission("finance.bank.view")
+  @ApiOperation({ summary: "Bank and cash accounts with balances, unmatched statement lines and last reconciliation" })
+  bankAccounts(@Ctx() ctx: RequestContext) {
+    return this.bank.accounts(ctx);
+  }
+
+  @Post("bank/transfers")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  transfer(@Ctx() ctx: RequestContext, @Body(validated(TransferDto)) dto: TransferDto) {
+    return this.bank.transfer(ctx, dto);
+  }
+
+  @Post("bank/statements")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  @ApiOperation({ summary: "Import a CSV or OFX statement; duplicates are skipped and exact matches are made automatically" })
+  importStatement(@Ctx() ctx: RequestContext, @Body(validated(ImportStatementDto)) dto: ImportStatementDto) {
+    return this.bank.importStatement(ctx, dto);
+  }
+
+  @Get("bank/:accountId/lines")
+  @RequirePermission("finance.bank.view")
+  statementLines(@Ctx() ctx: RequestContext, @Param("accountId") accountId: string, @Query("status") status?: string) {
+    return this.bank.statementLines(ctx, accountId, status === "matched" || status === "unmatched" ? status : undefined);
+  }
+
+  @Get("bank/:accountId/unmatched-entries")
+  @RequirePermission("finance.bank.view")
+  unmatchedEntries(@Ctx() ctx: RequestContext, @Param("accountId") accountId: string) {
+    return this.bank.unmatchedEntries(ctx, accountId);
+  }
+
+  @Post("bank/:accountId/auto-match")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  async autoMatch(@Ctx() ctx: RequestContext, @Param("accountId") accountId: string) {
+    await this.bank.bankAccount(ctx, accountId);
+    return { matched: await this.bank.autoMatch(ctx, accountId) };
+  }
+
+  @Post("bank/lines/:id/match")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  matchLine(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(MatchLineDto)) dto: MatchLineDto) {
+    return this.bank.match(ctx, id, dto.entryIds);
+  }
+
+  @Post("bank/lines/:id/unmatch")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  unmatchLine(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.bank.unmatch(ctx, id);
+  }
+
+  @Post("bank/lines/:id/create")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  @ApiOperation({ summary: "Post a line that is not in the books yet (bank charges, interest) and match it" })
+  createFromLine(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CreateFromLineDto)) dto: CreateFromLineDto) {
+    return this.bank.createFromLine(ctx, id, dto.accountId, dto.description);
+  }
+
+  @Post("bank/reconciliations")
+  @HttpCode(200)
+  @RequirePermission("finance.bank.edit")
+  reconcile(@Ctx() ctx: RequestContext, @Body(validated(ReconcileDto)) dto: ReconcileDto) {
+    return this.bank.reconcile(ctx, dto);
+  }
+
+  @Get("bank/:accountId/reconciliations")
+  @RequirePermission("finance.bank.view")
+  reconciliations(@Ctx() ctx: RequestContext, @Param("accountId") accountId: string) {
+    return this.bank.reconciliations(ctx, accountId);
+  }
 
   @Post("bills/:id/post")
   @HttpCode(200)
@@ -251,7 +331,7 @@ const crud = [
   createMasterDataController({ path: "finance/payments", tag: "Finance: Supplier payments", module: "finance", permission: "finance.payment", service: PaymentService, createDto: CreatePaymentDto, updateDto: UpdatePaymentDto }),
 ];
 
-const SERVICES = [BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
+const SERVICES = [BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService];
 
 @Module({
   imports: [OrgModule, SalesModule],
