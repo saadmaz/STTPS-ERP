@@ -26,6 +26,7 @@ import { PERFORMANCE_COLLECTIONS, PERFORMANCE_LISTS } from "../../hr/hr-performa
 import { PAYROLL_COLLECTIONS, PAYROLL_LISTS } from "../../hr/hr-payroll.models.js";
 import { TASK_COLLECTIONS, TASK_LISTS } from "../../tasks/tasks.models.js";
 import { SUPPORT_COLLECTIONS, SUPPORT_LISTS } from "../../support/support.models.js";
+import { MFG_COLLECTIONS, MFG_LISTS } from "../../manufacturing/manufacturing.models.js";
 
 export type Order = "ASCENDING" | "DESCENDING";
 
@@ -141,6 +142,9 @@ export const INDEXES: IndexSpec[] = [
 
   // Support desk
   ...largeListIndexes(SUPPORT_COLLECTIONS.tickets, SUPPORT_LISTS.tickets),
+
+  // Manufacturing
+  ...largeListIndexes(MFG_COLLECTIONS.productionOrders, MFG_LISTS.productionOrders),
 ];
 
 /** The firestore.indexes.json document for INDEXES. */

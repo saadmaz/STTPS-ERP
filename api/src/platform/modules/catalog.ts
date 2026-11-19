@@ -325,7 +325,21 @@ export const MODULES: ModuleDefinition[] = [
   }),
 
   // Advanced operations
-  mod({ key: "manufacturing", name: "Manufacturing", description: "BOMs, routings, production orders and MRP.", group: "advanced", available: false, dependsOn: ["inventory"] }),
+  mod({
+    key: "manufacturing",
+    name: "Manufacturing",
+    description: "BOMs, routings, production orders and MRP.",
+    group: "advanced",
+    available: true,
+    dependsOn: ["inventory"],
+    permissions: [
+      ...entityPermissions("manufacturing", "workCentre", "work centres"),
+      ...entityPermissions("manufacturing", "machine", "machines"),
+      ...entityPermissions("manufacturing", "bom", "bills of materials"),
+      ...entityPermissions("manufacturing", "routing", "routings"),
+      ...entityPermissions("manufacturing", "productionOrder", "production orders"),
+    ],
+  }),
   mod({ key: "quality", name: "Quality", description: "Inspections, non-conformance and corrective actions.", group: "advanced", available: false }),
   mod({ key: "ehs", name: "Health & Safety", description: "Incidents, risk assessments and permits to work.", group: "advanced", available: false }),
   mod({ key: "pos", name: "POS & Retail", description: "Point of sale, shifts, loyalty and promotions.", group: "advanced", available: false, dependsOn: ["sales", "inventory"] }),
