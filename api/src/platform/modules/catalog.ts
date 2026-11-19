@@ -241,6 +241,8 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("hr", "checklist", "onboarding and offboarding checklists"),
       ...entityPermissions("hr", "attendanceRecord", "attendance records"),
       ...entityPermissions("hr", "device", "attendance devices"),
+      ...entityPermissions("hr", "shiftTemplate", "shift templates"),
+      ...entityPermissions("hr", "shiftAssignment", "shift assignments"),
     ],
   }),
   mod({ key: "payroll", name: "Payroll", description: "Salary structures, payroll runs, payslips and statutory filings.", group: "people", available: false, dependsOn: ["hr", "finance"] }),

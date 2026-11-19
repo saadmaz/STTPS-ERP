@@ -48,6 +48,8 @@ import {
   UpdateAttendanceSettingsDto,
   UpdateDeviceDto,
 } from "./hr-attendance.dto.js";
+import { ShiftAssignmentService, ShiftTemplateService } from "./hr-shifts.services.js";
+import { CancelAssignmentDto, CreateAssignmentDto, CreateShiftTemplateDto, DecideSwapDto, RequestSwapDto, UpdateAssignmentDto, UpdateShiftTemplateDto } from "./hr-shifts.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -63,6 +65,7 @@ class HrActionsController {
     private readonly attendance: AttendanceService,
     private readonly attendanceSettings: AttendanceSettingsService,
     private readonly devices: DeviceService,
+    private readonly assignments: ShiftAssignmentService,
   ) {}
 
   @Get("employees/org-chart")
@@ -261,6 +264,58 @@ class HrActionsController {
   revokeDevice(@Ctx() ctx: RequestContext, @Param("id") id: string) {
     return this.devices.revoke(ctx, id);
   }
+
+  @Get("shift-assignments/calendar")
+  @RequirePermission("hr.shiftAssignment.view")
+  @ApiOperation({ summary: "Every employee's shifts in a date range" })
+  shiftCalendar(@Ctx() ctx: RequestContext, @Query("from") from: string, @Query("to") to: string) {
+    return this.assignments.calendar(ctx, from, to);
+  }
+
+  @Post("shift-assignments/:id/swap/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.shiftAssignment.edit")
+  @ApiOperation({ summary: "Approves or rejects a swap request; approving exchanges the two employees" })
+  decideSwap(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideSwapDto)) dto: DecideSwapDto) {
+    return this.assignments.decideSwap(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("shift-assignments/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.shiftAssignment.edit")
+  cancelAssignment(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelAssignmentDto)) dto: CancelAssignmentDto) {
+    return this.assignments.cancel(ctx, id, dto.reason);
+  }
+}
+
+/** Shift self-service: a signed-in employee's own schedule and swap requests. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/shift-assignments")
+class ShiftSelfServiceController {
+  constructor(private readonly employees: EmployeeService, private readonly assignments: ShiftAssignmentService) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me")
+  @ApiOperation({ summary: "My own shifts in a date range" })
+  async mySchedule(@Ctx() ctx: RequestContext, @Query("from") from: string, @Query("to") to: string) {
+    const employee = await this.myEmployee(ctx);
+    return this.assignments.mySchedule(ctx, employee.id, from, to);
+  }
+
+  @Post(":id/swap")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Requests to swap one of my own shifts with someone else's" })
+  async requestSwap(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(RequestSwapDto)) dto: RequestSwapDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.assignments.requestSwap(ctx, id, employee.id, dto.targetAssignmentId, dto.note);
+  }
 }
 
 /** Attendance self-service: any signed-in user with a linked employee record, no extra permission. */
@@ -395,6 +450,8 @@ const crud = [
   createMasterDataController({ path: "hr/checklists", tag: "HR: Onboarding and offboarding checklists", module: "hr", permission: "hr.checklist", service: ChecklistService, createDto: CreateChecklistDto, updateDto: UpdateChecklistDto }),
   createMasterDataController({ path: "hr/attendance", tag: "HR: Attendance", module: "hr", permission: "hr.attendanceRecord", service: AttendanceService, createDto: CreateAttendanceRecordDto, updateDto: UpdateAttendanceRecordDto }),
   createMasterDataController({ path: "hr/devices", tag: "HR: Attendance devices", module: "hr", permission: "hr.device", service: DeviceService, createDto: CreateDeviceDto, updateDto: UpdateDeviceDto }),
+  createMasterDataController({ path: "hr/shift-templates", tag: "HR: Shift templates", module: "hr", permission: "hr.shiftTemplate", service: ShiftTemplateService, createDto: CreateShiftTemplateDto, updateDto: UpdateShiftTemplateDto }),
+  createMasterDataController({ path: "hr/shift-assignments", tag: "HR: Shift assignments", module: "hr", permission: "hr.shiftAssignment", service: ShiftAssignmentService, createDto: CreateAssignmentDto, updateDto: UpdateAssignmentDto }),
 ];
 
 const SERVICES = [
@@ -408,10 +465,12 @@ const SERVICES = [
   AttendanceService,
   AttendanceSettingsService,
   DeviceService,
+  ShiftTemplateService,
+  ShiftAssignmentService,
 ];
 
 @Module({
-  controllers: [HrActionsController, AttendanceSelfServiceController, PublicCareersController, PublicAttendanceController, ...crud],
+  controllers: [HrActionsController, AttendanceSelfServiceController, ShiftSelfServiceController, PublicCareersController, PublicAttendanceController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })
