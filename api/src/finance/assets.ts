@@ -39,6 +39,9 @@ export interface AssetCategoryDoc extends BaseDoc {
   decliningRate: number | null;
 }
 
+export const ASSET_CONDITIONS = ["excellent", "good", "fair", "poor"] as const;
+export type AssetCondition = (typeof ASSET_CONDITIONS)[number];
+
 export interface AssetDoc extends BaseDoc {
   code: string;
   name: string;
@@ -46,6 +49,7 @@ export interface AssetDoc extends BaseDoc {
   serialNo: string | null;
   branchId: string | null;
   departmentId: string | null;
+  /** The long-term owner (blueprint §15 "assignment"); not validated against a real employee — same unenforced-reference gap as everywhere else without record-level scope. */
   custodianId: string | null;
   location: string | null;
   acquisitionDate: string;
@@ -64,6 +68,14 @@ export interface AssetDoc extends BaseDoc {
   capitalisationJournalId: string | null;
   history: { date: string; event: string; detail: string; journalId: string | null; by: string }[];
   disposal: { date: string; proceeds: number; gainOrLoss: number; journalId: string } | null;
+  warrantyExpiryDate: string | null;
+  condition: AssetCondition;
+  /** A short-term loan (blueprint §15 "check-in/check-out"), distinct from the long-term `custodianId`. */
+  checkedOutTo: string | null;
+  checkedOutAt: string | null;
+  dueBackDate: string | null;
+  isMissing: boolean;
+  missingSince: string | null;
 }
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
@@ -94,11 +106,28 @@ export class CreateAssetDto {
   @ApiProperty({ example: "1200000.00" }) @Matches(MONEY) cost!: string;
   @IsOptional() @Matches(MONEY) residualValue?: string;
   @ApiPropertyOptional({ description: "Defaults from the category" }) @IsOptional() @IsInt() @Min(1) @Max(1200) usefulLifeMonths?: number;
+  @IsOptional() @IsISO8601({ strict: true }) warrantyExpiryDate?: string;
+  @ApiPropertyOptional({ enum: ASSET_CONDITIONS }) @IsOptional() @IsIn(ASSET_CONDITIONS) condition?: AssetCondition;
 }
 export class UpdateAssetDto {
   @IsOptional() @IsString() @Length(1, 200) name?: string;
   @IsOptional() @IsString() @MaxLength(80) serialNo?: string;
   @IsOptional() @IsString() @MaxLength(200) location?: string;
+  @IsOptional() @IsISO8601({ strict: true }) warrantyExpiryDate?: string;
+  @ApiPropertyOptional({ enum: ASSET_CONDITIONS }) @IsOptional() @IsIn(ASSET_CONDITIONS) condition?: AssetCondition;
+}
+
+export class CheckOutAssetDto {
+  @ApiProperty({ description: "Who it's being lent to" }) @IsString() to!: string;
+  @IsOptional() @IsISO8601({ strict: true }) dueBackDate?: string;
+  @IsOptional() @IsString() @MaxLength(500) notes?: string;
+}
+export class CheckInAssetDto {
+  @ApiPropertyOptional({ enum: ASSET_CONDITIONS }) @IsOptional() @IsIn(ASSET_CONDITIONS) condition?: AssetCondition;
+  @IsOptional() @IsString() @MaxLength(500) notes?: string;
+}
+export class ReportMissingDto {
+  @IsOptional() @IsString() @MaxLength(500) notes?: string;
 }
 
 export class CapitaliseDto {
@@ -209,11 +238,16 @@ export class FixedAssetService extends MasterDataService<AssetDoc, CreateAssetDt
       cost, residualValue: residual, method: c.method, usefulLifeMonths: dto.usefulLifeMonths ?? c.usefulLifeMonths, decliningRate: c.decliningRate,
       accumulatedDepreciation: 0, impairment: 0, bookValue: cost, lastDepreciatedPeriod: null, status: "draft", capitalisationJournalId: null,
       history: [{ date: acquired, event: "registered", detail: "Added to the register", journalId: null, by: ctx.userId }], disposal: null,
+      warrantyExpiryDate: orNull(dto.warrantyExpiryDate), condition: dto.condition ?? "good",
+      checkedOutTo: null, checkedOutAt: null, dueBackDate: null, isMissing: false, missingSince: null,
     };
   }
 
   protected toPatch(dto: UpdateAssetDto): Patch<AssetDoc> {
-    return { ...dto } as Patch<AssetDoc>;
+    const { warrantyExpiryDate, ...rest } = dto;
+    const patch = { ...rest } as Patch<AssetDoc>;
+    if (warrantyExpiryDate !== undefined) Object.assign(patch, { warrantyExpiryDate: warrantyExpiryDate?.slice(0, 10) ?? null });
+    return patch;
   }
 
   /** Puts the asset into service; posts its cost unless a supplier bill already did. */
@@ -373,6 +407,44 @@ export class FixedAssetService extends MasterDataService<AssetDoc, CreateAssetDt
     return (await this.repo.update(ctx, id, { ...patch, history: [...a.history, { date: dto.date?.slice(0, 10) ?? today(), event: "transferred", detail: changes.join("; "), journalId: null, by: ctx.userId }] })).after;
   }
 
+  /** A short-term loan, distinct from the long-term custodian. */
+  async checkOut(ctx: RequestContext, id: string, dto: CheckOutAssetDto): Promise<AssetDoc> {
+    const a = await this.repo.get(ctx, id);
+    if (a.status === "disposed") throw new BadRequestException("Disposed assets cannot be checked out");
+    if (a.checkedOutTo) throw new BadRequestException("Already checked out; check it in first");
+    return (await this.repo.update(ctx, id, {
+      checkedOutTo: dto.to, checkedOutAt: new Date().toISOString(), dueBackDate: dto.dueBackDate?.slice(0, 10) ?? null,
+      history: [...a.history, { date: today(), event: "checked_out", detail: `To ${dto.to}${dto.notes ? `: ${dto.notes}` : ""}`, journalId: null, by: ctx.userId }],
+    } as Patch<AssetDoc>)).after;
+  }
+
+  async checkIn(ctx: RequestContext, id: string, dto: CheckInAssetDto): Promise<AssetDoc> {
+    const a = await this.repo.get(ctx, id);
+    if (!a.checkedOutTo) throw new BadRequestException("This asset is not checked out");
+    const patch: Patch<AssetDoc> = {
+      checkedOutTo: null, checkedOutAt: null, dueBackDate: null,
+      history: [...a.history, { date: today(), event: "checked_in", detail: `From ${a.checkedOutTo}${dto.notes ? `: ${dto.notes}` : ""}`, journalId: null, by: ctx.userId }],
+    };
+    if (dto.condition) Object.assign(patch, { condition: dto.condition });
+    return (await this.repo.update(ctx, id, patch)).after;
+  }
+
+  async reportMissing(ctx: RequestContext, id: string, dto: ReportMissingDto): Promise<AssetDoc> {
+    const a = await this.repo.get(ctx, id);
+    if (a.isMissing) throw new BadRequestException("Already reported missing");
+    return (await this.repo.update(ctx, id, {
+      isMissing: true, missingSince: today(), history: [...a.history, { date: today(), event: "reported_missing", detail: dto.notes ?? "Not found at its recorded location", journalId: null, by: ctx.userId }],
+    } as Patch<AssetDoc>)).after;
+  }
+
+  async recoverFound(ctx: RequestContext, id: string): Promise<AssetDoc> {
+    const a = await this.repo.get(ctx, id);
+    if (!a.isMissing) throw new BadRequestException("This asset is not reported missing");
+    return (await this.repo.update(ctx, id, {
+      isMissing: false, missingSince: null, history: [...a.history, { date: today(), event: "recovered", detail: "Found", journalId: null, by: ctx.userId }],
+    } as Patch<AssetDoc>)).after;
+  }
+
   protected searchEntry(doc: AssetDoc): SearchEntry {
     return { entityType: this.entityType, entityId: doc.id, title: `${doc.code} ${doc.name}`, subtitle: doc.status, keywords: [doc.serialNo, doc.location] };
   }
@@ -425,5 +497,33 @@ export class AssetsController {
   @RequirePermission("assets.asset.edit")
   transfer(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(TransferAssetDto)) dto: TransferAssetDto) {
     return this.assets.transfer(ctx, id, dto);
+  }
+
+  @Post("register/:id/check-out")
+  @HttpCode(200)
+  @RequirePermission("assets.asset.edit")
+  checkOut(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CheckOutAssetDto)) dto: CheckOutAssetDto) {
+    return this.assets.checkOut(ctx, id, dto);
+  }
+
+  @Post("register/:id/check-in")
+  @HttpCode(200)
+  @RequirePermission("assets.asset.edit")
+  checkIn(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CheckInAssetDto)) dto: CheckInAssetDto) {
+    return this.assets.checkIn(ctx, id, dto);
+  }
+
+  @Post("register/:id/report-missing")
+  @HttpCode(200)
+  @RequirePermission("assets.asset.edit")
+  reportMissing(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ReportMissingDto)) dto: ReportMissingDto) {
+    return this.assets.reportMissing(ctx, id, dto);
+  }
+
+  @Post("register/:id/recover")
+  @HttpCode(200)
+  @RequirePermission("assets.asset.edit")
+  recover(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.assets.recoverFound(ctx, id);
   }
 }

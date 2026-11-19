@@ -13,6 +13,7 @@ import { BankService } from "./bank.services.js";
 import { BudgetService, CreateBudgetDto, UpdateBudgetDto } from "./budget.js";
 import { CreateRecurringJournalDto, FinanceAnalysisService, FinanceExtrasController, RecurringJournalService, TaxReportService, UpdateRecurringJournalDto } from "./extras.js";
 import { AssetCategoryService, AssetsController, CreateAssetCategoryDto, CreateAssetDto, FixedAssetService, UpdateAssetCategoryDto, UpdateAssetDto } from "./assets.js";
+import { AssetAuditsController, AssetAuditService, CreateAssetAuditDto, CreateRepairDto, RepairService, UpdateAssetAuditDto, UpdateRepairDto } from "./asset-audits.js";
 import { CreateExpenseCategoryDto, CreateExpenseClaimDto, ExpenseCategoryService, ExpenseClaimService, ExpensesController, UpdateExpenseCategoryDto, UpdateExpenseClaimDto } from "./expenses.js";
 import { CreateFromLineDto, ImportStatementDto, MatchLineDto, ReconcileDto, TransferDto } from "./bank.dto.js";
 import { ApplyDebitDto, BillFromReceiptDto, CreateBillDto, CreatePaymentDto, PaymentRunDto, PostBillDto, UpdateBillDto, UpdatePaymentDto } from "./ap.dto.js";
@@ -376,16 +377,18 @@ const crud = [
   createMasterDataController({ path: "finance/recurring-invoices", tag: "Finance: Recurring invoices", module: "finance", permission: "finance.invoice", service: RecurringInvoiceService, createDto: CreateRecurringInvoiceDto, updateDto: UpdateRecurringInvoiceDto }),
   createMasterDataController({ path: "assets/categories", tag: "Assets: Categories", module: "assets", permission: "assets.category", service: AssetCategoryService, createDto: CreateAssetCategoryDto, updateDto: UpdateAssetCategoryDto }),
   createMasterDataController({ path: "assets/register", tag: "Assets: Register", module: "assets", permission: "assets.asset", service: FixedAssetService, createDto: CreateAssetDto, updateDto: UpdateAssetDto }),
+  createMasterDataController({ path: "assets/audits", tag: "Assets: Audits", module: "assets", permission: "assets.audit", service: AssetAuditService, createDto: CreateAssetAuditDto, updateDto: UpdateAssetAuditDto }),
+  createMasterDataController({ path: "assets/repairs", tag: "Assets: Repairs", module: "assets", permission: "assets.repair", service: RepairService, createDto: CreateRepairDto, updateDto: UpdateRepairDto }),
   createMasterDataController({ path: "finance/budgets", tag: "Finance: Budgets", module: "finance", permission: "finance.budget", service: BudgetService, createDto: CreateBudgetDto, updateDto: UpdateBudgetDto }),
   createMasterDataController({ path: "finance/bills", tag: "Finance: Supplier bills and debit notes", module: "finance", permission: "finance.bill", service: BillService, createDto: CreateBillDto, updateDto: UpdateBillDto }),
   createMasterDataController({ path: "finance/payments", tag: "Finance: Supplier payments", module: "finance", permission: "finance.payment", service: PaymentService, createDto: CreatePaymentDto, updateDto: UpdatePaymentDto }),
 ];
 
-const SERVICES = [RecurringJournalService, TaxReportService, FinanceAnalysisService, AssetCategoryService, FixedAssetService, ExpenseCategoryService, ExpenseClaimService, BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService, RecurringInvoiceService, DunningService];
+const SERVICES = [RecurringJournalService, TaxReportService, FinanceAnalysisService, AssetCategoryService, FixedAssetService, AssetAuditService, RepairService, ExpenseCategoryService, ExpenseClaimService, BudgetService, BankService, BillService, PaymentService, PayablesService, GeneralLedger, AccountService, FinanceSettingsService, JournalService, AutoPostingService, FinanceReportsService, InvoiceService, ReceiptService, ReceivablesService, RecurringInvoiceService, DunningService];
 
 @Module({
   imports: [OrgModule, SalesModule],
-  controllers: [FinanceController, FinanceExtrasController, ArExtrasController, ExpensesController, AssetsController, ...crud],
+  controllers: [FinanceController, FinanceExtrasController, ArExtrasController, ExpensesController, AssetsController, AssetAuditsController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })

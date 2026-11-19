@@ -33,6 +33,7 @@ import {
   TrendingUp,
   UserCircle,
   Wallet,
+  Wrench,
   BookOpen,
   Receipt,
   Banknote,
@@ -164,6 +165,8 @@ const SECTIONS: NavSection[] = [
       { label: "Register", href: "/assets/register", icon: Boxes, permission: "assets.asset.view" },
       { label: "Depreciation run", href: "/assets/depreciation", icon: CalendarRange, permission: "assets.asset.edit" },
       { label: "Categories", href: "/assets/categories", icon: Tags, permission: "assets.category.view" },
+      { label: "Audits", href: "/assets/audits", icon: ClipboardCheck, permission: "assets.audit.view" },
+      { label: "Repairs", href: "/assets/repairs", icon: Wrench, permission: "assets.repair.view" },
     ],
   },
   {

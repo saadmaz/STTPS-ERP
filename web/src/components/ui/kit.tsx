@@ -45,6 +45,8 @@ const STATUS_TONES: Record<string, string> = {
   changes_requested: "badge-orange",
   rejected: "badge-red",
   locked: "badge-red",
+  missing: "badge-red",
+  error: "badge-red",
   closed: "badge-slate",
   cancelled: "badge-slate",
   archived: "badge-slate",

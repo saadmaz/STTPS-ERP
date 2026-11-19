@@ -229,7 +229,12 @@ export const MODULES: ModuleDefinition[] = [
     group: "finance",
     available: true,
     dependsOn: ["finance"],
-    permissions: [...entityPermissions("assets", "category", "asset categories"), ...entityPermissions("assets", "asset", "fixed assets")],
+    permissions: [
+      ...entityPermissions("assets", "category", "asset categories"),
+      ...entityPermissions("assets", "asset", "fixed assets"),
+      ...entityPermissions("assets", "audit", "asset audits"),
+      ...entityPermissions("assets", "repair", "repairs"),
+    ],
   }),
 
   // People

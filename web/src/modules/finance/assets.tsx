@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, CalendarClock, PackageCheck, TrendingDown, Trash2 } from "lucide-react";
+import QRCode from "qrcode";
+import { ArrowRightLeft, CalendarClock, LogIn, LogOut, PackageCheck, QrCode, SearchX, TrendingDown, Trash2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, BaseRecord, crud, errorMessage } from "@/lib/api";
 import { formatDate, humanize } from "@/lib/format";
@@ -43,9 +44,38 @@ interface Asset extends BaseRecord {
   status: string;
   history: { date: string; event: string; detail: string; journalId: string | null }[];
   disposal: { date: string; proceeds: number; gainOrLoss: number } | null;
+  warrantyExpiryDate: string | null;
+  condition: "excellent" | "good" | "fair" | "poor";
+  checkedOutTo: string | null;
+  checkedOutAt: string | null;
+  dueBackDate: string | null;
+  isMissing: boolean;
+  missingSince: string | null;
+}
+interface AssetAudit extends BaseRecord {
+  name: string;
+  scheduledDate: string;
+  status: "planning" | "in_progress" | "completed";
+  findings: { assetId: string; result: "found" | "missing" | "damaged"; notes: string | null; recordedAt: string }[];
+  completedAt: string | null;
+  notes: string | null;
+}
+interface Repair extends BaseRecord {
+  assetId: string;
+  reportedDate: string;
+  description: string;
+  cost: number | null;
+  status: "reported" | "in_progress" | "completed";
+  completedDate: string | null;
+  notes: string | null;
 }
 
-const assetsApi = { categories: crud<Category>("/assets/categories"), register: crud<Asset>("/assets/register") };
+const assetsApi = {
+  categories: crud<Category>("/assets/categories"),
+  register: crud<Asset>("/assets/register"),
+  audits: crud<AssetAudit>("/assets/audits"),
+  repairs: crud<Repair>("/assets/repairs"),
+};
 const money = (n: number) => formatMoney(n, "LKR");
 const opts = (values: string[]) => values.map((v) => ({ value: v, label: humanize(v) }));
 const post = <T,>(path: string, body: object = {}) => api.post(path, body).then((r) => r.data as T);
@@ -88,6 +118,27 @@ function DialogAction({ label, icon: Icon, permission, path, danger, fields, toB
               )}
             </Field>
           ))}
+        </div>
+      </ConfirmDialog>
+    </>
+  );
+}
+
+function QrLabel({ asset }: { asset: Asset }) {
+  const [open, setOpen] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (open && canvasRef.current) QRCode.toCanvas(canvasRef.current, asset.code, { width: 180, margin: 1 }).catch(() => undefined);
+  }, [open, asset.code]);
+  return (
+    <>
+      <button className="btn-ghost" onClick={() => setOpen(true)}><QrCode size={15} /> QR label</button>
+      <ConfirmDialog open={open} title="QR label" confirmLabel="Done" onConfirm={() => setOpen(false)} onClose={() => setOpen(false)}>
+        <div className="flex flex-col items-center gap-2 print:gap-1">
+          <canvas ref={canvasRef} />
+          <p className="font-mono text-sm">{asset.code}</p>
+          <p className="text-sm">{asset.name}</p>
+          <button className="btn-secondary mt-2 print:hidden" onClick={() => window.print()}>Print</button>
         </div>
       </ConfirmDialog>
     </>
@@ -195,13 +246,31 @@ const register: MasterConfig<Asset> = {
     { key: "usefulLifeMonths", label: "Useful life (months, default from category)", type: "number", createOnly: true },
     { key: "serialNo", label: "Serial number", type: "text" },
     { key: "location", label: "Location", type: "text" },
+    { key: "warrantyExpiryDate", label: "Warranty expires", type: "date" },
+    { key: "condition", label: "Condition", type: "select", options: opts(["excellent", "good", "fair", "poor"]) },
   ],
   title: (r) => `${r.code} ${r.name}`,
   subtitle: (r) => `${money(r.bookValue)} book value · ${humanize(r.method)}`,
-  status: (r) => r.status,
+  status: (r) => (r.isMissing ? "missing" : r.status),
   editable: (r) => r.status !== "disposed",
   actions: (r, refresh) => (
     <>
+      <QrLabel asset={r} />
+      {r.status !== "disposed" && !r.isMissing && (r.checkedOutTo ? (
+        <DialogAction label="Check in" icon={LogIn} permission="assets.asset.edit" path={`/assets/register/${r.id}/check-in`} onDone={refresh}
+          fields={[{ key: "condition", label: "Condition now (optional)", kind: "text" }, { key: "notes", label: "Notes", kind: "text" }]}
+          toBody={(v) => ({ condition: v.condition || undefined, notes: v.notes || undefined })} />
+      ) : (
+        <DialogAction label="Check out" icon={LogOut} permission="assets.asset.edit" path={`/assets/register/${r.id}/check-out`} onDone={refresh}
+          fields={[{ key: "to", label: "Lent to (user or employee id)", kind: "text" }, { key: "dueBackDate", label: "Due back", kind: "date" }]}
+          toBody={(v) => ({ to: v.to, dueBackDate: v.dueBackDate || undefined })} />
+      ))}
+      {r.status !== "disposed" && (r.isMissing ? (
+        <DialogAction label="Recover" icon={Undo2} permission="assets.asset.edit" path={`/assets/register/${r.id}/recover`} onDone={refresh} fields={[]} toBody={() => ({})} />
+      ) : (
+        <DialogAction label="Report missing" icon={SearchX} permission="assets.asset.edit" path={`/assets/register/${r.id}/report-missing`} onDone={refresh} danger
+          fields={[{ key: "notes", label: "Notes", kind: "text" }]} toBody={(v) => ({ notes: v.notes || undefined })} />
+      ))}
       {r.status === "draft" && (
         <DialogAction label="Capitalise" icon={PackageCheck} permission="assets.asset.edit" path={`/assets/register/${r.id}/capitalise`} onDone={refresh}
           fields={[{ key: "creditAccountId", label: "Credit (leave empty if a supplier bill already posted the cost)", kind: "account" }, { key: "date", label: "Date", kind: "date" }]}
@@ -224,6 +293,10 @@ const register: MasterConfig<Asset> = {
   details: (r) => [
     { label: "Serial number", value: r.serialNo },
     { label: "Location", value: r.location },
+    { label: "Condition", value: humanize(r.condition) },
+    { label: "Warranty expires", value: r.warrantyExpiryDate ? formatDate(r.warrantyExpiryDate) : null },
+    { label: "Checked out to", value: r.checkedOutTo ? `${r.checkedOutTo}${r.dueBackDate ? ` · due back ${formatDate(r.dueBackDate)}` : ""}` : null },
+    { label: "Missing since", value: r.missingSince ? formatDate(r.missingSince) : null },
     { label: "Acquired", value: formatDate(r.acquisitionDate) },
     { label: "Depreciated to", value: r.lastDepreciatedPeriod },
     { label: "Disposed", value: r.disposal ? `${formatDate(r.disposal.date)} for ${money(r.disposal.proceeds)} (${r.disposal.gainOrLoss >= 0 ? "gain" : "loss"} ${money(Math.abs(r.disposal.gainOrLoss))})` : null },
@@ -231,9 +304,164 @@ const register: MasterConfig<Asset> = {
   extra: (r) => <AssetDetail a={r} />,
 };
 
+const assetRef = {
+  queryKey: ["options", "assets.register"],
+  load: async () => (await assetsApi.register.list({ limit: 500 })).items.map((a) => ({ value: a.id, label: `${a.code} · ${a.name}` })),
+};
+
+function AddFinding({ audit, refresh }: { audit: AssetAudit; refresh: (a: AssetAudit) => void }) {
+  const can = useCan("assets.audit.edit");
+  const assets = useQuery({ queryKey: assetRef.queryKey, queryFn: assetRef.load });
+  const [open, setOpen] = useState(false);
+  const [assetId, setAssetId] = useState("");
+  const [result, setResult] = useState<"found" | "missing" | "damaged">("found");
+  const [notes, setNotes] = useState("");
+  const run = useMutation({
+    mutationFn: () => post<AssetAudit>(`/assets/audits/${audit.id}/findings`, { assetId, result, notes: notes || undefined }),
+    onSuccess: (a) => { setOpen(false); setAssetId(""); setNotes(""); toast.success("Recorded"); refresh(a); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can || audit.status === "completed") return null;
+  return (
+    <>
+      <button className="btn-primary" onClick={() => setOpen(true)}>Record a finding</button>
+      <ConfirmDialog open={open} title="Record a count result" confirmLabel="Save" busy={run.isPending} onConfirm={() => run.mutate()} onClose={() => setOpen(false)}>
+        <div className="space-y-3">
+          <Field label="Asset" required>
+            <select className="input-base" value={assetId} onChange={(e) => setAssetId(e.target.value)}>
+              <option value="">Choose…</option>
+              {assets.data?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Result">
+            <select className="input-base" value={result} onChange={(e) => setResult(e.target.value as typeof result)}>
+              {["found", "missing", "damaged"].map((v) => <option key={v} value={v}>{humanize(v)}</option>)}
+            </select>
+          </Field>
+          <Field label="Notes"><input className="input-base" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+        </div>
+      </ConfirmDialog>
+    </>
+  );
+}
+
+function CompleteAudit({ audit, refresh }: { audit: AssetAudit; refresh: (a: AssetAudit) => void }) {
+  const can = useCan("assets.audit.edit");
+  const run = useMutation({
+    mutationFn: () => post<AssetAudit>(`/assets/audits/${audit.id}/complete`),
+    onSuccess: (a) => { toast.success("Audit completed"); refresh(a); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can || audit.status === "completed") return null;
+  return <button className="btn-ghost" disabled={run.isPending} onClick={() => run.mutate()}>Complete audit</button>;
+}
+
+function AuditFindings({ audit }: { audit: AssetAudit }) {
+  const [current, setCurrent] = useState(audit);
+  return (
+    <section className="card overflow-x-auto">
+      <div className="flex items-center justify-between px-4 pt-4">
+        <h2 className="font-semibold">Findings</h2>
+        <div className="flex gap-2"><AddFinding audit={current} refresh={setCurrent} /><CompleteAudit audit={current} refresh={setCurrent} /></div>
+      </div>
+      <table className="table-base">
+        <thead><tr><th>Asset</th><th>Result</th><th>Notes</th><th>When</th></tr></thead>
+        <tbody>
+          {current.findings.map((f, i) => <tr key={i}><td>{f.assetId}</td><td><StatusBadge status={f.result} /></td><td>{f.notes}</td><td>{formatDate(f.recordedAt)}</td></tr>)}
+          {current.findings.length === 0 && <tr><td colSpan={4} className="text-center text-slate-500 py-6">No findings recorded yet.</td></tr>}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+const audits: MasterConfig<AssetAudit> = {
+  entityType: "assets.audit",
+  permission: "assets.audit",
+  plural: "Asset audits",
+  singular: "Audit",
+  description: "A physical count of assets. Record a finding for each asset checked; a missing or recovered result updates the asset itself.",
+  route: "/assets/audits",
+  client: assetsApi.audits,
+  defaultSort: "-scheduledDate",
+  columns: [
+    { key: "name", label: "Name" },
+    { key: "scheduledDate", label: "Scheduled", render: (r) => formatDate(r.scheduledDate) },
+    { key: "findings", label: "Findings", render: (r) => r.findings.length },
+    { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  ],
+  filters: [{ key: "status", label: "Status", options: opts(["planning", "in_progress", "completed"]) }],
+  fields: [
+    { key: "name", label: "Name", type: "text", required: true },
+    { key: "scheduledDate", label: "Scheduled date", type: "date", required: true },
+    { key: "notes", label: "Notes", type: "textarea", wide: true },
+  ],
+  title: (r) => r.name,
+  subtitle: (r) => formatDate(r.scheduledDate),
+  status: (r) => r.status,
+  editable: (r) => r.status !== "completed",
+  extra: (r) => <AuditFindings audit={r} />,
+};
+
+function CompleteRepair({ repair, refresh }: { repair: Repair; refresh: (r: Repair) => void }) {
+  const can = useCan("assets.repair.edit");
+  const [open, setOpen] = useState(false);
+  const [completedDate, setCompletedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [cost, setCost] = useState("");
+  const run = useMutation({
+    mutationFn: () => post<Repair>(`/assets/repairs/${repair.id}/complete`, { completedDate, cost: cost || undefined }),
+    onSuccess: (r) => { setOpen(false); toast.success("Repair completed"); refresh(r); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!can || repair.status === "completed") return null;
+  return (
+    <>
+      <button className="btn-primary" onClick={() => setOpen(true)}>Complete</button>
+      <ConfirmDialog open={open} title="Complete this repair" confirmLabel="Save" busy={run.isPending} onConfirm={() => run.mutate()} onClose={() => setOpen(false)}>
+        <div className="space-y-3">
+          <Field label="Completed on"><input type="date" className="input-base" value={completedDate} onChange={(e) => setCompletedDate(e.target.value)} /></Field>
+          <Field label="Final cost (optional)"><input className="input-base" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="8500.00" /></Field>
+        </div>
+      </ConfirmDialog>
+    </>
+  );
+}
+
+const repairs: MasterConfig<Repair> = {
+  entityType: "assets.repair",
+  permission: "assets.repair",
+  plural: "Repairs",
+  singular: "Repair",
+  description: "A lightweight repair log against an asset.",
+  route: "/assets/repairs",
+  client: assetsApi.repairs,
+  defaultSort: "-reportedDate",
+  columns: [
+    { key: "assetId", label: "Asset" },
+    { key: "description", label: "Description" },
+    { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  ],
+  filters: [{ key: "status", label: "Status", options: opts(["reported", "in_progress", "completed"]) }],
+  fields: [
+    { key: "assetId", label: "Asset", type: "reference", reference: assetRef, required: true, createOnly: true },
+    { key: "reportedDate", label: "Reported date", type: "date", required: true, createOnly: true },
+    { key: "description", label: "Description", type: "text", required: true },
+    { key: "cost", label: "Estimated cost", type: "text" },
+    { key: "notes", label: "Notes", type: "textarea", wide: true },
+  ],
+  title: (r) => r.description,
+  subtitle: (r) => formatDate(r.reportedDate),
+  status: (r) => r.status,
+  editable: (r) => r.status !== "completed",
+  actions: (r, refresh) => <CompleteRepair repair={r} refresh={refresh} />,
+  details: (r) => [{ label: "Cost", value: r.cost !== null ? money(r.cost) : null }, { label: "Completed", value: r.completedDate ? formatDate(r.completedDate) : null }],
+};
+
 const SCREENS: Record<string, MasterConfig<never>> = {
   categories: categories as unknown as MasterConfig<never>,
   register: register as unknown as MasterConfig<never>,
+  audits: audits as unknown as MasterConfig<never>,
+  repairs: repairs as unknown as MasterConfig<never>,
 };
 
 export function AssetsList({ entity }: { entity: string }) {
