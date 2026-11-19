@@ -23,6 +23,7 @@ import {
   QualificationDto,
   UpdateEmployeeDto,
   UpdateJobGradeDto,
+  UpdateMyProfileDto,
   UpdatePositionDto,
 } from "./hr.dto.js";
 import { EmergencyContact, EmployeeDoc, EmploymentHistoryEntry, HR_COLLECTIONS, HR_LISTS, JobGradeDoc, PositionDoc } from "./hr.models.js";
@@ -288,6 +289,15 @@ export class EmployeeService extends MasterDataService<EmployeeDoc, CreateEmploy
   async listActive(ctx: RequestContext): Promise<EmployeeDoc[]> {
     const all = await this.loadAll(ctx);
     return all.filter((e) => e.status !== "terminated");
+  }
+
+  /** Self-service: phone, address and emergency contact only, never employment or pay fields. */
+  async updateOwnProfile(ctx: RequestContext, id: string, dto: UpdateMyProfileDto): Promise<EmployeeDoc> {
+    const patch: Patch<EmployeeDoc> = {};
+    if (dto.phone !== undefined) Object.assign(patch, { phone: dto.phone || null });
+    if (dto.address !== undefined) Object.assign(patch, { address: dto.address ?? null });
+    if (dto.emergencyContact !== undefined) Object.assign(patch, { emergencyContact: dto.emergencyContact ? buildEmergencyContact(dto.emergencyContact) : null });
+    return (await this.repo.update(ctx, id, patch)).after;
   }
 
   /** Sets or clears the attendance kiosk PIN; hashed, never returned by the API. */

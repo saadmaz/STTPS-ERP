@@ -125,3 +125,10 @@ export class TerminateDto {
 export class ReinstateDto {
   @IsOptional() @IsISO8601({ strict: true }) date?: string;
 }
+
+/** The "allowed personal updates" of blueprint §11 self-service: contact details only, nothing employment- or pay-related. */
+export class UpdateMyProfileDto {
+  @IsOptional() @IsString() @MaxLength(40) phone?: string;
+  @IsOptional() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
+  @IsOptional() @ValidateNested() @Type(() => EmergencyContactDto) emergencyContact?: EmergencyContactDto;
+}

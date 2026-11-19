@@ -14,6 +14,7 @@ import {
   TerminateDto,
   UpdateEmployeeDto,
   UpdateJobGradeDto,
+  UpdateMyProfileDto,
   UpdatePositionDto,
 } from "./hr.dto.js";
 import { CandidateService, JobPostingService, JobRequisitionService } from "./hr-recruitment.services.js";
@@ -77,6 +78,20 @@ import {
   UpdatePerformanceCycleDto,
   UpdateReviewDto,
 } from "./hr-performance.dto.js";
+import { AnnouncementService, EquipmentRequestService, HrRequestService } from "./hr-selfservice.services.js";
+import {
+  CreateAnnouncementDto,
+  CreateEquipmentRequestDto,
+  CreateHrRequestDto,
+  DecideEquipmentRequestDto,
+  DecideHrRequestDto,
+  FulfillEquipmentRequestDto,
+  SelfEquipmentRequestDto,
+  SelfHrRequestDto,
+  UpdateAnnouncementDto,
+  UpdateEquipmentRequestDto,
+  UpdateHrRequestDto,
+} from "./hr-selfservice.dto.js";
 
 @ApiTags("HR")
 @ApiBearerAuth()
@@ -98,6 +113,8 @@ class HrActionsController {
     private readonly leaveBalances: LeaveBalanceService,
     private readonly goals: GoalService,
     private readonly reviews: ReviewService,
+    private readonly hrRequests: HrRequestService,
+    private readonly equipmentRequests: EquipmentRequestService,
   ) {}
 
   @Get("employees/org-chart")
@@ -374,6 +391,98 @@ class HrActionsController {
   @ApiOperation({ summary: "Submits a manager or peer review, locking it from further edits" })
   submitReview(@Ctx() ctx: RequestContext, @Param("id") id: string) {
     return this.reviews.submit(ctx, id);
+  }
+
+  @Post("requests/:id/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.hrRequest.edit")
+  @ApiOperation({ summary: "Updates an HR request's status, recording a resolution once resolved or closed" })
+  decideHrRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideHrRequestDto)) dto: DecideHrRequestDto) {
+    return this.hrRequests.decide(ctx, id, dto.status, dto.resolution);
+  }
+
+  @Post("equipment-requests/:id/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.equipmentRequest.edit")
+  decideEquipmentRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideEquipmentRequestDto)) dto: DecideEquipmentRequestDto) {
+    return this.equipmentRequests.decide(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("equipment-requests/:id/fulfill")
+  @HttpCode(200)
+  @RequirePermission("hr.equipmentRequest.edit")
+  @ApiOperation({ summary: "Marks an approved equipment request as handed over" })
+  fulfillEquipmentRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(FulfillEquipmentRequestDto)) dto: FulfillEquipmentRequestDto) {
+    return this.equipmentRequests.fulfill(ctx, id, dto.note);
+  }
+}
+
+/** The employee self-service portal: profile, announcements, HR and equipment requests. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/self-service")
+class SelfServicePortalController {
+  constructor(
+    private readonly employees: EmployeeService,
+    private readonly announcements: AnnouncementService,
+    private readonly hrRequests: HrRequestService,
+    private readonly equipmentRequests: EquipmentRequestService,
+  ) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me/profile")
+  @ApiOperation({ summary: "My own employee record" })
+  myProfile(@Ctx() ctx: RequestContext) {
+    return this.myEmployee(ctx);
+  }
+
+  @Put("me/profile")
+  @ApiOperation({ summary: "Updates my phone, address and emergency contact; nothing employment- or pay-related" })
+  async updateMyProfile(@Ctx() ctx: RequestContext, @Body(validated(UpdateMyProfileDto)) dto: UpdateMyProfileDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.employees.updateOwnProfile(ctx, employee.id, dto);
+  }
+
+  @Get("announcements")
+  @ApiOperation({ summary: "Published announcements that have not expired" })
+  activeAnnouncements(@Ctx() ctx: RequestContext) {
+    return this.announcements.active(ctx);
+  }
+
+  @Get("me/requests")
+  @ApiOperation({ summary: "My own HR requests" })
+  async myHrRequests(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.hrRequests.forEmployee(ctx, employee.id);
+  }
+
+  @Post("me/requests")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Raises a request to HR" })
+  async createHrRequest(@Ctx() ctx: RequestContext, @Body(validated(SelfHrRequestDto)) dto: SelfHrRequestDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.hrRequests.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Get("me/equipment-requests")
+  @ApiOperation({ summary: "My own equipment requests" })
+  async myEquipmentRequests(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.equipmentRequests.forEmployee(ctx, employee.id);
+  }
+
+  @Post("me/equipment-requests")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Requests a piece of equipment" })
+  async createEquipmentRequest(@Ctx() ctx: RequestContext, @Body(validated(SelfEquipmentRequestDto)) dto: SelfEquipmentRequestDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.equipmentRequests.create(ctx, { ...dto, employeeId: employee.id });
   }
 }
 
@@ -659,6 +768,9 @@ const crud = [
   createMasterDataController({ path: "hr/goals", tag: "HR: Goals", module: "hr", permission: "hr.goal", service: GoalService, createDto: CreateGoalDto, updateDto: UpdateGoalDto }),
   createMasterDataController({ path: "hr/reviews", tag: "HR: Reviews", module: "hr", permission: "hr.review", service: ReviewService, createDto: CreateReviewDto, updateDto: UpdateReviewDto }),
   createMasterDataController({ path: "hr/development-plans", tag: "HR: Development plans", module: "hr", permission: "hr.developmentPlan", service: DevelopmentPlanService, createDto: CreateDevelopmentPlanDto, updateDto: UpdateDevelopmentPlanDto }),
+  createMasterDataController({ path: "hr/announcements", tag: "HR: Announcements", module: "hr", permission: "hr.announcement", service: AnnouncementService, createDto: CreateAnnouncementDto, updateDto: UpdateAnnouncementDto }),
+  createMasterDataController({ path: "hr/requests", tag: "HR: Requests", module: "hr", permission: "hr.hrRequest", service: HrRequestService, createDto: CreateHrRequestDto, updateDto: UpdateHrRequestDto }),
+  createMasterDataController({ path: "hr/equipment-requests", tag: "HR: Equipment requests", module: "hr", permission: "hr.equipmentRequest", service: EquipmentRequestService, createDto: CreateEquipmentRequestDto, updateDto: UpdateEquipmentRequestDto }),
 ];
 
 const SERVICES = [
@@ -682,6 +794,9 @@ const SERVICES = [
   GoalService,
   ReviewService,
   DevelopmentPlanService,
+  AnnouncementService,
+  HrRequestService,
+  EquipmentRequestService,
 ];
 
 @Module({
@@ -691,6 +806,7 @@ const SERVICES = [
     ShiftSelfServiceController,
     LeaveSelfServiceController,
     PerformanceSelfServiceController,
+    SelfServicePortalController,
     PublicCareersController,
     PublicAttendanceController,
     ...crud,
