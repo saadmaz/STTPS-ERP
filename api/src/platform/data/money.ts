@@ -83,6 +83,14 @@ export function applyRate(amountMinor: number, rate: number, rateDecimals = 4): 
   return divRound(BigInt(amountMinor) * BigInt(rate), 10n ** BigInt(rateDecimals));
 }
 
+/** The net (pre-tax) amount backed out of a tax-inclusive `amountMinor`, at `rate` / 10^rateDecimals. */
+export function netOfTax(amountMinor: number, rate: number, rateDecimals = 4): number {
+  assertInteger(amountMinor);
+  assertInteger(rate);
+  const scale = 10n ** BigInt(rateDecimals);
+  return divRound(BigInt(amountMinor) * scale, scale + BigInt(rate));
+}
+
 /**
  * Splits `total` into parts proportional to `weights` so the parts always sum
  * to `total` exactly (largest-remainder method). Used for allocating payments,

@@ -7,7 +7,7 @@ import { CompanyDoc } from "../firestore/models.js";
 import { AuditService } from "../platform/audit/audit.service.js";
 import { RequestContext, Scope, systemContext } from "../platform/context/request-context.js";
 import { MasterDataService } from "../platform/crud/master-data.service.js";
-import { applyRate, extend, fromMinor, toMinor, toQty } from "../platform/data/money.js";
+import { applyRate, extend, fromMinor, netOfTax, toMinor, toQty } from "../platform/data/money.js";
 import { NewDoc, Patch } from "../platform/data/repository.js";
 import { UniqueService } from "../platform/data/unique.service.js";
 import { EventBusService } from "../platform/events/event-bus.service.js";
@@ -33,6 +33,7 @@ import {
   SALES_LISTS,
   SalesLine,
   SalesSettingsDoc,
+  TaxRate,
   Totals,
 } from "./sales.models.js";
 import {
@@ -73,6 +74,7 @@ export class SalesSettingsService {
         defaultTaxCode: "VAT",
         quoteValidityDays: 30,
         discountApprovalPct: 1500,
+        pricesIncludeTax: false,
         defaultTerms: null,
         defaultWarehouseId: null,
         updatedAt: new Date(0).toISOString(),
@@ -84,10 +86,16 @@ export class SalesSettingsService {
     const current = await this.get(scope);
     const next: SalesSettingsDoc = {
       ...current,
-      taxRates: dto.taxRates ? dto.taxRates.map((t) => ({ code: t.code, name: t.name, rate: pct(t.rate) })) : current.taxRates,
+      taxRates: dto.taxRates
+        ? dto.taxRates.map((t) => ({
+            code: t.code, name: t.name, rate: pct(t.rate),
+            effectiveRates: t.effectiveRates?.map((r) => ({ rate: pct(r.rate), effectiveDate: r.effectiveDate.slice(0, 10) })),
+          }))
+        : current.taxRates,
       defaultTaxCode: dto.defaultTaxCode ?? current.defaultTaxCode,
       quoteValidityDays: dto.quoteValidityDays ?? current.quoteValidityDays,
       discountApprovalPct: dto.discountApprovalPct ? pct(dto.discountApprovalPct) : current.discountApprovalPct,
+      pricesIncludeTax: dto.pricesIncludeTax ?? current.pricesIncludeTax,
       defaultTerms: dto.defaultTerms ?? current.defaultTerms,
       defaultWarehouseId: dto.defaultWarehouseId ?? current.defaultWarehouseId,
       updatedAt: new Date().toISOString(),
@@ -103,6 +111,13 @@ export function computeLine(line: Omit<SalesLine, "net" | "tax" | "total">): Sal
   const net = gross - applyRate(gross, line.discountPct, 4);
   const tax = applyRate(net, line.taxRate, 4);
   return { ...line, net, tax, total: net + tax };
+}
+
+/** The rate in effect on `date`: the latest `effectiveRates` entry on or before it, else the current `rate`. */
+export function taxRateOn(tax: TaxRate, date: string): number {
+  const applicable = (tax.effectiveRates ?? []).filter((r) => r.effectiveDate <= date);
+  if (!applicable.length) return tax.rate;
+  return applicable.reduce((latest, r) => (r.effectiveDate > latest.effectiveDate ? r : latest)).rate;
 }
 
 export function totalsOf(lines: SalesLine[]): Totals {
@@ -121,7 +136,13 @@ export class LinePricer {
     private readonly settings: SalesSettingsService,
   ) {}
 
-  async price(ctx: RequestContext, inputs: SalesLineDto[], accountId: string, currency: string): Promise<{ lines: SalesLine[]; products: Map<string, ProductDoc> }> {
+  /**
+   * `date` resolves effective-dated tax rates; `taxExempt` (the customer's
+   * exemption) forces every line tax-free regardless of code. When prices
+   * are tax-inclusive, an explicit `unitPrice` is read as the gross price
+   * and the net (exclusive) price is what gets stored.
+   */
+  async price(ctx: RequestContext, inputs: SalesLineDto[], accountId: string, currency: string, date: string, taxExempt: boolean): Promise<{ lines: SalesLine[]; products: Map<string, ProductDoc> }> {
     const settings = await this.settings.get(ctx);
     const ids = [...new Set(inputs.map((l) => l.productId))];
     const snaps = await this.firestore.db.getAll(...ids.map((id) => this.firestore.collection(PRODUCT_COLLECTIONS.products).doc(id)));
@@ -137,19 +158,22 @@ export class LinePricer {
       if (!product.isSellable || product.status !== "active") throw new BadRequestException(`${product.sku} cannot be sold`);
       const qty = toQty(input.qty);
       if (qty <= 0) throw new BadRequestException("Quantities must be positive");
+      const taxCode = taxExempt ? null : input.taxCode ?? product.taxCategory ?? settings.defaultTaxCode;
+      const tax = taxCode ? settings.taxRates.find((t) => t.code === taxCode) : undefined;
+      if (taxCode && !tax) throw new BadRequestException(`Unknown tax code ${taxCode}`);
+      const taxRate = tax ? taxRateOn(tax, date) : 0;
       let unitPrice: number;
-      if (input.unitPrice !== undefined) unitPrice = toMinor(input.unitPrice, currency);
-      else {
+      if (input.unitPrice !== undefined) {
+        const typed = toMinor(input.unitPrice, currency);
+        unitPrice = settings.pricesIncludeTax && taxRate ? netOfTax(typed, taxRate) : typed;
+      } else {
         const quote = await this.pricing.quote(ctx, { productId: product.id, accountId, qty: input.qty });
         if (quote.currency !== currency) throw new BadRequestException(`${product.sku} is priced in ${quote.currency}; enter a ${currency} price`);
         unitPrice = quote.unitPrice;
       }
-      const taxCode = input.taxCode ?? product.taxCategory ?? settings.defaultTaxCode;
-      const tax = taxCode ? settings.taxRates.find((t) => t.code === taxCode) : undefined;
-      if (taxCode && !tax) throw new BadRequestException(`Unknown tax code ${taxCode}`);
       const discountPct = pct(input.discountPct);
       if (discountPct > 10_000) throw new BadRequestException("Discount cannot exceed 100%");
-      lines.push(computeLine({ lineId: randomUUID().slice(0, 8), productId: product.id, description: input.description?.trim() || product.name, qty, unitPrice, discountPct, taxCode: tax?.code ?? null, taxRate: tax?.rate ?? 0 }));
+      lines.push(computeLine({ lineId: randomUUID().slice(0, 8), productId: product.id, description: input.description?.trim() || product.name, qty, unitPrice, discountPct, taxCode: tax?.code ?? null, taxRate }));
     }
     return { lines, products };
   }
@@ -211,15 +235,17 @@ export class QuoteService extends MasterDataService<QuoteDoc, QuoteInput, QuoteP
     const account = await loadAccount(this.firestore, ctx, dto.accountId);
     const settings = await this.settings.get(ctx);
     const currency = dto.currency ?? account.currency;
-    const { lines } = await this.pricer.price(ctx, dto.lines, account.id, currency);
     const date = dto.date?.slice(0, 10) ?? today();
+    const { lines } = await this.pricer.price(ctx, dto.lines, account.id, currency, date, account.taxExempt);
     return super.create(ctx, { ...dto, priced: lines, defaults: { currency, validUntil: addDays(date, settings.quoteValidityDays), terms: settings.defaultTerms } });
   }
 
   async update(ctx: RequestContext, id: string, dto: QuotePatchInput, expectedVersion?: number): Promise<QuoteDoc> {
     if (!dto.lines) return super.update(ctx, id, dto, expectedVersion);
     const quote = await this.repo.get(ctx, id);
-    const { lines } = await this.pricer.price(ctx, dto.lines, dto.accountId ?? quote.accountId, dto.currency ?? quote.currency);
+    const account = await loadAccount(this.firestore, ctx, dto.accountId ?? quote.accountId);
+    const date = dto.date?.slice(0, 10) ?? quote.date;
+    const { lines } = await this.pricer.price(ctx, dto.lines, account.id, dto.currency ?? quote.currency, date, account.taxExempt);
     return super.update(ctx, id, { ...dto, priced: lines }, expectedVersion);
   }
 
@@ -434,7 +460,8 @@ export class OrderService extends MasterDataService<OrderDoc, OrderInput, OrderP
     const account = await loadAccount(this.firestore, ctx, dto.accountId);
     const settings = await this.settings.get(ctx);
     const currency = dto.currency ?? account.currency;
-    const { lines, products } = await this.pricer.price(ctx, dto.lines, account.id, currency);
+    const date = dto.date?.slice(0, 10) ?? today();
+    const { lines, products } = await this.pricer.price(ctx, dto.lines, account.id, currency, date, account.taxExempt);
     const stocked = Object.fromEntries([...products.values()].map((p) => [p.id, STOCKED.has(p.type)]));
     const warehouseId = dto.warehouseId ?? settings.defaultWarehouseId;
     return super.create(ctx, { ...dto, priced: lines, stocked, defaults: { currency, warehouseId, account, quoteId: dto.defaults?.quoteId ?? null } });
@@ -443,7 +470,9 @@ export class OrderService extends MasterDataService<OrderDoc, OrderInput, OrderP
   async update(ctx: RequestContext, id: string, dto: OrderPatchInput, expectedVersion?: number): Promise<OrderDoc> {
     if (!dto.lines) return super.update(ctx, id, dto, expectedVersion);
     const order = await this.repo.get(ctx, id);
-    const { lines, products } = await this.pricer.price(ctx, dto.lines, order.accountId, order.currency);
+    const account = await loadAccount(this.firestore, ctx, order.accountId);
+    const date = dto.date?.slice(0, 10) ?? order.date;
+    const { lines, products } = await this.pricer.price(ctx, dto.lines, order.accountId, order.currency, date, account.taxExempt);
     const stocked = Object.fromEntries([...products.values()].map((p) => [p.id, STOCKED.has(p.type)]));
     return super.update(ctx, id, { ...dto, priced: lines, stocked }, expectedVersion);
   }

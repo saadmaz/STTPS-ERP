@@ -6,7 +6,7 @@ Read this file in full before changing anything. It records the conventions the 
 
 - `docs/BLUEPRINT.md` is the product spec. `docs/IMPLEMENTATION-PLAN.md` is the phase plan. Its checkboxes (`- [x]` / `- [ ]`, with *italic notes* on partly done items) are the source of truth for progress.
 - **Pick the next unchecked item in phase order** and build it end to end: API, tests, web screens, docs. Then commit, push and move on. The owner has said not to ask for approval between items.
-- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (except the tax-engine leftovers noted in the plan). Next: finish the tax-engine leftovers (effective-dated rates, inclusive pricing on sales, customer exemptions), then **Phase 3 Workforce** (HR and Sri Lankan payroll).
+- Finished: Phase 0 (most), Phase 1 (except sales analytics), Phase 2 (all). Next: **Phase 3 Workforce** (HR and Sri Lankan payroll), starting with Employees.
 
 ## 2. Git and release rules (strict)
 

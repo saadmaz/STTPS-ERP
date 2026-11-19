@@ -4,6 +4,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
@@ -103,10 +104,17 @@ export class UpdateReturnDto {
   @IsOptional() @IsString() @Length(1, 500) reason?: string;
 }
 
+export class EffectiveTaxRateDto {
+  @ApiProperty({ description: "The rate that takes effect on this date" }) @Matches(PCT) rate!: string;
+  @ApiProperty() @IsISO8601({ strict: true }) effectiveDate!: string;
+}
+
 export class TaxRateDto {
   @IsString() @Length(1, 20) code!: string;
   @IsString() @Length(1, 60) name!: string;
   @Matches(PCT) rate!: string;
+  @ApiPropertyOptional({ type: [EffectiveTaxRateDto], description: "Scheduled rate changes; a change takes effect on its date without a deploy" })
+  @IsOptional() @IsArray() @ArrayMaxSize(30) @ValidateNested({ each: true }) @Type(() => EffectiveTaxRateDto) effectiveRates?: EffectiveTaxRateDto[];
 }
 
 export class SalesSettingsDto {
@@ -114,6 +122,7 @@ export class SalesSettingsDto {
   @IsOptional() @IsString() defaultTaxCode?: string;
   @IsOptional() @IsInt() @Min(1) @Max(365) quoteValidityDays?: number;
   @IsOptional() @Matches(PCT) discountApprovalPct?: string;
+  @ApiPropertyOptional({ description: "Quote and order prices typed in are tax-inclusive; the exclusive net price is what gets stored" }) @IsOptional() @IsBoolean() pricesIncludeTax?: boolean;
   @IsOptional() @IsString() @MaxLength(5000) defaultTerms?: string;
   @IsOptional() @IsString() defaultWarehouseId?: string;
 }

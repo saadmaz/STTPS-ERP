@@ -104,6 +104,7 @@ const SECTIONS: NavSection[] = [
       { label: "Orders", href: "/sales/orders", icon: ShoppingCart, permission: "sales.order.view" },
       { label: "Deliveries", href: "/sales/deliveries", icon: Truck, permission: "sales.delivery.view" },
       { label: "Returns", href: "/sales/returns", icon: RotateCcw, permission: "sales.return.view" },
+      { label: "Sales settings", href: "/sales/settings", icon: SlidersHorizontal, permission: "sales.settings.edit" },
     ],
   },
   {

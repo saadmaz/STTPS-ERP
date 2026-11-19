@@ -36,6 +36,8 @@ export interface Account extends BaseRecord {
   creditLimit: number | null;
   taxId: string | null;
   ownerUserId: string | null;
+  taxExempt: boolean;
+  taxExemptionNo: string | null;
   notes: string | null;
 }
 export interface Contact extends BaseRecord {
@@ -180,13 +182,15 @@ const accounts: MasterConfig<Account> = {
     { key: "paymentTermsDays", label: "Payment terms (days)", type: "number" },
     { key: "creditLimit", label: "Credit limit", type: "text", hint: "Blank for no limit" },
     { key: "ownerUserId", label: "Account owner", type: "user" },
+    { key: "taxExempt", label: "Exempt from tax", type: "boolean", hint: "No tax on this customer's quotes, orders and invoices, even with an explicit tax code" },
+    { key: "taxExemptionNo", label: "Exemption certificate no.", type: "text" },
     { key: "notes", label: "Notes", type: "textarea" },
   ],
   defaults: { type: "customer", status: "active", currency: "LKR", paymentTermsDays: 30 },
   toForm: (r) => ({
     name: r.name, code: r.code, type: r.type, status: r.status, segment: r.segment ?? "", industry: r.industry ?? "", email: r.email ?? "",
     phone: r.phone ?? "", website: r.website ?? "", taxId: r.taxId ?? "", currency: r.currency, paymentTermsDays: r.paymentTermsDays,
-    creditLimit: minorToDecimal(r.creditLimit, r.currency), ownerUserId: r.ownerUserId ?? "", notes: r.notes ?? "",
+    creditLimit: minorToDecimal(r.creditLimit, r.currency), ownerUserId: r.ownerUserId ?? "", taxExempt: r.taxExempt, taxExemptionNo: r.taxExemptionNo ?? "", notes: r.notes ?? "",
   }),
   title: (r) => r.name,
   subtitle: (r) => `${r.code} · ${humanize(r.type)}${r.segment ? ` · ${r.segment}` : ""}`,
@@ -199,6 +203,7 @@ const accounts: MasterConfig<Account> = {
     { label: "Payment terms", value: `${r.paymentTermsDays} days` },
     { label: "Credit limit", value: r.creditLimit === null ? "No limit" : formatMoney(r.creditLimit, r.currency) },
     { label: "Owner", value: <UserName id={r.ownerUserId} /> },
+    { label: "Tax exemption", value: r.taxExempt ? (r.taxExemptionNo ? `Exempt (certificate ${r.taxExemptionNo})` : "Exempt") : null },
     { label: "Notes", value: r.notes },
   ],
   extra: (r) => <AccountSummary accountId={r.id} />,

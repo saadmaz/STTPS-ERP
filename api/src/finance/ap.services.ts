@@ -10,7 +10,7 @@ import { NewDoc, Patch } from "../platform/data/repository.js";
 import { UniqueService } from "../platform/data/unique.service.js";
 import { EventBusService } from "../platform/events/event-bus.service.js";
 import { SearchEntry } from "../platform/search/search-index.js";
-import { SalesSettingsService } from "../sales/sales.services.js";
+import { SalesSettingsService, taxRateOn } from "../sales/sales.services.js";
 import { GoodsReceiptDoc, PROCUREMENT_COLLECTIONS, PurchaseOrderDoc } from "../procurement/procurement.models.js";
 import { AP_COLLECTIONS, AP_LISTS, BillDoc, BillLine, MatchResult, PaymentDoc } from "./ap.models.js";
 import { BillLineDto, CreateBillDto, CreatePaymentDto, PaymentRunDto, UpdateBillDto, UpdatePaymentDto } from "./ap.dto.js";
@@ -120,7 +120,8 @@ export class BillService extends MasterDataService<BillDoc, BillInput, UpdateBil
     return o;
   }
 
-  async buildLines(ctx: RequestContext, input: BillLineDto[], currency: string, order: PurchaseOrderDoc | null): Promise<BillLine[]> {
+  /** `date` resolves effective-dated tax rates. */
+  async buildLines(ctx: RequestContext, input: BillLineDto[], currency: string, order: PurchaseOrderDoc | null, date: string): Promise<BillLine[]> {
     const settings = await this.taxes.get(ctx);
     return input.map((l) => {
       const ol = l.orderLineId ? order?.lines.find((x) => x.lineId === l.orderLineId) : undefined;
@@ -136,7 +137,7 @@ export class BillService extends MasterDataService<BillDoc, BillInput, UpdateBil
       if (qty <= 0) throw new BadRequestException("Quantities must be positive");
       return billLine({
         lineId: randomUUID().slice(0, 8), productId: ol?.productId ?? l.productId ?? null, orderLineId: ol?.lineId ?? null, description, qty,
-        unitPrice: toMinor(l.unitPrice, currency), taxCode: tax?.code ?? null, taxRate: tax?.rate ?? 0, accountId: l.accountId ?? null, stocked, orderPrice: ol?.unitPrice ?? null,
+        unitPrice: toMinor(l.unitPrice, currency), taxCode: tax?.code ?? null, taxRate: tax ? taxRateOn(tax, date) : 0, accountId: l.accountId ?? null, stocked, orderPrice: ol?.unitPrice ?? null,
       });
     });
   }
@@ -148,14 +149,15 @@ export class BillService extends MasterDataService<BillDoc, BillInput, UpdateBil
     if (order && order.supplierId !== s.id) throw new BadRequestException("The order is for another supplier");
     const currency = order?.currency ?? dto.currency ?? s.currency;
     const date = dto.date?.slice(0, 10) ?? today();
-    const lines = await this.buildLines(ctx, dto.lines, currency, order);
+    const lines = await this.buildLines(ctx, dto.lines, currency, order, date);
     return super.create(ctx, { ...dto, built: { lines, supplier: s, currency, rate: await this.invoices.rateFor(ctx, currency, date), order } });
   }
 
   async update(ctx: RequestContext, id: string, dto: UpdateBillDto & { built?: { lines: BillLine[] } }, expectedVersion?: number): Promise<BillDoc> {
     if (!dto.lines) return super.update(ctx, id, dto, expectedVersion);
     const before = await this.repo.get(ctx, id);
-    return super.update(ctx, id, { ...dto, built: { lines: await this.buildLines(ctx, dto.lines, before.currency, await this.order(ctx, before.orderId)) } }, expectedVersion);
+    const date = dto.date?.slice(0, 10) ?? before.date;
+    return super.update(ctx, id, { ...dto, built: { lines: await this.buildLines(ctx, dto.lines, before.currency, await this.order(ctx, before.orderId), date) } }, expectedVersion);
   }
 
   protected toNew(dto: BillInput): NewDoc<BillDoc> {

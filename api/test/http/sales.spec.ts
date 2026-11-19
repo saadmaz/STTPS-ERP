@@ -128,4 +128,39 @@ describe("Sales: lead to cash, up to delivery and returns", () => {
     await http().post(`/api/v1/sales/orders/${o.body.id}/cancel`).set(as()).send({ reason: "Customer changed mind" }).expect(200);
     expect((await stock()).reserved).toBe(0);
   });
+
+  it("resolves tax rates by the document's date, so a scheduled change takes effect without a deploy", async () => {
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    await http().put("/api/v1/sales/settings").set(as()).send({
+      taxRates: [
+        { code: "VAT", name: "VAT 18%", rate: "18", effectiveRates: [{ rate: "20", effectiveDate: tomorrow }] },
+        { code: "ZERO", name: "Zero rated", rate: "0" },
+      ],
+    }).expect(200);
+    const today = await http().post("/api/v1/sales/orders").set(as()).send({ accountId: customer, lines: [{ productId: tile, qty: "1" }] }).expect(201);
+    expect(today.body.lines[0].taxRate).toBe(1800);
+    const future = await http().post("/api/v1/sales/orders").set(as()).send({ accountId: customer, date: tomorrow, lines: [{ productId: tile, qty: "1" }] }).expect(201);
+    expect(future.body.lines[0].taxRate).toBe(2000);
+    // Restore the plain 18% rate for the tests below.
+    await http().put("/api/v1/sales/settings").set(as()).send({ taxRates: [{ code: "VAT", name: "VAT 18%", rate: "18" }, { code: "ZERO", name: "Zero rated", rate: "0" }] }).expect(200);
+  });
+
+  it("backs out the net price when quote and order prices are tax-inclusive", async () => {
+    await http().put("/api/v1/sales/settings").set(as()).send({ pricesIncludeTax: true }).expect(200);
+    // 118.00 inclusive of 18% VAT backs out to 100.00 net, 18.00 tax.
+    const order = await http().post("/api/v1/sales/orders").set(as()).send({ accountId: customer, lines: [{ productId: tile, qty: "1", unitPrice: "118" }] }).expect(201);
+    expect(order.body.lines[0]).toMatchObject({ unitPrice: 10_000, net: 10_000, tax: 1_800, total: 11_800 });
+    await http().put("/api/v1/sales/settings").set(as()).send({ pricesIncludeTax: false }).expect(200);
+  });
+
+  it("exempts a customer from tax on quotes, orders and invoices, even over an explicit tax code", async () => {
+    const exempt = (await http().post("/api/v1/crm/accounts").set(as()).send({ name: "Export Co", taxExempt: true, taxExemptionNo: "EXP-001" }).expect(201)).body.id;
+    const order = await http().post("/api/v1/sales/orders").set(as()).send({ accountId: exempt, lines: [{ productId: tile, qty: "2", taxCode: "VAT" }] }).expect(201);
+    expect(order.body.lines[0]).toMatchObject({ taxCode: null, taxRate: 0 });
+    expect(order.body.totals).toEqual({ subtotal: 200_000, discount: 0, tax: 0, total: 200_000 });
+
+    const inv = await http().post("/api/v1/finance/invoices").set(as()).send({ customerId: exempt, lines: [{ description: "Consulting", qty: "1", unitPrice: "1000", taxCode: "VAT" }] }).expect(201);
+    expect(inv.body.lines[0]).toMatchObject({ taxCode: null, taxRate: 0 });
+    expect(inv.body.totals).toEqual({ subtotal: 100_000, discount: 0, tax: 0, total: 100_000 });
+  });
 });

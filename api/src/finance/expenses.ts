@@ -11,7 +11,7 @@ import { AuditService } from "../platform/audit/audit.service.js";
 import { Ctx, RequestContext, systemContext } from "../platform/context/request-context.js";
 import { MasterDataService } from "../platform/crud/master-data.service.js";
 import { validated } from "../platform/crud/master-data.controller.js";
-import { fromMinor, toMinor } from "../platform/data/money.js";
+import { fromMinor, netOfTax, toMinor } from "../platform/data/money.js";
 import { BaseDoc, NewDoc, Patch } from "../platform/data/repository.js";
 import { UniqueService } from "../platform/data/unique.service.js";
 import { EventBusService } from "../platform/events/event-bus.service.js";
@@ -19,7 +19,7 @@ import { ApprovalsService } from "../platform/approvals/approvals.service.js";
 import { APPROVAL_COMPLETED, ApprovalCompletedPayload } from "../platform/approvals/approvals.models.js";
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { SearchEntry } from "../platform/search/search-index.js";
-import { SalesSettingsService } from "../sales/sales.services.js";
+import { SalesSettingsService, taxRateOn } from "../sales/sales.services.js";
 import { AccountDoc, FINANCE_COLLECTIONS } from "./finance.models.js";
 import { GeneralLedger, LineInput } from "./ledger.service.js";
 
@@ -197,11 +197,13 @@ export class ExpenseClaimService extends MasterDataService<ExpenseClaimDoc, Clai
       const code = l.taxCode === "NONE" ? null : (l.taxCode ?? c.taxCode);
       const rate = code ? rates.find((r) => r.code === code) : undefined;
       if (code && !rate) throw new BadRequestException(`Unknown tax code ${code}`);
-      // Receipts show tax-inclusive amounts: net = amount / (1 + rate).
-      const net = rate ? Math.round((amount * 10_000) / (10_000 + rate.rate)) : amount;
+      const date = l.date?.slice(0, 10) ?? today();
+      const taxRate = rate ? taxRateOn(rate, date) : 0;
+      // Receipts show tax-inclusive amounts: net is backed out of the amount.
+      const net = rate ? netOfTax(amount, taxRate) : amount;
       return {
-        lineId: randomUUID().slice(0, 8), date: l.date?.slice(0, 10) ?? today(), categoryId: c.id, accountId: c.accountId, description: l.description.trim(), amount,
-        taxCode: rate?.code ?? null, taxRate: rate?.rate ?? 0, tax: amount - net, net,
+        lineId: randomUUID().slice(0, 8), date, categoryId: c.id, accountId: c.accountId, description: l.description.trim(), amount,
+        taxCode: rate?.code ?? null, taxRate, tax: amount - net, net,
       };
     });
     return { lines, currency };

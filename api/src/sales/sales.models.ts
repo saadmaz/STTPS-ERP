@@ -159,8 +159,10 @@ export interface ReturnDoc extends BaseDoc {
 export interface TaxRate {
   code: string;
   name: string;
-  /** Hundredths of a percent. */
+  /** Hundredths of a percent; the current rate, and the fallback when `effectiveRates` is empty or has nothing on or before the date asked for. */
   rate: number;
+  /** Scheduled rate changes, so a change takes effect on its date without a deploy. Resolve with `taxRateOn`. */
+  effectiveRates?: { rate: number; effectiveDate: string }[];
 }
 
 export interface SalesSettingsDoc {
@@ -170,6 +172,8 @@ export interface SalesSettingsDoc {
   quoteValidityDays: number;
   /** Discounts above this (hundredths of a percent) need approval. */
   discountApprovalPct: number;
+  /** Quote and order prices typed in are tax-inclusive; the exclusive net price is what gets stored. */
+  pricesIncludeTax: boolean;
   defaultTerms: string | null;
   defaultWarehouseId: string | null;
   updatedAt: string;

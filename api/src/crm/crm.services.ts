@@ -202,6 +202,8 @@ export class AccountService extends MasterDataService<AccountDoc, CreateAccountD
       priceListId: orNull(dto.priceListId),
       ownerUserId: dto.ownerUserId ?? ctx.userId,
       portalAccess: dto.portalAccess ?? false,
+      taxExempt: dto.taxExempt ?? false,
+      taxExemptionNo: orNull(dto.taxExemptionNo),
       notes: orNull(dto.notes),
     };
   }
@@ -587,6 +589,8 @@ export class LeadConversionService {
           priceListId: null,
           ownerUserId: lead.ownerUserId ?? ctx.userId,
           portalAccess: false,
+          taxExempt: false,
+          taxExemptionNo: null,
           notes: null,
           customFields: {},
         } as never);

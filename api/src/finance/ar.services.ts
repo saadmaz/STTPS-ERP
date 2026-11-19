@@ -14,7 +14,7 @@ import { SearchEntry } from "../platform/search/search-index.js";
 import { ExchangeRateService } from "../org/org.services.js";
 import { CRM_COLLECTIONS } from "../crm/crm.models.js";
 import { PRODUCT_COLLECTIONS, ProductDoc } from "../products/products.models.js";
-import { OrderService, SalesSettingsService } from "../sales/sales.services.js";
+import { OrderService, SalesSettingsService, taxRateOn } from "../sales/sales.services.js";
 import { DeliveryDoc, OrderDoc, ReturnDoc, SALES_COLLECTIONS } from "../sales/sales.models.js";
 import { AR_COLLECTIONS, AR_LISTS, InvoiceDoc, InvoiceLine, ReceiptDoc } from "./ar.models.js";
 import { CreateInvoiceDto, CreateReceiptDto, InvoiceLineDto, UpdateInvoiceDto, UpdateReceiptDto } from "./ar.dto.js";
@@ -34,6 +34,7 @@ interface Customer {
   paymentTermsDays: number;
   email: string | null;
   ownerUserId: string | null;
+  taxExempt: boolean;
   archivedAt: string | null;
 }
 
@@ -132,7 +133,8 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
     return rate;
   }
 
-  async buildLines(ctx: RequestContext, input: InvoiceLineDto[], currency: string): Promise<InvoiceLine[]> {
+  /** `date` resolves effective-dated tax rates; `exempt` (the customer's exemption) forces every line tax-free. */
+  async buildLines(ctx: RequestContext, input: InvoiceLineDto[], currency: string, date: string, exempt: boolean): Promise<InvoiceLine[]> {
     const ids = [...new Set(input.map((l) => l.productId).filter((x): x is string => !!x))];
     const products = new Map<string, ProductDoc>();
     if (ids.length) {
@@ -147,14 +149,14 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
       if (l.productId && !p) throw new BadRequestException("Product not found");
       const description = l.description?.trim() || p?.name;
       if (!description) throw new BadRequestException("Describe each line");
-      const taxCode = l.taxCode ?? p?.taxCategory ?? settings.defaultTaxCode;
+      const taxCode = exempt ? "" : l.taxCode ?? p?.taxCategory ?? settings.defaultTaxCode;
       const tax = taxCode ? settings.taxRates.find((t) => t.code === taxCode) : undefined;
       if (taxCode && !tax) throw new BadRequestException(`Unknown tax code ${taxCode}`);
       const qty = toQty(l.qty);
       if (qty <= 0) throw new BadRequestException("Quantities must be positive");
       return computeInvoiceLine({
         lineId: randomUUID().slice(0, 8), productId: p?.id ?? null, description, qty, unitPrice: toMinor(l.unitPrice, currency),
-        discountPct: l.discountPct ? Math.round(Number(l.discountPct) * 100) : 0, taxCode: tax?.code ?? null, taxRate: tax?.rate ?? 0, accountId: l.accountId ?? null,
+        discountPct: l.discountPct ? Math.round(Number(l.discountPct) * 100) : 0, taxCode: tax?.code ?? null, taxRate: tax ? taxRateOn(tax, date) : 0, accountId: l.accountId ?? null,
       });
     });
   }
@@ -168,14 +170,15 @@ export class InvoiceService extends MasterDataService<InvoiceDoc, InvoiceInput, 
       const inv = await this.repo.get(ctx, dto.creditedInvoiceId);
       if (inv.kind !== "invoice" || inv.customerId !== c.id || inv.currency !== currency) throw new BadRequestException("Credit an invoice of the same customer and currency");
     }
-    const lines = await this.buildLines(ctx, dto.lines, currency);
+    const lines = await this.buildLines(ctx, dto.lines, currency, date, c.taxExempt);
     return super.create(ctx, { ...dto, built: { lines, customer: c, currency, rate: await this.rateFor(ctx, currency, date) } });
   }
 
   async update(ctx: RequestContext, id: string, dto: UpdateInvoiceDto & { built?: { lines: InvoiceLine[] } }, expectedVersion?: number): Promise<InvoiceDoc> {
     if (!dto.lines) return super.update(ctx, id, dto, expectedVersion);
     const before = await this.repo.get(ctx, id);
-    return super.update(ctx, id, { ...dto, built: { lines: await this.buildLines(ctx, dto.lines, before.currency) } }, expectedVersion);
+    const c = await customer(this.firestore, ctx, before.customerId);
+    return super.update(ctx, id, { ...dto, built: { lines: await this.buildLines(ctx, dto.lines, before.currency, before.date, c.taxExempt) } }, expectedVersion);
   }
 
   protected toNew(dto: InvoiceInput): NewDoc<InvoiceDoc> {

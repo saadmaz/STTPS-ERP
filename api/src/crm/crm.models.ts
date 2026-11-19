@@ -46,6 +46,10 @@ export interface AccountDoc extends BaseDoc {
   priceListId: string | null;
   ownerUserId: string | null;
   portalAccess: boolean;
+  /** Exempt from tax on every sales quote, order and invoice (diplomatic, re-seller certificate, export). */
+  taxExempt: boolean;
+  /** Certificate or registration number backing the exemption, for audit. */
+  taxExemptionNo: string | null;
   notes: string | null;
 }
 

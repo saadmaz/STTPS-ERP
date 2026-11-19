@@ -113,4 +113,16 @@ describe("Finance: payables from bill to payment", () => {
     expect(st.balance).toBe(-504_400);
     expect(st.lines.map((l: { type: string }) => l.type)).toEqual(expect.arrayContaining(["bill", "debit_note", "payment"]));
   });
+
+  it("resolves a bill's tax rate by its own date, so a scheduled change applies only from its effective date", async () => {
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    await http().put("/api/v1/sales/settings").set(as()).send({
+      taxRates: [{ code: "VAT", name: "VAT 18%", rate: "18", effectiveRates: [{ rate: "20", effectiveDate: tomorrow }] }, { code: "ZERO", name: "Zero rated", rate: "0" }],
+    }).expect(200);
+    const current = await http().post("/api/v1/finance/bills").set(as()).send({ supplierId: supplier, supplierInvoiceNo: "R-2", lines: [{ description: "Office rent", qty: "1", unitPrice: "1000", taxCode: "VAT", accountId: acct["6200"] }] }).expect(201);
+    expect(current.body.lines[0]).toMatchObject({ taxRate: 1800, tax: 18_000 });
+    const scheduled = await http().post("/api/v1/finance/bills").set(as()).send({ supplierId: supplier, supplierInvoiceNo: "R-3", date: tomorrow, lines: [{ description: "Office rent", qty: "1", unitPrice: "1000", taxCode: "VAT", accountId: acct["6200"] }] }).expect(201);
+    expect(scheduled.body.lines[0]).toMatchObject({ taxRate: 2000, tax: 20_000 });
+    await http().put("/api/v1/sales/settings").set(as()).send({ taxRates: [{ code: "VAT", name: "VAT 18%", rate: "18" }, { code: "ZERO", name: "Zero rated", rate: "0" }] }).expect(200);
+  });
 });

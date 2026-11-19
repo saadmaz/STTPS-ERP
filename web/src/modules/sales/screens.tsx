@@ -3,12 +3,13 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
 import { formatDate, humanize } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
+import { useCan } from "@/lib/workspace";
 import { MasterListPage, MasterRecordPage } from "@/components/master/MasterData";
 import { EmptyState, ErrorState, Field, PageHeader, Spinner } from "@/components/ui/kit";
 import { productsApi } from "@/modules/products/config";
@@ -26,6 +27,102 @@ export function SalesRecord({ entity, id }: { entity: string; id: string }) {
   const config = SALES_SCREENS[entity];
   if (!config) notFound();
   return <MasterRecordPage config={config} id={id} />;
+}
+
+// ─── Sales settings: tax codes, effective-dated rates, inclusive pricing ──────
+
+interface SalesSettings {
+  taxRates: { code: string; name: string; rate: number; effectiveRates?: { rate: number; effectiveDate: string }[] }[];
+  defaultTaxCode: string | null;
+  discountApprovalPct: number;
+  pricesIncludeTax: boolean;
+}
+interface EffectiveRateForm { rate: string; effectiveDate: string }
+interface TaxRateForm { code: string; name: string; rate: string; effectiveRates: EffectiveRateForm[] }
+
+const toRateForm = (t: SalesSettings["taxRates"][number]): TaxRateForm => ({
+  code: t.code, name: t.name, rate: String(t.rate / 100),
+  effectiveRates: (t.effectiveRates ?? []).map((r) => ({ rate: String(r.rate / 100), effectiveDate: r.effectiveDate })),
+});
+const blankTaxRate = (): TaxRateForm => ({ code: "", name: "", rate: "", effectiveRates: [] });
+
+export function SalesSettingsPage() {
+  const qc = useQueryClient();
+  const can = useCan("sales.settings.edit");
+  const settings = useQuery({ queryKey: ["sales-settings-full"], queryFn: () => api.get("/sales/settings").then((r) => r.data as SalesSettings) });
+  const [rates, setRates] = useState<TaxRateForm[] | null>(null);
+  const save = useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.put("/sales/settings", body).then((r) => r.data as SalesSettings),
+    onSuccess: () => { toast.success("Sales settings saved"); setRates(null); qc.invalidateQueries({ queryKey: ["sales-settings-full"] }); qc.invalidateQueries({ queryKey: ["sales-settings"] }); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (settings.isLoading) return <Spinner />;
+  if (settings.isError) return <ErrorState message={errorMessage(settings.error)} />;
+  const data = settings.data!;
+  const rows = rates ?? data.taxRates.map(toRateForm);
+  const setRow = (i: number, patch: Partial<TaxRateForm>) => setRates(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const saveRates = () =>
+    save.mutate({
+      taxRates: rows.filter((r) => r.code && r.name && r.rate).map((r) => ({
+        code: r.code, name: r.name, rate: r.rate,
+        effectiveRates: r.effectiveRates.filter((e) => e.rate && e.effectiveDate),
+      })),
+    });
+  return (
+    <div className="max-w-4xl space-y-6">
+      <PageHeader title="Sales settings" subtitle="Tax codes, effective-dated rate changes, discount approval and inclusive pricing." />
+      <section className="card p-5 space-y-4">
+        <h2 className="font-semibold">Tax codes</h2>
+        {rows.map((r, i) => (
+          <div key={i} className="rounded border border-slate-200 dark:border-slate-800 p-3 space-y-2">
+            <div className="grid grid-cols-12 gap-2">
+              <input className="input-base col-span-2" placeholder="Code" value={r.code} disabled={!can} onChange={(e) => setRow(i, { code: e.target.value })} aria-label="Code" />
+              <input className="input-base col-span-4" placeholder="Name" value={r.name} disabled={!can} onChange={(e) => setRow(i, { name: e.target.value })} aria-label="Name" />
+              <input className="input-base col-span-2" placeholder="Rate %" value={r.rate} disabled={!can} onChange={(e) => setRow(i, { rate: e.target.value })} aria-label="Rate" />
+              <div className="col-span-3 self-center text-xs text-slate-500">{r.effectiveRates.length ? `${r.effectiveRates.length} scheduled change(s)` : "No scheduled changes"}</div>
+              {can && <button type="button" className="btn-ghost col-span-1" onClick={() => setRates(rows.filter((_, j) => j !== i))} aria-label="Remove tax code"><Trash2 size={15} /></button>}
+            </div>
+            {r.effectiveRates.map((e, j) => (
+              <div key={j} className="grid grid-cols-12 gap-2 pl-4">
+                <span className="col-span-2 self-center text-xs text-slate-500">From</span>
+                <input type="date" className="input-base col-span-3" value={e.effectiveDate} disabled={!can} onChange={(ev) => setRow(i, { effectiveRates: r.effectiveRates.map((x, k) => (k === j ? { ...x, effectiveDate: ev.target.value } : x)) })} aria-label="Effective date" />
+                <input className="input-base col-span-2" placeholder="New rate %" value={e.rate} disabled={!can} onChange={(ev) => setRow(i, { effectiveRates: r.effectiveRates.map((x, k) => (k === j ? { ...x, rate: ev.target.value } : x)) })} aria-label="New rate" />
+                {can && <button type="button" className="btn-ghost col-span-1" onClick={() => setRow(i, { effectiveRates: r.effectiveRates.filter((_, k) => k !== j) })} aria-label="Remove scheduled change"><Trash2 size={14} /></button>}
+              </div>
+            ))}
+            {can && (
+              <button type="button" className="btn-ghost text-sm text-blue-600" onClick={() => setRow(i, { effectiveRates: [...r.effectiveRates, { rate: "", effectiveDate: "" }] })}>
+                <Plus size={13} /> Scheduled change
+              </button>
+            )}
+          </div>
+        ))}
+        {can && (
+          <div className="flex items-center justify-between">
+            <button type="button" className="btn-ghost text-blue-600" onClick={() => setRates([...rows, blankTaxRate()])}><Plus size={14} /> Tax code</button>
+            <button type="button" className="btn-primary" disabled={save.isPending} onClick={saveRates}>Save tax codes</button>
+          </div>
+        )}
+      </section>
+      <section className="card p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Default tax code">
+          <select className="input-base" defaultValue={data.defaultTaxCode ?? ""} disabled={!can} onChange={(e) => save.mutate({ defaultTaxCode: e.target.value || null })}>
+            <option value="">None</option>
+            {data.taxRates.map((t) => <option key={t.code} value={t.code}>{t.code} — {t.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Discount needing approval over" hint="Percent">
+          <input className="input-base" defaultValue={String(data.discountApprovalPct / 100)} disabled={!can} onBlur={(e) => e.target.value && save.mutate({ discountApprovalPct: e.target.value })} />
+        </Field>
+      </section>
+      <section className="card p-5">
+        <label className="flex items-center gap-3 text-sm">
+          <input type="checkbox" checked={data.pricesIncludeTax} disabled={!can || save.isPending} onChange={(e) => save.mutate({ pricesIncludeTax: e.target.checked })} />
+          Quote and order prices are tax-inclusive; the exclusive net price is what gets stored
+        </label>
+      </section>
+    </div>
+  );
 }
 
 interface LineForm {

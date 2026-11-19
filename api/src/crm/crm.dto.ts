@@ -69,6 +69,8 @@ export class CreateAccountDto extends WithCustomFields {
   @IsOptional() @IsString() priceListId?: string;
   @IsOptional() @IsString() ownerUserId?: string;
   @IsOptional() @IsBoolean() portalAccess?: boolean;
+  @ApiPropertyOptional({ description: "Exempt from tax on every sales quote, order and invoice" }) @IsOptional() @IsBoolean() taxExempt?: boolean;
+  @IsOptional() @IsString() @MaxLength(60) taxExemptionNo?: string;
   @IsOptional() @IsString() @MaxLength(5000) notes?: string;
 }
 export class UpdateAccountDto extends PartialType(CreateAccountDto) {}
