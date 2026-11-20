@@ -2,16 +2,19 @@
 
 import { notFound } from "next/navigation";
 import { MasterListPage, MasterRecordPage } from "@/components/master/MasterData";
+import { DASHBOARD_SCREENS } from "./dashboards";
 import { REPORTS_SCREENS } from "./config";
 
+const SCREENS = { ...REPORTS_SCREENS, ...DASHBOARD_SCREENS };
+
 export function ReportsList({ entity }: { entity: string }) {
-  const config = REPORTS_SCREENS[entity];
+  const config = SCREENS[entity];
   if (!config) notFound();
   return <MasterListPage config={config} />;
 }
 
 export function ReportsRecord({ entity, id }: { entity: string; id: string }) {
-  const config = REPORTS_SCREENS[entity];
+  const config = SCREENS[entity];
   if (!config) notFound();
   return <MasterRecordPage config={config} id={id} />;
 }

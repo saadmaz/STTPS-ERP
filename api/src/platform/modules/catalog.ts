@@ -427,7 +427,11 @@ export const MODULES: ModuleDefinition[] = [
     group: "intelligence",
     available: true,
     dependsOn: ["sales", "finance", "procurement", "crm", "projects"],
-    permissions: [...entityPermissions("analytics", "reportDefinition", "report definitions")],
+    permissions: [
+      ...entityPermissions("analytics", "reportDefinition", "report definitions"),
+      ...entityPermissions("analytics", "kpiDefinition", "KPI definitions"),
+      ...entityPermissions("analytics", "dashboard", "dashboards"),
+    ],
   }),
   mod({
     key: "automation",

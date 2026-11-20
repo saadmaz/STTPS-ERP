@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine and the Report builder (Phase 6's first two items) are now built — API, tests, web screens, docs — on `develop`, not yet released.
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder and the Dashboard builder (Phase 6's first three items) are now built — API, tests, web screens, docs — on `develop`, not yet released.
 
-**Last updated:** 2026-11-20, after the Report builder.
+**Last updated:** 2026-11-20, after the Dashboard builder.
 
 ## Automation engine: done
 
@@ -20,13 +20,23 @@
 - **Flipping `analytics` to `available: true` broke `test/http/guards.spec.ts`'s hard-coded "not yet available" example again** (same recurring gotcha noted for EHS) — it now points at `ai`.
 - Web: `web/src/modules/reports/` (definitions list/record, filter/column/aggregation/calculated-field row editors, a run panel with table/pivot views and CSV/Excel download), a sidebar entry, pages under `web/src/app/(platform)/reports/`.
 - Tests: `api/test/http/reports.spec.ts` (3 tests).
-- Not built, each a documented scope cut (see the plan entry and CLAUDE.md §9): PDF export, scheduled email delivery (no cron scheduler yet), real chart rendering (no charting library exists anywhere in this web app).
+- Not built, each a documented scope cut (see the plan entry and CLAUDE.md §9): PDF export, scheduled email delivery (no cron scheduler yet), real chart rendering (no charting library existed yet at that point — added in the next item, below).
+
+## Dashboard builder: done
+
+- `api/src/reports/dashboards.*` (`KpiDefinitionService`, `DashboardService`, `DashboardEngineService`), a sibling-file split inside the existing `reports` module/`analytics` catalog key — see `CLAUDE.md` §9's Dashboard builder domain note before touching this.
+- KPIs read a target metric live from one report's `summary` on every run (no snapshot/history); a dashboard's widgets (kpi, report_table, report_chart, report_pivot, alerts) are each computed independently, so one widget lacking permission degrades gracefully instead of failing the whole dashboard (the same pattern Calendar already established).
+- New web dependency: `recharts` (the first charting library anywhere in this web app) — bar/line/pie for report_chart widgets.
+- Spent nothing from the Firestore index budget (still 199/200) — both new collections are small lists, everything computed in memory via the existing report engine.
+- Web: `web/src/modules/reports/dashboards.tsx` (KPI and dashboard list/record screens, a widget editor, a live dashboard viewer with charts), sidebar entries for Dashboards and KPIs under Reports.
+- Tests: `api/test/http/dashboards.spec.ts` (3 tests).
+- Not built, each a documented scope cut: Calendar/Funnel/Map widget types, drag-and-drop widget layout, a materialised/cached KPI history.
 
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **Dashboard builder**, followed by Analytics store, the AI items, API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is the **Analytics store** (a Firestore → BigQuery export), followed by the AI items, API platform, Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only two Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only three Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
@@ -38,7 +48,7 @@
 
 ## Firestore composite-index budget: still 199/200
 
-One slot of headroom remains. Both the Automation engine and the Report builder spent nothing (see above). The zero-indexed-filter trick (`{ filters: [], sorts: [{ field: "createdAt", direction: "desc" }] }`) costs exactly 1 index per `large` list and should be the default reach if that last slot is ever spent — see `CLAUDE.md` §5 for the full history of how each of the prior five slots was spent (or deliberately not spent).
+One slot of headroom remains. The Automation engine, the Report builder and the Dashboard builder all spent nothing (see above). The zero-indexed-filter trick (`{ filters: [], sorts: [{ field: "createdAt", direction: "desc" }] }`) costs exactly 1 index per `large` list and should be the default reach if that last slot is ever spent — see `CLAUDE.md` §5 for the full history of how each of the prior five slots was spent (or deliberately not spent).
 
 ## Release v0.5.0: done (for reference — Phases 0–5)
 

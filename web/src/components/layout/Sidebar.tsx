@@ -91,6 +91,8 @@ import {
   Users,
   Workflow,
   Zap,
+  LayoutDashboard,
+  Gauge,
 } from "lucide-react";
 import { platformApi } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
@@ -153,7 +155,11 @@ const SECTIONS: NavSection[] = [
     label: "Reports",
     icon: PieChart,
     module: "analytics",
-    links: [{ label: "Reports", href: "/reports/definitions", icon: PieChart, permission: "analytics.reportDefinition.view" }],
+    links: [
+      { label: "Dashboards", href: "/reports/dashboards", icon: LayoutDashboard, permission: "analytics.dashboard.view" },
+      { label: "KPIs", href: "/reports/kpis", icon: Gauge, permission: "analytics.kpiDefinition.view" },
+      { label: "Reports", href: "/reports/definitions", icon: PieChart, permission: "analytics.reportDefinition.view" },
+    ],
   },
   {
     label: "Sales",

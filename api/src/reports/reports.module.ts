@@ -9,6 +9,8 @@ import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { ProcurementModule } from "../procurement/procurement.module.js";
 import { SalesModule } from "../sales/sales.module.js";
 import { TasksModule } from "../tasks/tasks.module.js";
+import { CreateDashboardDto, CreateKpiDefinitionDto, UpdateDashboardDto, UpdateKpiDefinitionDto } from "./dashboards.dto.js";
+import { DashboardEngineService, DashboardService, KpiDefinitionService } from "./dashboards.services.js";
 import { CreateReportDefinitionDto, UpdateReportDefinitionDto } from "./reports.dto.js";
 import { ReportDefinitionService, ReportingEngineService } from "./reports.services.js";
 
@@ -42,15 +44,45 @@ class ReportsActionsController {
   }
 }
 
+@ApiTags("Reports")
+@ApiBearerAuth()
+@RequireModule("analytics")
+@Controller("reports/kpis")
+class KpisActionsController {
+  constructor(private readonly engine: DashboardEngineService) {}
+
+  @Get(":id/run")
+  @RequirePermission("analytics.kpiDefinition.view")
+  run(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.engine.runKpi(ctx, id);
+  }
+}
+
+@ApiTags("Reports")
+@ApiBearerAuth()
+@RequireModule("analytics")
+@Controller("reports/dashboards")
+class DashboardsActionsController {
+  constructor(private readonly engine: DashboardEngineService) {}
+
+  @Get(":id/run")
+  @RequirePermission("analytics.dashboard.view")
+  run(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.engine.runDashboard(ctx, id);
+  }
+}
+
 const crud = [
   createMasterDataController({ path: "reports/definitions", tag: "Reports: Definitions", module: "analytics", permission: "analytics.reportDefinition", service: ReportDefinitionService, createDto: CreateReportDefinitionDto, updateDto: UpdateReportDefinitionDto }),
+  createMasterDataController({ path: "reports/kpis", tag: "Reports: KPIs", module: "analytics", permission: "analytics.kpiDefinition", service: KpiDefinitionService, createDto: CreateKpiDefinitionDto, updateDto: UpdateKpiDefinitionDto }),
+  createMasterDataController({ path: "reports/dashboards", tag: "Reports: Dashboards", module: "analytics", permission: "analytics.dashboard", service: DashboardService, createDto: CreateDashboardDto, updateDto: UpdateDashboardDto }),
 ];
 
-const SERVICES = [ReportDefinitionService, ReportingEngineService];
+const SERVICES = [ReportDefinitionService, ReportingEngineService, KpiDefinitionService, DashboardService, DashboardEngineService];
 
 @Module({
   imports: [SalesModule, FinanceModule, ProcurementModule, CrmModule, TasksModule],
-  controllers: [ReportsActionsController, ...crud],
+  controllers: [ReportsActionsController, KpisActionsController, DashboardsActionsController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })
