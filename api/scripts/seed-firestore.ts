@@ -1,13 +1,16 @@
-// Firestore-native replacement for prisma/seed.ts (Phase 1 scope only — no
-// GL/chart-of-accounts seeding since Finance isn't wired into app.module.ts
-// yet, see the Phase 2 backlog in docs/DEPLOYMENT.md's migration plan).
+// Seeds a Firestore project with the permission catalogue, the platform
+// tenant and administrator, and a demo tenant.
 //
-// Run once against the live project: `npx tsx scripts/seed-firestore.ts`
-// (needs FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY in the environment).
+// Run: `npx tsx scripts/seed-firestore.ts` with FIREBASE_PROJECT_ID,
+// FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY set (or FIRESTORE_EMULATOR_HOST).
+// Passwords come from SEED_PLATFORM_ADMIN_PASSWORD and SEED_DEMO_ADMIN_PASSWORD;
+// when unset, strong random passwords are generated and printed once.
 import "dotenv/config";
+import { randomBytes } from "node:crypto";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import * as bcrypt from "bcryptjs";
+import { allPermissions } from "../src/platform/modules/catalog.js";
 
 initializeApp({
   credential: cert({
@@ -18,30 +21,21 @@ initializeApp({
 });
 const db = getFirestore();
 
-// "company"/"user" added on top of the original 12 ERP-module names so
-// permission codes like "company.edit" (used by CompanyController.update)
-// actually exist in the catalog — the platform/admin layer needs its own
-// permissions too, not just the not-yet-wired domain modules.
-const MODULES = [
-  "company", "user",
-  "finance", "inventory", "procurement", "sales", "manufacturing",
-  "crm", "hr", "eam", "fsm", "quality", "ehs", "projects",
-];
-const ACTIONS = ["view", "create", "edit", "delete", "approve", "export"];
+function password(envName: string): string {
+  const fromEnv = process.env[envName];
+  if (fromEnv) {
+    if (fromEnv.length < 12) throw new Error(`${envName} must be at least 12 characters`);
+    return fromEnv;
+  }
+  return randomBytes(18).toString("base64url");
+}
 
 async function seedPermissions() {
+  const perms = allPermissions();
   const batch = db.batch();
-  let count = 0;
-  for (const module of MODULES) {
-    for (const action of ACTIONS) {
-      const code = `${module}.${action}`;
-      const name = `${action[0].toUpperCase()}${action.slice(1)} ${module[0].toUpperCase()}${module.slice(1)}`;
-      batch.set(db.collection("permissions").doc(code), { code, name, module, action });
-      count++;
-    }
-  }
+  for (const p of perms) batch.set(db.collection("permissions").doc(p.code), p);
   await batch.commit();
-  console.log(`Permissions: ${count} seeded`);
+  console.log(`Permissions: ${perms.length} seeded`);
 }
 
 async function upsertTenant(slug: string, name: string, plan: string) {
@@ -104,7 +98,7 @@ async function upsertUser(tenantId: string, email: string, password: string, ext
     tx.create(indexRef, { userId });
     tx.set(db.collection("users").doc(userId), user);
   });
-  return user;
+  return { ...user, created: true };
 }
 
 async function assignAdmin(userId: string, companyId: string, tenantId: string) {
@@ -138,20 +132,22 @@ async function main() {
   // Platform tenant + super admin (platform console login)
   const platformTenant = await upsertTenant("_platform", "STTPS Platform", "platform");
   const platformCompany = await upsertCompany(platformTenant.id, "PLAT", "STTPS Platform");
-  const platformAdmin = await upsertUser(platformTenant.id, "admin@sttps.com", "Platform@123", {
+  const platformPassword = password("SEED_PLATFORM_ADMIN_PASSWORD");
+  const platformAdmin = await upsertUser(platformTenant.id, "admin@sttps.com", platformPassword, {
     firstName: "Platform", lastName: "Admin", isSuperAdmin: true, isPlatformAdmin: true,
   });
   await assignAdmin(platformAdmin.id, platformCompany.id, platformTenant.id);
-  console.log(`✅ Platform admin: ${platformAdmin.email} / Platform@123`);
+  console.log(`Platform admin: ${platformAdmin.email}${!platformAdmin.created || process.env.SEED_PLATFORM_ADMIN_PASSWORD ? "" : ` (new password: ${platformPassword})`}`);
 
-  // Demo tenant + admin (matches web/'s login page default credentials)
   const demoTenant = await upsertTenant("demo", "STTPS Demo Organization", "professional");
   const demoCompany = await upsertCompany(demoTenant.id, "DEMO", "Demo Corporation Ltd");
-  const demoAdmin = await upsertUser(demoTenant.id, "admin@demo.sttps.live", "Admin@123", {
+  const demoPassword = password("SEED_DEMO_ADMIN_PASSWORD");
+  const demoAdmin = await upsertUser(demoTenant.id, "admin@demo.sttps.live", demoPassword, {
     firstName: "System", lastName: "Administrator", isSuperAdmin: true,
   });
   await assignAdmin(demoAdmin.id, demoCompany.id, demoTenant.id);
-  console.log(`✅ Demo admin: ${demoAdmin.email} / Admin@123`);
+  console.log(`Demo admin: ${demoAdmin.email}${!demoAdmin.created || process.env.SEED_DEMO_ADMIN_PASSWORD ? "" : ` (new password: ${demoPassword})`}`);
+  console.log("Passwords are printed only when an account is created; existing accounts keep theirs.");
 
   console.log("\nSeed complete.");
 }

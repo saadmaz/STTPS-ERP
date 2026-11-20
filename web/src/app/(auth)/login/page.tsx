@@ -9,6 +9,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { errorMessage } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -27,6 +28,10 @@ function getSafeNext(raw: string | null): string {
   return "/dashboard";
 }
 
+function markSessionCookie() {
+  document.cookie = "sttps_session=1; path=/; max-age=2592000; SameSite=Lax";
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -36,7 +41,10 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, verifyMfa, isAuthenticated, isLoading } = useAuth();
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
@@ -52,23 +60,69 @@ function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
+  } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@demo.sttps.live", password: "Admin@123" },
+    defaultValues: { email: "", password: "" },
   });
+
+  const signedIn = () => {
+    // Set session cookie so middleware knows user is logged in
+    markSessionCookie();
+    router.push(getSafeNext(searchParams.get("next")));
+    toast.success("Welcome back!");
+  };
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      await login(data.email, data.password);
-      // Set session cookie so middleware knows user is logged in
-      document.cookie = "sttps_session=1; path=/; max-age=2592000; SameSite=Lax";
-      router.push(getSafeNext(searchParams.get("next")));
-      toast.success("Welcome back!");
-    } catch (err: any) {
-      const message = err?.response?.data?.message || "Invalid email or password";
-      toast.error(message);
+      const challenge = await login(data.email, data.password);
+      if (challenge) setMfaToken(challenge.mfaToken);
+      else signedIn();
+    } catch (err) {
+      toast.error(errorMessage(err, "Invalid email or password"));
     }
   };
+
+  const onVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaToken) return;
+    setVerifying(true);
+    try {
+      await verifyMfa(mfaToken, code);
+      signedIn();
+    } catch (err) {
+      toast.error(errorMessage(err, "Invalid code"));
+      if ((err as { response?: { data?: { message?: string } } })?.response?.data?.message?.includes("expired")) setMfaToken(null);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  if (mfaToken) {
+    return (
+      <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <h1 className="text-2xl font-bold text-slate-900">Two-step sign-in</h1>
+        <p className="text-sm text-slate-500 mt-1 mb-6">Enter the 6-digit code from your authenticator app, or one of your recovery codes.</p>
+        <form onSubmit={onVerify} className="space-y-4">
+          <input
+            className="input-base text-center tracking-widest text-lg"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            aria-label="Code"
+          />
+          <button type="submit" disabled={verifying || code.trim().length < 6} className="btn-primary w-full py-2.5">
+            {verifying && <Loader2 size={16} className="animate-spin" />}
+            Verify
+          </button>
+          <button type="button" className="btn-ghost w-full" onClick={() => setMfaToken(null)}>
+            Back
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-8">
@@ -124,7 +178,6 @@ function LoginForm() {
       </form>
 
       <div className="mt-6 pt-6 border-t border-slate-100 space-y-2 text-center">
-        <p className="text-xs text-slate-500">Demo credentials are pre-filled above</p>
         <p className="text-sm text-slate-500">
           New to STTPS?{" "}
           <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">Create account</Link>

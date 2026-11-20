@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
 
-export default function FinancePage() {
-  redirect("/finance/journals");
+import { FinanceHome } from "@/modules/finance/screens";
+
+export default function Page() {
+  return <FinanceHome />;
 }

@@ -133,3 +133,24 @@
     @apply text-xs text-red-600 mt-1;
   }
 }
+
+/* Dark theme: the html element gets class="dark" (see ThemeToggle). */
+@layer components {
+  .dark body { @apply bg-slate-950 text-slate-100; }
+  .dark .card { @apply bg-slate-900 border-slate-800; }
+  .dark .input-base { @apply bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 disabled:bg-slate-800; }
+  .dark .btn-secondary { @apply bg-slate-900 text-slate-200 border-slate-700 hover:bg-slate-800; }
+  .dark .btn-ghost { @apply text-slate-300 hover:bg-slate-800 hover:text-white; }
+  .dark .table-base thead tr { @apply border-slate-800; }
+  .dark .table-base thead th { @apply text-slate-400; }
+  .dark .table-base tbody tr { @apply border-slate-800 hover:bg-slate-800/60; }
+  .dark .table-base tbody td { @apply text-slate-200; }
+  .dark .page-title { @apply text-slate-100; }
+  .dark .page-subtitle { @apply text-slate-400; }
+  .dark .form-label { @apply text-slate-300; }
+  .dark .badge-slate, .dark .badge-gray { @apply bg-slate-800 text-slate-300; }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
+           bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+  }
+}

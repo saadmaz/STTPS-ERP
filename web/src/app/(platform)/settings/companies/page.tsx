@@ -15,7 +15,7 @@ export default function CompaniesSettingsPage() {
     queryFn: () => companiesApi.list(),
   });
 
-  const list: any[] = Array.isArray(companies) ? companies : (companies?.data ?? []);
+  const list = companies ?? [];
 
   return (
     <div>

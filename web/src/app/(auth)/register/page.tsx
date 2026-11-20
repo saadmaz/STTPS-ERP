@@ -44,7 +44,7 @@ export default function RegisterPage() {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterForm>({
+  } = useForm({
     resolver: zodResolver(registerSchema),
   });
 

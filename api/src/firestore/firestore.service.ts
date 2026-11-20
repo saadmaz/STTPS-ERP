@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnApplicationShutdown, OnModuleInit } from "@nestjs/common";
 import { generateKeyPairSync } from "node:crypto";
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
+import { initializeApp, getApps, cert, App, deleteApp } from "firebase-admin/app";
 import {
   getFirestore,
   Firestore,
@@ -9,9 +9,14 @@ import {
 } from "firebase-admin/firestore";
 
 @Injectable()
-export class FirestoreService implements OnModuleInit {
+export class FirestoreService implements OnModuleInit, OnApplicationShutdown {
   private app!: App;
   private _db!: Firestore;
+
+  /** Closes the Firestore connections so a stopping container (or test worker) can exit promptly. */
+  async onApplicationShutdown(): Promise<void> {
+    if (this.app && getApps().includes(this.app)) await deleteApp(this.app);
+  }
 
   onModuleInit() {
     // FIRESTORE_EMULATOR_HOST (set by `firebase emulators:start` or a test

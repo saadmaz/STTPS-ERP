@@ -1,54 +1,79 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { StripSecretsInterceptor } from "./common/interceptors/strip-secrets.interceptor.js";
 import { ConfigModule } from "@nestjs/config";
-import { RequirePermissionGuard } from "./common/guards/require-permission.guard";
-import { FirestoreModule } from "./firestore/firestore.module";
-import { AuthModule } from "./auth/auth.module";
-import { TenantModule } from "./tenant/tenant.module";
-import { CompanyModule } from "./company/company.module";
-import { UserModule } from "./user/user.module";
-// TODO: re-enable once ported to Firestore, see Phase 2 backlog
-// (these still use PrismaService, which is no longer wired into the app —
-// see api/prisma/schema.prisma and docs/DEPLOYMENT.md for why)
-// import { FinanceModule } from "./finance/finance.module";
-// import { InventoryModule } from "./inventory/inventory.module";
-// import { ProcurementModule } from "./procurement/procurement.module";
-// import { CrmModule } from "./crm/crm.module";
-// import { SalesModule } from "./sales/sales.module";
-// import { ManufacturingModule } from "./manufacturing/manufacturing.module";
-// import { HrModule } from "./hr/hr.module";
-// import { EamModule } from "./eam/eam.module";
-// import { FsmModule } from "./fsm/fsm.module";
-// import { QualityModule } from "./quality/quality.module";
-// import { EhsModule } from "./ehs/ehs.module";
-// import { ProjectsModule } from "./projects/projects.module";
-import { AdminModule } from "./admin/admin.module";
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard.js";
+import { RequirePermissionGuard } from "./common/guards/require-permission.guard.js";
+import { CompanyContextGuard } from "./platform/context/company-context.guard.js";
+import { ModuleGuard } from "./platform/modules/module.guard.js";
+import { FirestoreModule } from "./firestore/firestore.module.js";
+import { PlatformModule } from "./platform/platform.module.js";
+import { AuthModule } from "./auth/auth.module.js";
+import { TenantModule } from "./tenant/tenant.module.js";
+import { CompanyModule } from "./company/company.module.js";
+import { UserModule } from "./user/user.module.js";
+import { AdminModule } from "./admin/admin.module.js";
+import { OrgModule } from "./org/org.module.js";
+import { CrmModule } from "./crm/crm.module.js";
+import { ProductsModule } from "./products/products.module.js";
+import { InventoryModule } from "./inventory/inventory.module.js";
+import { SalesModule } from "./sales/sales.module.js";
+import { ProcurementModule } from "./procurement/procurement.module.js";
+import { FinanceModule } from "./finance/finance.module.js";
+import { HrModule } from "./hr/hr.module.js";
+import { TasksModule } from "./tasks/tasks.module.js";
+import { ProjectsModule } from "./projects/projects.module.js";
+import { CalendarModule } from "./calendar/calendar.module.js";
+import { MaintenanceModule } from "./maintenance/maintenance.module.js";
+import { SupportModule } from "./support/support.module.js";
+import { DocumentsModule } from "./documents/documents.module.js";
+import { ManufacturingModule } from "./manufacturing/manufacturing.module.js";
+import { QualityModule } from "./quality/quality.module.js";
+import { EhsModule } from "./ehs/ehs.module.js";
+import { WarehouseModule } from "./warehouse/warehouse.module.js";
+import { PosModule } from "./pos/pos.module.js";
+import { LogisticsModule } from "./logistics/logistics.module.js";
+import { MarketingModule } from "./marketing/marketing.module.js";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     FirestoreModule,
+    PlatformModule,
     AuthModule,
     TenantModule,
     CompanyModule,
     UserModule,
-    // TODO: re-enable once ported to Firestore, see Phase 2 backlog
-    // FinanceModule,
-    // InventoryModule,
-    // ProcurementModule,
-    // CrmModule,
-    // SalesModule,
-    // ManufacturingModule,
-    // HrModule,
-    // EamModule,
-    // FsmModule,
-    // QualityModule,
-    // EhsModule,
-    // ProjectsModule,
     AdminModule,
+    OrgModule,
+    CrmModule,
+    ProductsModule,
+    InventoryModule,
+    SalesModule,
+    ProcurementModule,
+    FinanceModule,
+    HrModule,
+    TasksModule,
+    ProjectsModule,
+    CalendarModule,
+    MaintenanceModule,
+    SupportModule,
+    DocumentsModule,
+    ManufacturingModule,
+    QualityModule,
+    EhsModule,
+    WarehouseModule,
+    PosModule,
+    LogisticsModule,
+    MarketingModule,
   ],
+  // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: CompanyContextGuard },
+    { provide: APP_GUARD, useClass: ModuleGuard },
     { provide: APP_GUARD, useClass: RequirePermissionGuard },
+    { provide: APP_INTERCEPTOR, useClass: StripSecretsInterceptor },
   ],
 })
 export class AppModule {}

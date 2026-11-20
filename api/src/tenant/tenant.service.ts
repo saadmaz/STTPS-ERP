@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { FirestoreService } from "../firestore/firestore.service";
-import { COLLECTIONS } from "../firestore/collections";
-import { TenantDoc } from "../firestore/models";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
+import { TenantDoc } from "../firestore/models.js";
 
 @Injectable()
 export class TenantService {

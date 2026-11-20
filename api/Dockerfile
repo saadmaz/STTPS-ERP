@@ -15,4 +15,4 @@ COPY dist ./dist
 
 USER node
 EXPOSE 8080
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]

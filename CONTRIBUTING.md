@@ -71,7 +71,9 @@ flowchart LR
 | `feat/*`, `fix/*`, ... | None | One change each, merged into `develop` | Deleted after merge |
 
 > [!IMPORTANT]
-> Never push directly to `develop` or `main`, and never force-push to either. Every change arrives through a pull request.
+> Never push directly to `main`, and never force-push to `develop` or `main`. The maintainer may commit straight to `develop`; everyone else arrives through a pull request.
+>
+> Dependency updates are made by maintainers directly, not by bots: run `npm audit` in each app and upgrade on `develop`. Dependabot is intentionally not enabled.
 
 <p align="right"><a href="#top">Back to top ↑</a></p>
 

@@ -1,9 +1,927 @@
-import { Module } from '@nestjs/common';
-import { HrController } from './hr.controller';
-import { HrService } from './hr.service';
+import { BadRequestException, Body, Controller, Get, HttpCode, Module, Param, Post, Put, Query } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Public } from "../common/decorators/public.decorator.js";
+import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
+import { Ctx, RequestContext } from "../platform/context/request-context.js";
+import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
+import { RequireModule } from "../platform/modules/require-module.decorator.js";
+import { FinanceModule } from "../finance/finance.module.js";
+import { EmployeeService, JobGradeService, PositionService } from "./hr.services.js";
+import {
+  CreateEmployeeDto,
+  CreateJobGradeDto,
+  CreatePositionDto,
+  ReinstateDto,
+  TerminateDto,
+  UpdateEmployeeDto,
+  UpdateJobGradeDto,
+  UpdateMyProfileDto,
+  UpdatePositionDto,
+} from "./hr.dto.js";
+import { CandidateService, JobPostingService, JobRequisitionService } from "./hr-recruitment.services.js";
+import {
+  CreateCandidateDto,
+  CreateJobPostingDto,
+  CreateJobRequisitionDto,
+  ExtendOfferDto,
+  HireCandidateDto,
+  PublicApplyDto,
+  RecordScorecardDto,
+  RejectCandidateDto,
+  RespondOfferDto,
+  ScheduleInterviewDto,
+  UpdateCandidateDto,
+  UpdateJobPostingDto,
+  UpdateJobRequisitionDto,
+} from "./hr-recruitment.dto.js";
+import { ChecklistService } from "./hr-onboarding.services.js";
+import { AssignItemDto, CancelChecklistDto, CreateChecklistDto, SetItemStatusDto, StartChecklistDto, UpdateChecklistDto } from "./hr-onboarding.dto.js";
+import { AttendanceService, AttendanceSettingsService, DeviceService } from "./hr-attendance.services.js";
+import {
+  ClockActionDto,
+  CreateAttendanceRecordDto,
+  CreateDeviceDto,
+  DecideCorrectionDto,
+  KioskClockDto,
+  MarkAbsentDto,
+  RequestCorrectionDto,
+  SetAttendancePinDto,
+  UpdateAttendanceRecordDto,
+  UpdateAttendanceSettingsDto,
+  UpdateDeviceDto,
+} from "./hr-attendance.dto.js";
+import { ShiftAssignmentService, ShiftTemplateService } from "./hr-shifts.services.js";
+import { CancelAssignmentDto, CreateAssignmentDto, CreateShiftTemplateDto, DecideSwapDto, RequestSwapDto, UpdateAssignmentDto, UpdateShiftTemplateDto } from "./hr-shifts.dto.js";
+import { HolidayService, LeaveBalanceService, LeavePolicyService, LeaveRequestService } from "./hr-leave.services.js";
+import {
+  CancelLeaveRequestDto,
+  CreateHolidayDto,
+  CreateLeavePolicyDto,
+  CreateLeaveRequestDto,
+  DecideLeaveRequestDto,
+  RequestLeaveDto,
+  RolloverDto,
+  UpdateHolidayDto,
+  UpdateLeavePolicyDto,
+  UpdateLeaveRequestDto,
+} from "./hr-leave.dto.js";
+import { DevelopmentPlanService, GoalService, PerformanceCycleService, ReviewService } from "./hr-performance.services.js";
+import {
+  CreateDevelopmentPlanDto,
+  CreateGoalDto,
+  CreatePerformanceCycleDto,
+  CreateReviewDto,
+  SelfGoalDto,
+  SelfReviewDto,
+  UpdateDevelopmentPlanDto,
+  UpdateGoalDto,
+  UpdateGoalProgressDto,
+  UpdatePerformanceCycleDto,
+  UpdateReviewDto,
+} from "./hr-performance.dto.js";
+import { AnnouncementService, EquipmentRequestService, HrRequestService } from "./hr-selfservice.services.js";
+import {
+  CreateAnnouncementDto,
+  CreateEquipmentRequestDto,
+  CreateHrRequestDto,
+  DecideEquipmentRequestDto,
+  DecideHrRequestDto,
+  FulfillEquipmentRequestDto,
+  SelfEquipmentRequestDto,
+  SelfHrRequestDto,
+  UpdateAnnouncementDto,
+  UpdateEquipmentRequestDto,
+  UpdateHrRequestDto,
+} from "./hr-selfservice.dto.js";
+import { ApitBracketService, LoanService, PayrollRunService, PayslipService, SalaryComponentService, SalaryStructureService, StatutoryRateService } from "./hr-payroll.services.js";
+import {
+  ApprovePayrollRunDto,
+  CreateApitBracketDto,
+  CreateLoanDto,
+  CreatePayrollRunDto,
+  CreateSalaryComponentDto,
+  CreateSalaryStructureDto,
+  CreateStatutoryRateDto,
+  UpdateApitBracketDto,
+  UpdateLoanDto,
+  UpdatePayrollRunDto,
+  UpdateSalaryComponentDto,
+  UpdateSalaryStructureDto,
+  UpdateStatutoryRateDto,
+} from "./hr-payroll.dto.js";
+
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr")
+class HrActionsController {
+  constructor(
+    private readonly employees: EmployeeService,
+    private readonly requisitions: JobRequisitionService,
+    private readonly postings: JobPostingService,
+    private readonly candidates: CandidateService,
+    private readonly checklists: ChecklistService,
+    private readonly attendance: AttendanceService,
+    private readonly attendanceSettings: AttendanceSettingsService,
+    private readonly devices: DeviceService,
+    private readonly assignments: ShiftAssignmentService,
+    private readonly leavePolicies: LeavePolicyService,
+    private readonly leaveRequests: LeaveRequestService,
+    private readonly leaveBalances: LeaveBalanceService,
+    private readonly goals: GoalService,
+    private readonly reviews: ReviewService,
+    private readonly hrRequests: HrRequestService,
+    private readonly equipmentRequests: EquipmentRequestService,
+  ) {}
+
+  @Get("employees/org-chart")
+  @RequirePermission("hr.employee.view")
+  @ApiOperation({ summary: "The reporting tree from the top, or from one employee down with ?rootId=" })
+  orgChart(@Ctx() ctx: RequestContext, @Query("rootId") rootId?: string) {
+    return this.employees.orgChart(ctx, rootId);
+  }
+
+  @Post("employees/:id/terminate")
+  @HttpCode(200)
+  @RequirePermission("hr.employee.terminate")
+  @ApiOperation({ summary: "Ends employment, recording the date and reason" })
+  terminate(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(TerminateDto)) dto: TerminateDto) {
+    return this.employees.terminate(ctx, id, dto.date, dto.reason);
+  }
+
+  @Post("employees/:id/reinstate")
+  @HttpCode(200)
+  @RequirePermission("hr.employee.terminate")
+  @ApiOperation({ summary: "Brings a terminated employee back as a new stint" })
+  reinstate(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ReinstateDto)) dto: ReinstateDto) {
+    return this.employees.reinstate(ctx, id, dto.date);
+  }
+
+  @Post("employees/:id/onboarding")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.create")
+  @ApiOperation({ summary: "Starts an onboarding checklist for this employee (reuses one already in progress)" })
+  startOnboarding(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(StartChecklistDto)) dto: StartChecklistDto) {
+    return this.checklists.start(ctx, id, "onboarding", dto.targetDate?.slice(0, 10) ?? null);
+  }
+
+  @Post("employees/:id/offboarding")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.create")
+  @ApiOperation({ summary: "Starts an offboarding checklist for this employee (reuses one already in progress)" })
+  startOffboarding(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(StartChecklistDto)) dto: StartChecklistDto) {
+    return this.checklists.start(ctx, id, "offboarding", dto.targetDate?.slice(0, 10) ?? null);
+  }
+
+  @Post("checklists/:id/items/:itemId/status")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.edit")
+  @ApiOperation({ summary: "Marks a checklist item done, skipped or pending again" })
+  setItemStatus(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("itemId") itemId: string, @Body(validated(SetItemStatusDto)) dto: SetItemStatusDto) {
+    return this.checklists.setItemStatus(ctx, id, itemId, dto.status, dto.notes);
+  }
+
+  @Post("checklists/:id/items/:itemId/assign")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.edit")
+  assignItem(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("itemId") itemId: string, @Body(validated(AssignItemDto)) dto: AssignItemDto) {
+    return this.checklists.assignItem(ctx, id, itemId, dto.userId ?? null);
+  }
+
+  @Post("checklists/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.checklist.edit")
+  cancelChecklist(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelChecklistDto)) dto: CancelChecklistDto) {
+    return this.checklists.cancel(ctx, id, dto.reason);
+  }
+
+  @Post("requisitions/:id/submit")
+  @HttpCode(200)
+  @RequirePermission("hr.jobRequisition.edit")
+  @ApiOperation({ summary: "Sends the requisition for hiring approval (or approves it at once when no workflow applies)" })
+  submitRequisition(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.requisitions.submit(ctx, id);
+  }
+
+  @Post("requisitions/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.jobRequisition.edit")
+  cancelRequisition(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.requisitions.cancel(ctx, id);
+  }
+
+  @Post("postings/:id/publish")
+  @HttpCode(200)
+  @RequirePermission("hr.jobPosting.edit")
+  @ApiOperation({ summary: "Publishes the posting to the public career page" })
+  publishPosting(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.postings.publish(ctx, id);
+  }
+
+  @Post("postings/:id/close")
+  @HttpCode(200)
+  @RequirePermission("hr.jobPosting.edit")
+  closePosting(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.postings.close(ctx, id);
+  }
+
+  @Post("candidates/:id/interviews")
+  @HttpCode(200)
+  @RequirePermission("hr.candidate.edit")
+  @ApiOperation({ summary: "Schedules an interview" })
+  scheduleInterview(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ScheduleInterviewDto)) dto: ScheduleInterviewDto) {
+    return this.candidates.scheduleInterview(ctx, id, dto);
+  }
+
+  @Post("candidates/:id/interviews/:interviewId/scorecard")
+  @HttpCode(200)
+  @RequirePermission("hr.candidate.edit")
+  @ApiOperation({ summary: "Records the outcome of a scheduled interview" })
+  recordScorecard(@Ctx() ctx: RequestContext, @Param("id") id: string, @Param("interviewId") interviewId: string, @Body(validated(RecordScorecardDto)) dto: RecordScorecardDto) {
+    return this.candidates.recordScorecard(ctx, id, interviewId, dto);
+  }
+
+  @Post("candidates/:id/offer")
+  @HttpCode(200)
+  @RequirePermission("hr.candidate.edit")
+  @ApiOperation({ summary: "Extends or revises an offer" })
+  extendOffer(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ExtendOfferDto)) dto: ExtendOfferDto) {
+    return this.candidates.extendOffer(ctx, id, dto);
+  }
+
+  @Post("candidates/:id/offer/respond")
+  @HttpCode(200)
+  @RequirePermission("hr.candidate.edit")
+  @ApiOperation({ summary: "Records the candidate's reply to the offer" })
+  respondToOffer(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(RespondOfferDto)) dto: RespondOfferDto) {
+    return this.candidates.respondToOffer(ctx, id, dto.accepted);
+  }
+
+  @Post("candidates/:id/reject")
+  @HttpCode(200)
+  @RequirePermission("hr.candidate.edit")
+  rejectCandidate(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(RejectCandidateDto)) dto: RejectCandidateDto) {
+    return this.candidates.reject(ctx, id, dto.reason);
+  }
+
+  @Post("candidates/:id/hire")
+  @HttpCode(200)
+  @RequirePermission("hr.employee.create")
+  @ApiOperation({ summary: "Hires the candidate: creates the employee record and closes the pipeline" })
+  hireCandidate(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(HireCandidateDto)) dto: HireCandidateDto) {
+    return this.candidates.hire(ctx, id, dto.joiningDate);
+  }
+
+  @Post("employees/:id/attendance-pin")
+  @HttpCode(200)
+  @RequirePermission("hr.employee.edit")
+  @ApiOperation({ summary: "Sets this employee's kiosk PIN (never returned by the API)" })
+  setAttendancePin(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(SetAttendancePinDto)) dto: SetAttendancePinDto) {
+    return this.employees.setAttendancePin(ctx, id, dto.pin);
+  }
+
+  @Post("attendance/:id/correction/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.attendanceRecord.edit")
+  @ApiOperation({ summary: "Approves or rejects a correction request" })
+  decideCorrection(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideCorrectionDto)) dto: DecideCorrectionDto) {
+    return this.attendance.decideCorrection(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("attendance/mark-absent")
+  @HttpCode(200)
+  @RequirePermission("hr.attendanceRecord.edit")
+  @ApiOperation({ summary: "Records a day with no clock-in at all" })
+  markAbsent(@Ctx() ctx: RequestContext, @Body(validated(MarkAbsentDto)) dto: MarkAbsentDto) {
+    return this.attendance.markAbsent(ctx, dto.employeeId, dto.date, dto.reason);
+  }
+
+  @Get("attendance/timesheet")
+  @RequirePermission("hr.attendanceRecord.view")
+  @ApiOperation({ summary: "Worked, overtime and late minutes for an employee over a date range" })
+  timesheet(@Ctx() ctx: RequestContext, @Query("employeeId") employeeId: string, @Query("from") from: string, @Query("to") to: string) {
+    return this.attendance.timesheet(ctx, employeeId, from, to);
+  }
+
+  @Get("attendance-settings")
+  @RequirePermission("hr.attendanceRecord.view")
+  getAttendanceSettings(@Ctx() ctx: RequestContext) {
+    return this.attendanceSettings.get(ctx);
+  }
+
+  @Put("attendance-settings")
+  @RequirePermission("hr.attendanceRecord.edit")
+  @ApiOperation({ summary: "The standard shift times used to compute late, early-leave and overtime until Shifts is built" })
+  putAttendanceSettings(@Ctx() ctx: RequestContext, @Body(validated(UpdateAttendanceSettingsDto)) dto: UpdateAttendanceSettingsDto) {
+    return this.attendanceSettings.update(ctx, dto);
+  }
+
+  @Post("devices/:id/issue-key")
+  @HttpCode(200)
+  @RequirePermission("hr.device.edit")
+  @ApiOperation({ summary: "Issues a new bearer key for this kiosk, retiring any previous one; shown once" })
+  issueDeviceKey(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.devices.issueKey(ctx, id);
+  }
+
+  @Post("devices/:id/revoke")
+  @HttpCode(200)
+  @RequirePermission("hr.device.edit")
+  revokeDevice(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.devices.revoke(ctx, id);
+  }
+
+  @Get("shift-assignments/calendar")
+  @RequirePermission("hr.shiftAssignment.view")
+  @ApiOperation({ summary: "Every employee's shifts in a date range" })
+  shiftCalendar(@Ctx() ctx: RequestContext, @Query("from") from: string, @Query("to") to: string) {
+    return this.assignments.calendar(ctx, from, to);
+  }
+
+  @Post("shift-assignments/:id/swap/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.shiftAssignment.edit")
+  @ApiOperation({ summary: "Approves or rejects a swap request; approving exchanges the two employees" })
+  decideSwap(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideSwapDto)) dto: DecideSwapDto) {
+    return this.assignments.decideSwap(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("shift-assignments/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.shiftAssignment.edit")
+  cancelAssignment(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelAssignmentDto)) dto: CancelAssignmentDto) {
+    return this.assignments.cancel(ctx, id, dto.reason);
+  }
+
+  @Post("leave-requests/:id/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.leaveRequest.edit")
+  @ApiOperation({ summary: "Approves or rejects a leave request, consuming the employee's balance on approval" })
+  decideLeaveRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideLeaveRequestDto)) dto: DecideLeaveRequestDto) {
+    return this.leaveRequests.decide(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("leave-requests/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.leaveRequest.edit")
+  @ApiOperation({ summary: "Cancels a leave request on the employee's behalf, including an approved one (its balance is released)" })
+  cancelLeaveRequestAsAdmin(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelLeaveRequestDto)) dto: CancelLeaveRequestDto) {
+    return this.leaveRequests.cancel(ctx, id, null, dto.reason);
+  }
+
+  @Get("leave-requests/calendar")
+  @RequirePermission("hr.leaveRequest.view")
+  @ApiOperation({ summary: "Who is on approved leave, by start date, in a date range" })
+  leaveCalendar(@Ctx() ctx: RequestContext, @Query("from") from: string, @Query("to") to: string) {
+    return this.leaveRequests.calendar(ctx, from, to);
+  }
+
+  @Get("leave-balances")
+  @RequirePermission("hr.leaveRequest.view")
+  @ApiOperation({ summary: "One employee's balance across every leave policy" })
+  async leaveBalancesFor(@Ctx() ctx: RequestContext, @Query("employeeId") employeeId: string) {
+    const policies = await this.leavePolicies.listActive(ctx);
+    return Promise.all(policies.map(async (policy) => ({ policy, balance: await this.leaveBalances.get(ctx, employeeId, policy.id, policy) })));
+  }
+
+  @Post("leave/rollover")
+  @HttpCode(200)
+  @RequirePermission("hr.leavePolicy.edit")
+  @ApiOperation({ summary: "Resets every employee's balance for every policy into the given year, carrying forward up to each policy's cap" })
+  async rolloverLeave(@Ctx() ctx: RequestContext, @Body(validated(RolloverDto)) dto: RolloverDto) {
+    const [employees, policies] = await Promise.all([this.employees.listActive(ctx), this.leavePolicies.listActive(ctx)]);
+    const updated = await this.leaveBalances.rollover(ctx, dto.year, employees, policies);
+    return { year: dto.year, employees: employees.length, policies: policies.length, balancesUpdated: updated };
+  }
+
+  @Post("goals/:id/progress")
+  @HttpCode(200)
+  @RequirePermission("hr.goal.edit")
+  @ApiOperation({ summary: "Updates a goal's progress on the employee's behalf" })
+  setGoalProgress(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(UpdateGoalProgressDto)) dto: UpdateGoalProgressDto) {
+    return this.goals.updateProgress(ctx, id, null, dto.status, dto.currentValue);
+  }
+
+  @Post("reviews/:id/submit")
+  @HttpCode(200)
+  @RequirePermission("hr.review.edit")
+  @ApiOperation({ summary: "Submits a manager or peer review, locking it from further edits" })
+  submitReview(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.reviews.submit(ctx, id);
+  }
+
+  @Post("requests/:id/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.hrRequest.edit")
+  @ApiOperation({ summary: "Updates an HR request's status, recording a resolution once resolved or closed" })
+  decideHrRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideHrRequestDto)) dto: DecideHrRequestDto) {
+    return this.hrRequests.decide(ctx, id, dto.status, dto.resolution);
+  }
+
+  @Post("equipment-requests/:id/decide")
+  @HttpCode(200)
+  @RequirePermission("hr.equipmentRequest.edit")
+  decideEquipmentRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(DecideEquipmentRequestDto)) dto: DecideEquipmentRequestDto) {
+    return this.equipmentRequests.decide(ctx, id, dto.approve, dto.note);
+  }
+
+  @Post("equipment-requests/:id/fulfill")
+  @HttpCode(200)
+  @RequirePermission("hr.equipmentRequest.edit")
+  @ApiOperation({ summary: "Marks an approved equipment request as handed over" })
+  fulfillEquipmentRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(FulfillEquipmentRequestDto)) dto: FulfillEquipmentRequestDto) {
+    return this.equipmentRequests.fulfill(ctx, id, dto.note);
+  }
+}
+
+/** The payroll pipeline: calculate, approve, lock (posts to the GL) and the bank file. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr")
+class PayrollActionsController {
+  constructor(
+    private readonly runs: PayrollRunService,
+    private readonly loans: LoanService,
+    private readonly payslips: PayslipService,
+  ) {}
+
+  @Post("payroll-runs/:id/calculate")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  @ApiOperation({ summary: "Builds (or rebuilds) every employee's payslip for the run" })
+  calculateRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.runs.calculate(ctx, id);
+  }
+
+  @Post("payroll-runs/:id/approve")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  approveRun(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(ApprovePayrollRunDto)) dto: ApprovePayrollRunDto) {
+    return this.runs.approve(ctx, id, dto.notes);
+  }
+
+  @Post("payroll-runs/:id/lock")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  @ApiOperation({ summary: "Posts one journal for the whole run and locks it against further changes" })
+  lockRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.runs.lock(ctx, id);
+  }
+
+  @Post("payroll-runs/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.payrollRun.edit")
+  cancelRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.runs.cancel(ctx, id);
+  }
+
+  @Get("payroll-runs/:id/payslips")
+  @RequirePermission("hr.payrollRun.view")
+  payslipsForRun(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.payslips.forRun(ctx, id);
+  }
+
+  @Get("payroll-runs/:id/bank-file")
+  @RequirePermission("hr.payrollRun.edit")
+  @ApiOperation({ summary: "A CSV of employee, account number and net pay for the bank transfer" })
+  async bankFile(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return { csv: await this.runs.bankFileCsv(ctx, id) };
+  }
+
+  @Get("payslips")
+  @RequirePermission("hr.payrollRun.view")
+  @ApiOperation({ summary: "One employee's payslip history" })
+  payslipsForEmployee(@Ctx() ctx: RequestContext, @Query("employeeId") employeeId: string) {
+    return this.payslips.forEmployee(ctx, employeeId);
+  }
+
+  @Post("loans/:id/cancel")
+  @HttpCode(200)
+  @RequirePermission("hr.loan.edit")
+  cancelLoan(@Ctx() ctx: RequestContext, @Param("id") id: string) {
+    return this.loans.cancel(ctx, id);
+  }
+}
+
+/** The employee self-service portal: profile, announcements, HR and equipment requests. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/self-service")
+class SelfServicePortalController {
+  constructor(
+    private readonly employees: EmployeeService,
+    private readonly announcements: AnnouncementService,
+    private readonly hrRequests: HrRequestService,
+    private readonly equipmentRequests: EquipmentRequestService,
+    private readonly payslips: PayslipService,
+  ) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me/profile")
+  @ApiOperation({ summary: "My own employee record" })
+  myProfile(@Ctx() ctx: RequestContext) {
+    return this.myEmployee(ctx);
+  }
+
+  @Put("me/profile")
+  @ApiOperation({ summary: "Updates my phone, address and emergency contact; nothing employment- or pay-related" })
+  async updateMyProfile(@Ctx() ctx: RequestContext, @Body(validated(UpdateMyProfileDto)) dto: UpdateMyProfileDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.employees.updateOwnProfile(ctx, employee.id, dto);
+  }
+
+  @Get("announcements")
+  @ApiOperation({ summary: "Published announcements that have not expired" })
+  activeAnnouncements(@Ctx() ctx: RequestContext) {
+    return this.announcements.active(ctx);
+  }
+
+  @Get("me/requests")
+  @ApiOperation({ summary: "My own HR requests" })
+  async myHrRequests(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.hrRequests.forEmployee(ctx, employee.id);
+  }
+
+  @Post("me/requests")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Raises a request to HR" })
+  async createHrRequest(@Ctx() ctx: RequestContext, @Body(validated(SelfHrRequestDto)) dto: SelfHrRequestDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.hrRequests.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Get("me/equipment-requests")
+  @ApiOperation({ summary: "My own equipment requests" })
+  async myEquipmentRequests(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.equipmentRequests.forEmployee(ctx, employee.id);
+  }
+
+  @Post("me/equipment-requests")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Requests a piece of equipment" })
+  async createEquipmentRequest(@Ctx() ctx: RequestContext, @Body(validated(SelfEquipmentRequestDto)) dto: SelfEquipmentRequestDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.equipmentRequests.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Get("me/payslips")
+  @ApiOperation({ summary: "My own payslip history" })
+  async myPayslips(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.payslips.forEmployee(ctx, employee.id);
+  }
+}
+
+/** Performance self-service: a signed-in employee's own goals, reviews and development plan. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/performance")
+class PerformanceSelfServiceController {
+  constructor(
+    private readonly employees: EmployeeService,
+    private readonly goals: GoalService,
+    private readonly reviews: ReviewService,
+    private readonly developmentPlans: DevelopmentPlanService,
+  ) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me/goals")
+  @ApiOperation({ summary: "My own goals, KPIs and OKRs" })
+  async myGoals(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.goals.forEmployee(ctx, employee.id);
+  }
+
+  @Post("me/goals")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Sets a goal for myself" })
+  async createMyGoal(@Ctx() ctx: RequestContext, @Body(validated(SelfGoalDto)) dto: SelfGoalDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.goals.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Post("me/goals/:id/progress")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Updates my own goal's progress" })
+  async updateMyGoal(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(UpdateGoalProgressDto)) dto: UpdateGoalProgressDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.goals.updateProgress(ctx, id, employee.id, dto.status, dto.currentValue);
+  }
+
+  @Get("me/reviews")
+  @ApiOperation({ summary: "Submitted reviews about me (self-assessments, manager reviews, peer feedback)" })
+  async myReviews(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.reviews.aboutMeSubmitted(ctx, employee.id);
+  }
+
+  @Post("me/reviews/self")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Saves and submits my self-assessment for a cycle" })
+  async submitMySelfReview(@Ctx() ctx: RequestContext, @Body(validated(SelfReviewDto)) dto: SelfReviewDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.reviews.submitSelfReview(ctx, employee.id, dto);
+  }
+
+  @Get("me/development-plan")
+  @ApiOperation({ summary: "My own development plan(s)" })
+  async myDevelopmentPlan(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.developmentPlans.forEmployee(ctx, employee.id);
+  }
+}
+
+/** Leave self-service: a signed-in employee's own requests and balances. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/leave")
+class LeaveSelfServiceController {
+  constructor(private readonly employees: EmployeeService, private readonly leavePolicies: LeavePolicyService, private readonly leaveRequests: LeaveRequestService, private readonly leaveBalances: LeaveBalanceService) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me/requests")
+  @ApiOperation({ summary: "My own leave requests, most recent first" })
+  async myRequests(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.leaveRequests.list(ctx, { where: `employeeId:${employee.id}`, limit: 100 });
+  }
+
+  @Post("me/requests")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Requests leave for myself" })
+  async requestLeave(@Ctx() ctx: RequestContext, @Body(validated(RequestLeaveDto)) dto: RequestLeaveDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.leaveRequests.create(ctx, { ...dto, employeeId: employee.id });
+  }
+
+  @Post("me/requests/:id/cancel")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Cancels my own pending leave request" })
+  async cancelMyRequest(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(CancelLeaveRequestDto)) dto: CancelLeaveRequestDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.leaveRequests.cancel(ctx, id, employee.id, dto.reason);
+  }
+
+  @Get("me/balances")
+  @ApiOperation({ summary: "My own balance across every leave policy" })
+  async myBalances(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    const policies = await this.leavePolicies.listActive(ctx);
+    return Promise.all(policies.map(async (policy) => ({ policy, balance: await this.leaveBalances.get(ctx, employee.id, policy.id, policy) })));
+  }
+}
+
+/** Shift self-service: a signed-in employee's own schedule and swap requests. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/shift-assignments")
+class ShiftSelfServiceController {
+  constructor(private readonly employees: EmployeeService, private readonly assignments: ShiftAssignmentService) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me")
+  @ApiOperation({ summary: "My own shifts in a date range" })
+  async mySchedule(@Ctx() ctx: RequestContext, @Query("from") from: string, @Query("to") to: string) {
+    const employee = await this.myEmployee(ctx);
+    return this.assignments.mySchedule(ctx, employee.id, from, to);
+  }
+
+  @Post(":id/swap")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Requests to swap one of my own shifts with someone else's" })
+  async requestSwap(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(RequestSwapDto)) dto: RequestSwapDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.assignments.requestSwap(ctx, id, employee.id, dto.targetAssignmentId, dto.note);
+  }
+}
+
+/** Attendance self-service: any signed-in user with a linked employee record, no extra permission. */
+@ApiTags("HR")
+@ApiBearerAuth()
+@RequireModule("hr")
+@Controller("hr/attendance")
+class AttendanceSelfServiceController {
+  constructor(private readonly employees: EmployeeService, private readonly attendance: AttendanceService) {}
+
+  private async myEmployee(ctx: RequestContext) {
+    const employee = await this.employees.findByUserId(ctx, ctx.userId);
+    if (!employee) throw new BadRequestException("No employee record is linked to your account");
+    return employee;
+  }
+
+  @Get("me")
+  @ApiOperation({ summary: "Today's attendance record for the signed-in employee, if any" })
+  async me(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    const page = await this.attendance.list(ctx, { where: `employeeId:${employee.id}`, limit: 1 });
+    const today = new Date().toISOString().slice(0, 10);
+    return { employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName }, today: page.items.find((r) => r.date === today) ?? null };
+  }
+
+  @Post("clock-in")
+  @HttpCode(200)
+  async clockIn(@Ctx() ctx: RequestContext, @Body(validated(ClockActionDto)) dto: ClockActionDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.clockIn(ctx, employee.id, dto.method ?? "web", null);
+  }
+
+  @Post("clock-out")
+  @HttpCode(200)
+  async clockOut(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.clockOut(ctx, employee.id);
+  }
+
+  @Post("break/start")
+  @HttpCode(200)
+  async startBreak(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.startBreak(ctx, employee.id);
+  }
+
+  @Post("break/end")
+  @HttpCode(200)
+  async endBreak(@Ctx() ctx: RequestContext) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.endBreak(ctx, employee.id);
+  }
+
+  @Post("me/pin")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Sets your own kiosk PIN" })
+  async setMyPin(@Ctx() ctx: RequestContext, @Body(validated(SetAttendancePinDto)) dto: SetAttendancePinDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.employees.setAttendancePin(ctx, employee.id, dto.pin);
+  }
+
+  @Post(":id/correction")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Requests a correction to one of your own attendance records" })
+  async requestCorrection(@Ctx() ctx: RequestContext, @Param("id") id: string, @Body(validated(RequestCorrectionDto)) dto: RequestCorrectionDto) {
+    const employee = await this.myEmployee(ctx);
+    return this.attendance.requestCorrection(ctx, id, employee.id, dto.requestedClockIn, dto.requestedClockOut, dto.reason);
+  }
+}
+
+/** The kiosk endpoint: authenticates with a device bearer key, never a user session. */
+@ApiTags("Public")
+@Controller("public/attendance")
+class PublicAttendanceController {
+  constructor(private readonly devices: DeviceService, private readonly attendance: AttendanceService) {}
+
+  @Public()
+  @Post("clock")
+  @HttpCode(200)
+  @ApiOperation({ summary: "QR (employee number only) or PIN clock-in/out and breaks, from a registered kiosk" })
+  async clock(@Body(validated(KioskClockDto)) dto: KioskClockDto) {
+    const device = await this.devices.resolveByKey(dto.deviceKey);
+    if (!device) throw new BadRequestException("Unknown or revoked device key");
+    const ctx = { tenantId: device.tenantId, companyId: device.companyId, userId: "device", allPermissions: true, permissions: new Set<string>(), ip: null, userAgent: null } as RequestContext;
+    const employee = await this.attendance.resolveKioskEmployee(ctx, dto.employeeNumber, dto.pin);
+    switch (dto.action) {
+      case "in":
+        return this.attendance.clockIn(ctx, employee.id, dto.pin ? "pin" : "qr", device.deviceId);
+      case "out":
+        return this.attendance.clockOut(ctx, employee.id);
+      case "break_start":
+        return this.attendance.startBreak(ctx, employee.id);
+      case "break_end":
+        return this.attendance.endBreak(ctx, employee.id);
+    }
+  }
+}
+
+/** The public career page: reachable without signing in, scoped to one company by its id. */
+@ApiTags("Public")
+@Controller("public/careers")
+class PublicCareersController {
+  constructor(private readonly postings: JobPostingService, private readonly candidates: CandidateService) {}
+
+  @Public()
+  @Get(":companyId")
+  list(@Param("companyId") companyId: string) {
+    return this.postings.publicList(companyId);
+  }
+
+  @Public()
+  @Get(":companyId/:postingId")
+  get(@Param("companyId") companyId: string, @Param("postingId") postingId: string) {
+    return this.postings.publicGet(companyId, postingId);
+  }
+
+  @Public()
+  @Post(":companyId/:postingId/apply")
+  @HttpCode(201)
+  apply(@Param("companyId") companyId: string, @Param("postingId") postingId: string, @Body(validated(PublicApplyDto)) dto: PublicApplyDto) {
+    return this.candidates.publicApply(companyId, postingId, dto);
+  }
+}
+
+const crud = [
+  createMasterDataController({ path: "hr/employees", tag: "HR: Employees", module: "hr", permission: "hr.employee", service: EmployeeService, createDto: CreateEmployeeDto, updateDto: UpdateEmployeeDto }),
+  createMasterDataController({ path: "hr/positions", tag: "HR: Positions", module: "hr", permission: "hr.position", service: PositionService, createDto: CreatePositionDto, updateDto: UpdatePositionDto }),
+  createMasterDataController({ path: "hr/job-grades", tag: "HR: Job grades", module: "hr", permission: "hr.jobGrade", service: JobGradeService, createDto: CreateJobGradeDto, updateDto: UpdateJobGradeDto }),
+  createMasterDataController({ path: "hr/requisitions", tag: "HR: Job requisitions", module: "hr", permission: "hr.jobRequisition", service: JobRequisitionService, createDto: CreateJobRequisitionDto, updateDto: UpdateJobRequisitionDto }),
+  createMasterDataController({ path: "hr/postings", tag: "HR: Job postings", module: "hr", permission: "hr.jobPosting", service: JobPostingService, createDto: CreateJobPostingDto, updateDto: UpdateJobPostingDto }),
+  createMasterDataController({ path: "hr/candidates", tag: "HR: Candidates", module: "hr", permission: "hr.candidate", service: CandidateService, createDto: CreateCandidateDto, updateDto: UpdateCandidateDto }),
+  createMasterDataController({ path: "hr/checklists", tag: "HR: Onboarding and offboarding checklists", module: "hr", permission: "hr.checklist", service: ChecklistService, createDto: CreateChecklistDto, updateDto: UpdateChecklistDto }),
+  createMasterDataController({ path: "hr/attendance", tag: "HR: Attendance", module: "hr", permission: "hr.attendanceRecord", service: AttendanceService, createDto: CreateAttendanceRecordDto, updateDto: UpdateAttendanceRecordDto }),
+  createMasterDataController({ path: "hr/devices", tag: "HR: Attendance devices", module: "hr", permission: "hr.device", service: DeviceService, createDto: CreateDeviceDto, updateDto: UpdateDeviceDto }),
+  createMasterDataController({ path: "hr/shift-templates", tag: "HR: Shift templates", module: "hr", permission: "hr.shiftTemplate", service: ShiftTemplateService, createDto: CreateShiftTemplateDto, updateDto: UpdateShiftTemplateDto }),
+  createMasterDataController({ path: "hr/shift-assignments", tag: "HR: Shift assignments", module: "hr", permission: "hr.shiftAssignment", service: ShiftAssignmentService, createDto: CreateAssignmentDto, updateDto: UpdateAssignmentDto }),
+  createMasterDataController({ path: "hr/leave-policies", tag: "HR: Leave policies", module: "hr", permission: "hr.leavePolicy", service: LeavePolicyService, createDto: CreateLeavePolicyDto, updateDto: UpdateLeavePolicyDto }),
+  createMasterDataController({ path: "hr/holidays", tag: "HR: Holidays", module: "hr", permission: "hr.holiday", service: HolidayService, createDto: CreateHolidayDto, updateDto: UpdateHolidayDto }),
+  createMasterDataController({ path: "hr/leave-requests", tag: "HR: Leave requests", module: "hr", permission: "hr.leaveRequest", service: LeaveRequestService, createDto: CreateLeaveRequestDto, updateDto: UpdateLeaveRequestDto }),
+  createMasterDataController({ path: "hr/performance-cycles", tag: "HR: Performance cycles", module: "hr", permission: "hr.performanceCycle", service: PerformanceCycleService, createDto: CreatePerformanceCycleDto, updateDto: UpdatePerformanceCycleDto }),
+  createMasterDataController({ path: "hr/goals", tag: "HR: Goals", module: "hr", permission: "hr.goal", service: GoalService, createDto: CreateGoalDto, updateDto: UpdateGoalDto }),
+  createMasterDataController({ path: "hr/reviews", tag: "HR: Reviews", module: "hr", permission: "hr.review", service: ReviewService, createDto: CreateReviewDto, updateDto: UpdateReviewDto }),
+  createMasterDataController({ path: "hr/development-plans", tag: "HR: Development plans", module: "hr", permission: "hr.developmentPlan", service: DevelopmentPlanService, createDto: CreateDevelopmentPlanDto, updateDto: UpdateDevelopmentPlanDto }),
+  createMasterDataController({ path: "hr/announcements", tag: "HR: Announcements", module: "hr", permission: "hr.announcement", service: AnnouncementService, createDto: CreateAnnouncementDto, updateDto: UpdateAnnouncementDto }),
+  createMasterDataController({ path: "hr/requests", tag: "HR: Requests", module: "hr", permission: "hr.hrRequest", service: HrRequestService, createDto: CreateHrRequestDto, updateDto: UpdateHrRequestDto }),
+  createMasterDataController({ path: "hr/equipment-requests", tag: "HR: Equipment requests", module: "hr", permission: "hr.equipmentRequest", service: EquipmentRequestService, createDto: CreateEquipmentRequestDto, updateDto: UpdateEquipmentRequestDto }),
+  createMasterDataController({ path: "hr/statutory-rates", tag: "HR: Statutory rates", module: "hr", permission: "hr.statutoryRate", service: StatutoryRateService, createDto: CreateStatutoryRateDto, updateDto: UpdateStatutoryRateDto }),
+  createMasterDataController({ path: "hr/apit-brackets", tag: "HR: APIT brackets", module: "hr", permission: "hr.apitBracket", service: ApitBracketService, createDto: CreateApitBracketDto, updateDto: UpdateApitBracketDto }),
+  createMasterDataController({ path: "hr/salary-components", tag: "HR: Salary components", module: "hr", permission: "hr.salaryComponent", service: SalaryComponentService, createDto: CreateSalaryComponentDto, updateDto: UpdateSalaryComponentDto }),
+  createMasterDataController({ path: "hr/salary-structures", tag: "HR: Salary structures", module: "hr", permission: "hr.salaryStructure", service: SalaryStructureService, createDto: CreateSalaryStructureDto, updateDto: UpdateSalaryStructureDto }),
+  createMasterDataController({ path: "hr/loans", tag: "HR: Loans and advances", module: "hr", permission: "hr.loan", service: LoanService, createDto: CreateLoanDto, updateDto: UpdateLoanDto }),
+  createMasterDataController({ path: "hr/payroll-runs", tag: "HR: Payroll runs", module: "hr", permission: "hr.payrollRun", service: PayrollRunService, createDto: CreatePayrollRunDto, updateDto: UpdatePayrollRunDto }),
+];
+
+const SERVICES = [
+  EmployeeService,
+  PositionService,
+  JobGradeService,
+  JobRequisitionService,
+  JobPostingService,
+  CandidateService,
+  ChecklistService,
+  AttendanceService,
+  AttendanceSettingsService,
+  DeviceService,
+  ShiftTemplateService,
+  ShiftAssignmentService,
+  LeavePolicyService,
+  HolidayService,
+  LeaveBalanceService,
+  LeaveRequestService,
+  PerformanceCycleService,
+  GoalService,
+  ReviewService,
+  DevelopmentPlanService,
+  AnnouncementService,
+  HrRequestService,
+  EquipmentRequestService,
+  StatutoryRateService,
+  ApitBracketService,
+  SalaryComponentService,
+  SalaryStructureService,
+  LoanService,
+  PayslipService,
+  PayrollRunService,
+];
 
 @Module({
-  controllers: [HrController],
-  providers: [HrService],
+  imports: [FinanceModule],
+  controllers: [
+    HrActionsController,
+    PayrollActionsController,
+    AttendanceSelfServiceController,
+    ShiftSelfServiceController,
+    LeaveSelfServiceController,
+    PerformanceSelfServiceController,
+    SelfServicePortalController,
+    PublicCareersController,
+    PublicAttendanceController,
+    ...crud,
+  ],
+  providers: SERVICES,
+  exports: SERVICES,
 })
 export class HrModule {}

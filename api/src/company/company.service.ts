@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { FirestoreService } from "../firestore/firestore.service";
-import { COLLECTIONS } from "../firestore/collections";
-import { CompanyDoc, CompanyUserDoc, UserDoc, UserRoleDoc, RoleDoc } from "../firestore/models";
-import { CreateCompanyDto } from "./dto/create-company.dto";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { UpdateCompanyDto } from "./dto/update-company.dto.js";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
+import { CompanyDoc, CompanyUserDoc, UserDoc, UserRoleDoc, RoleDoc } from "../firestore/models.js";
+import { CreateCompanyDto } from "./dto/create-company.dto.js";
 
 @Injectable()
 export class CompanyService {
@@ -41,7 +42,19 @@ export class CompanyService {
     return { ...company, parent, children };
   }
 
+  /** The parent must be another company of the same tenant, and not a descendant (no cycles). */
+  private async assertValidParent(id: string | null, parentId: string, tenantId: string) {
+    let cursor: string | null = parentId;
+    for (let depth = 0; cursor; depth++) {
+      if (cursor === id || depth > 20) throw new BadRequestException("Invalid parent company");
+      const parent = (await this.firestore.collection<CompanyDoc>(COLLECTIONS.companies).doc(cursor).get()).data();
+      if (!parent || parent.tenantId !== tenantId) throw new BadRequestException("Parent company not found");
+      cursor = parent.parentId;
+    }
+  }
+
   async create(dto: CreateCompanyDto, tenantId: string) {
+    if (dto.parentId) await this.assertValidParent(null, dto.parentId, tenantId);
     const now = new Date().toISOString();
     const id = `${tenantId}_${dto.code}`;
     const company: CompanyDoc = {
@@ -67,14 +80,14 @@ export class CompanyService {
     return company;
   }
 
-  async update(id: string, tenantId: string, data: Partial<CreateCompanyDto>) {
+  async update(id: string, tenantId: string, data: UpdateCompanyDto) {
     await this.findById(id, tenantId);
-    // `code` is baked into the doc ID (`{tenantId}_{code}`) — renaming it
-    // here would orphan every other collection's stored companyId, so it's
-    // silently ignored rather than applied (a deliberate, small behavior
-    // change from the prior Prisma code, which technically permitted it).
-    const { code: _ignoredCode, ...rest } = data;
-    const update = { ...rest, updatedAt: new Date().toISOString() };
+    if (data.parentId) await this.assertValidParent(id, data.parentId, tenantId);
+    // `code` is part of the doc id and is not in UpdateCompanyDto; copy only known fields.
+    const update: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+    for (const key of ["name", "legalName", "taxId", "currency", "timezone", "fiscalYearStart", "parentId"] as const) {
+      if (data[key] !== undefined) update[key] = data[key];
+    }
     await this.firestore.collection<CompanyDoc>(COLLECTIONS.companies).doc(id).update(update);
     const doc = await this.firestore.collection<CompanyDoc>(COLLECTIONS.companies).doc(id).get();
     return doc.data();

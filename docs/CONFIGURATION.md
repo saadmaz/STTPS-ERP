@@ -13,12 +13,19 @@ Copy `api/.env.example` to `api/.env` for local work; never commit it. In Cloudf
 | --- | --- |
 | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Service account for Firestore. **Secret.** The private key is stored on one line with literal `\n` sequences |
 | `FIRESTORE_EMULATOR_HOST` | Development and CI only; never set in production |
-| `JWT_SECRET` | Signing secret for access tokens, at least 32 random characters (`openssl rand -base64 48`). **Secret** |
+| `JWT_SECRET` | Signing secret for access tokens, at least 32 random characters (`openssl rand -base64 48`). The API refuses to start without it. **Secret** |
 | `JWT_EXPIRES_IN` | Access token lifetime, default `15m` |
 | `PORT` | Listening port, default `3001` |
 | `NODE_ENV` | `development` or `production` |
 | `FRONTEND_URL`, `ADMIN_URL` | Allowed CORS origins; must match the deployed `web` and `admin` origins exactly |
-| `DATABASE_URL` | Inert placeholder kept so `prisma generate` succeeds; not connected |
+| `MFA_ENCRYPTION_KEY` | Optional key for encrypting MFA secrets; defaults to a key derived from `JWT_SECRET`. Changing either makes existing enrolments unreadable, so users would have to enrol again. **Secret** |
+| `BACKGROUND_WORKERS` | Set to `off` to stop the job worker and permission sync in this process (tests set it); leave unset in production |
+| `RESEND_API_KEY` | Resend API key for notification email. Without it, email is logged instead of sent. **Secret** |
+| `EMAIL_FROM` | Sender for notification email, default `STTPS ERP <no-reply@sttps.co>` |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Cloudflare R2 bucket for file attachments (an R2 API token with object read and write on the bucket). Without them, file endpoints answer 503. The bucket needs a CORS rule allowing `PUT` and `GET` from the `web` origin. **Secret** |
+| `FILE_MAX_BYTES` | Largest accepted upload, default 52428800 (50 MB) |
+| `STORAGE_DRIVER` | `memory` keeps files in process memory; tests only |
+| `SEED_PLATFORM_ADMIN_PASSWORD`, `SEED_DEMO_ADMIN_PASSWORD` | Optional passwords for accounts created by `npm run seed:firestore`; random ones are generated and printed when unset |
 
 ## web and admin
 
@@ -30,4 +37,4 @@ Copy `.env.example` to `.env.local` in each app.
 
 ## Firestore
 
-`firestore.rules` and `firestore.indexes.json` at the repository root are deployed with `firebase deploy --only firestore:rules,firestore:indexes`. The admin console's list endpoints need the indexes.
+`firestore.rules` and `firestore.indexes.json` at the repository root are deployed with `firebase deploy --only firestore:rules,firestore:indexes`. `firestore.indexes.json` is generated from `api/src/platform/data/indexes.ts` with `npm run indexes` in `api/`; a test fails when the two drift. Deploy indexes before the API version that needs them.

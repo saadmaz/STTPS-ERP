@@ -4,291 +4,506 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { clsx } from "clsx";
+import { useQuery } from "@tanstack/react-query";
 import {
-  LayoutDashboard,
-  DollarSign,
-  ShoppingCart,
-  Package,
-  Factory,
-  Users,
-  Wrench,
-  Truck,
-  BarChart3,
-  Settings,
+  Boxes,
+  Briefcase,
+  Building2,
+  Calendar,
+  CalendarRange,
   ChevronDown,
   ChevronRight,
-  Building2,
-  ClipboardList,
-  FileText,
-  CreditCard,
+  ClipboardCheck,
+  CalendarClock,
+  CalendarDays,
+  CalendarHeart,
+  Clock,
+  FolderKanban,
+  FileStack,
+  FolderOpen,
+  GraduationCap,
+  HandCoins,
+  Headset,
+  Inbox,
+  KeyRound,
+  Laptop,
+  ListTodo,
+  Milestone,
+  Palmtree,
+  Repeat,
+  RotateCw,
+  Tablet,
+  Timer,
+  TrendingUp,
+  UserCircle,
+  Wallet,
+  Wrench,
+  BookOpen,
   Receipt,
   Banknote,
-  Briefcase,
-  ShieldCheck,
-  Globe,
-  AlertTriangle,
+  Calculator,
+  FileSpreadsheet,
+  Landmark,
+  Scale,
+  TriangleAlert,
+  ClipboardList,
+  Factory,
+  FileQuestion,
+  PackageCheck,
+  ShoppingBag,
+  Coins,
+  FileText,
+  RotateCcw,
+  ShoppingCart,
+  Truck,
+  Warehouse,
+  FolderTree,
   HardHat,
+  FileCheck,
+  ScanLine,
+  PackageSearch,
+  Store,
+  CreditCard,
+  Car,
+  Fuel,
+  Navigation,
+  Package,
+  Percent,
+  Ruler,
+  Tags,
+  Contact,
+  Handshake,
+  KanbanSquare,
+  PhoneCall,
+  Target,
+  GitBranch,
+  Home,
+  Layers,
+  ListChecks,
+  Megaphone,
+  Network,
+  PieChart,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  UserCheck,
+  UserPlus,
+  Users,
+  Workflow,
 } from "lucide-react";
+import { platformApi } from "@/lib/api";
+import { useWorkspace } from "@/lib/workspace";
 
-interface NavItem {
+interface NavLink {
   label: string;
-  href?: string;
+  href: string;
   icon: React.ElementType;
-  children?: NavItem[];
-  badge?: string;
+  /** Shown only with this permission. */
+  permission?: string;
+  /** Shown only to tenant administrators. */
+  adminOnly?: boolean;
 }
 
-const navigation: NavItem[] = [
+interface NavSection {
+  label: string;
+  icon: React.ElementType;
+  module?: string;
+  links: NavLink[];
+}
+
+const TOP: NavLink[] = [
+  { label: "Home", href: "/dashboard", icon: Home },
+  { label: "My Work", href: "/my-work", icon: ListChecks },
+];
+
+const SECTIONS: NavSection[] = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
+    label: "CRM",
+    icon: Handshake,
+    module: "crm",
+    links: [
+      { label: "Overview", href: "/crm", icon: PieChart, permission: "crm.analytics.view" },
+      { label: "Leads", href: "/crm/leads", icon: Target, permission: "crm.lead.view" },
+      { label: "Customers", href: "/crm/accounts", icon: Building2, permission: "crm.account.view" },
+      { label: "Contacts", href: "/crm/contacts", icon: Contact, permission: "crm.contact.view" },
+      { label: "Opportunities", href: "/crm/opportunities", icon: Briefcase, permission: "crm.opportunity.view" },
+      { label: "Pipeline", href: "/crm/pipeline", icon: KanbanSquare, permission: "crm.opportunity.view" },
+      { label: "Activities", href: "/crm/activities", icon: PhoneCall, permission: "crm.activity.view" },
+    ],
+  },
+  {
+    label: "Marketing",
+    icon: Megaphone,
+    module: "marketing",
+    links: [
+      { label: "Campaigns", href: "/marketing/campaigns", icon: Megaphone, permission: "marketing.campaign.view" },
+      { label: "Segments", href: "/marketing/segments", icon: Target, permission: "marketing.segment.view" },
+      { label: "Sequences", href: "/marketing/sequences", icon: Repeat, permission: "marketing.sequence.view" },
+      { label: "Enrollments", href: "/marketing/enrollments", icon: ListTodo, permission: "marketing.enrollment.view" },
+    ],
+  },
+  {
+    label: "Sales",
+    icon: ShoppingCart,
+    module: "sales",
+    links: [
+      { label: "Quotes", href: "/sales/quotes", icon: FileText, permission: "sales.quote.view" },
+      { label: "Orders", href: "/sales/orders", icon: ShoppingCart, permission: "sales.order.view" },
+      { label: "Deliveries", href: "/sales/deliveries", icon: Truck, permission: "sales.delivery.view" },
+      { label: "Returns", href: "/sales/returns", icon: RotateCcw, permission: "sales.return.view" },
+      { label: "Sales settings", href: "/sales/settings", icon: SlidersHorizontal, permission: "sales.settings.edit" },
+    ],
+  },
+  {
+    label: "Logistics & Fleet",
+    icon: Navigation,
+    module: "logistics",
+    links: [
+      { label: "Routes", href: "/logistics/routes", icon: Navigation, permission: "logistics.route.view" },
+      { label: "Vehicles", href: "/logistics/vehicles", icon: Car, permission: "logistics.vehicle.view" },
+      { label: "Fuel logs", href: "/logistics/fuel-logs", icon: Fuel, permission: "logistics.fuelLog.view" },
+    ],
+  },
+  {
+    label: "Point of Sale",
+    icon: Store,
+    module: "pos",
+    links: [
+      { label: "Register", href: "/pos/register", icon: CreditCard, permission: "pos.sale.create" },
+      { label: "Sales", href: "/pos/sales", icon: Store, permission: "pos.sale.view" },
+      { label: "Cashier shifts", href: "/pos/shifts", icon: Wallet, permission: "pos.cashierShift.view" },
+      { label: "Terminals", href: "/pos/terminals", icon: Tablet, permission: "pos.terminal.view" },
+    ],
   },
   {
     label: "Finance",
-    icon: DollarSign,
-    children: [
-      { label: "Overview", href: "/finance", icon: BarChart3 },
-      { label: "Chart of Accounts", href: "/finance/accounts", icon: ClipboardList },
-      { label: "Journal Entries", href: "/finance/journals", icon: FileText },
-      { label: "Trial Balance", href: "/finance/trial-balance", icon: BarChart3 },
-      { label: "Accounts Payable", href: "/finance/ap", icon: CreditCard },
-      { label: "Accounts Receivable", href: "/finance/ar", icon: Receipt },
-      { label: "Cash & Bank", href: "/finance/bank", icon: Banknote },
-      { label: "Fixed Assets", href: "/finance/assets", icon: Building2 },
-      { label: "Budgets", href: "/finance/budgets", icon: DollarSign },
-      { label: "P&L Report", href: "/finance/reports/pl", icon: BarChart3 },
-      { label: "Balance Sheet", href: "/finance/reports/balance-sheet", icon: BarChart3 },
-      { label: "Fiscal Periods", href: "/finance/periods", icon: ClipboardList },
+    icon: Landmark,
+    module: "finance",
+    links: [
+      { label: "Overview", href: "/finance", icon: PieChart, permission: "finance.account.view" },
+      { label: "Invoices", href: "/finance/invoices", icon: FileText, permission: "finance.invoice.view" },
+      { label: "Customer receipts", href: "/finance/receipts", icon: Coins, permission: "finance.receipt.view" },
+      { label: "Receivables ageing", href: "/finance/receivables", icon: CalendarRange, permission: "finance.invoice.view" },
+      { label: "Recurring invoices", href: "/finance/recurring-invoices", icon: CalendarRange, permission: "finance.invoice.view" },
+      { label: "Supplier bills", href: "/finance/bills", icon: ClipboardList, permission: "finance.bill.view" },
+      { label: "Supplier payments", href: "/finance/payments", icon: Banknote, permission: "finance.payment.view" },
+      { label: "Payables ageing", href: "/finance/payables", icon: CalendarRange, permission: "finance.bill.view" },
+      { label: "Bank and cash", href: "/finance/bank", icon: Landmark, permission: "finance.bank.view" },
+      { label: "Journals", href: "/finance/journals", icon: BookOpen, permission: "finance.journal.view" },
+      { label: "Budgets", href: "/finance/budgets", icon: Target, permission: "finance.budget.view" },
+      { label: "Chart of accounts", href: "/finance/accounts", icon: FolderTree, permission: "finance.account.view" },
+      { label: "Trial balance", href: "/finance/reports/trial-balance", icon: Scale, permission: "finance.reports.view" },
+      { label: "Profit and loss", href: "/finance/reports/profit-and-loss", icon: FileSpreadsheet, permission: "finance.reports.view" },
+      { label: "Balance sheet", href: "/finance/reports/balance-sheet", icon: Calculator, permission: "finance.reports.view" },
+      { label: "Cash flow", href: "/finance/reports/cash-flow", icon: Coins, permission: "finance.reports.view" },
+      { label: "Tax return", href: "/finance/reports/tax", icon: Percent, permission: "finance.reports.view" },
+      { label: "Recurring journals", href: "/finance/recurring", icon: CalendarRange, permission: "finance.journal.view" },
+      { label: "Posting issues", href: "/finance/issues", icon: TriangleAlert, permission: "finance.journal.view" },
+      { label: "Posting rules", href: "/finance/settings", icon: SlidersHorizontal, permission: "finance.settings.edit" },
     ],
   },
   {
-    label: "Procurement",
-    icon: ShoppingCart,
-    children: [
-      { label: "Overview", href: "/procurement", icon: BarChart3 },
-      { label: "Requisitions", href: "/procurement/requisitions", icon: ClipboardList },
-      { label: "Purchase Orders", href: "/procurement/orders", icon: ShoppingCart },
-      { label: "Goods Receipts", href: "/procurement/receipts", icon: Truck },
-      { label: "Suppliers", href: "/procurement/suppliers", icon: Truck },
+    label: "Assets",
+    icon: Building2,
+    module: "assets",
+    links: [
+      { label: "Register", href: "/assets/register", icon: Boxes, permission: "assets.asset.view" },
+      { label: "Depreciation run", href: "/assets/depreciation", icon: CalendarRange, permission: "assets.asset.edit" },
+      { label: "Categories", href: "/assets/categories", icon: Tags, permission: "assets.category.view" },
+      { label: "Audits", href: "/assets/audits", icon: ClipboardCheck, permission: "assets.audit.view" },
+      { label: "Repairs", href: "/assets/repairs", icon: Wrench, permission: "assets.repair.view" },
     ],
   },
   {
-    label: "Inventory",
-    icon: Package,
-    children: [
-      { label: "Overview", href: "/inventory", icon: BarChart3 },
-      { label: "Items", href: "/inventory/items", icon: Package },
-      { label: "Warehouses", href: "/inventory/warehouses", icon: Building2 },
-      { label: "Stock Levels", href: "/inventory/stock-levels", icon: ClipboardList },
-      { label: "Stock Movements", href: "/inventory/movements", icon: Truck },
-      { label: "Stock Count", href: "/inventory/count", icon: ClipboardList },
+    label: "Maintenance",
+    icon: Wrench,
+    module: "maintenance",
+    links: [
+      { label: "Work orders", href: "/maintenance/work-orders", icon: Wrench, permission: "maintenance.workOrder.view" },
+      { label: "Plans", href: "/maintenance/plans", icon: CalendarClock, permission: "maintenance.plan.view" },
+    ],
+  },
+  {
+    label: "Support",
+    icon: Headset,
+    module: "support",
+    links: [
+      { label: "Tickets", href: "/support/tickets", icon: Headset, permission: "support.ticket.view" },
+      { label: "SLA policies", href: "/support/sla-policies", icon: ClipboardList, permission: "support.slaPolicy.view" },
+      { label: "Portal logins", href: "/support/portal-users", icon: KeyRound, permission: "support.portalUser.view" },
+    ],
+  },
+  {
+    label: "Expenses",
+    icon: Receipt,
+    module: "expenses",
+    links: [
+      { label: "Expense claims", href: "/expenses/claims", icon: Receipt, permission: "expenses.claim.view" },
+      { label: "Categories", href: "/expenses/categories", icon: Tags, permission: "expenses.category.view" },
+    ],
+  },
+  {
+    label: "HR & People",
+    icon: Users,
+    module: "hr",
+    links: [
+      { label: "Employees", href: "/hr/employees", icon: Users, permission: "hr.employee.view" },
+      { label: "Org chart", href: "/hr/org-chart", icon: Network, permission: "hr.employee.view" },
+      { label: "Positions", href: "/hr/positions", icon: Briefcase, permission: "hr.position.view" },
+      { label: "Job grades", href: "/hr/job-grades", icon: Layers, permission: "hr.jobGrade.view" },
+      { label: "Job requisitions", href: "/hr/requisitions", icon: ClipboardList, permission: "hr.jobRequisition.view" },
+      { label: "Job postings", href: "/hr/postings", icon: Megaphone, permission: "hr.jobPosting.view" },
+      { label: "Candidates", href: "/hr/candidates", icon: UserPlus, permission: "hr.candidate.view" },
+      { label: "Onboarding & offboarding", href: "/hr/checklists", icon: ClipboardCheck, permission: "hr.checklist.view" },
+      { label: "My Attendance", href: "/hr/attendance", icon: Timer },
+      { label: "Attendance", href: "/hr/attendance-records", icon: Clock, permission: "hr.attendanceRecord.view" },
+      { label: "Timesheet", href: "/hr/timesheet", icon: CalendarClock, permission: "hr.attendanceRecord.view" },
+      { label: "Attendance devices", href: "/hr/devices", icon: Tablet, permission: "hr.device.view" },
+      { label: "Attendance settings", href: "/hr/attendance-settings", icon: Settings, permission: "hr.attendanceRecord.edit" },
+      { label: "My Shifts", href: "/hr/my-shifts", icon: Repeat },
+      { label: "Shift calendar", href: "/hr/shift-calendar", icon: CalendarDays, permission: "hr.shiftAssignment.view" },
+      { label: "Shift templates", href: "/hr/shift-templates", icon: CalendarClock, permission: "hr.shiftTemplate.view" },
+      { label: "Shift assignments", href: "/hr/shift-assignments", icon: CalendarClock, permission: "hr.shiftAssignment.view" },
+      { label: "My Leave", href: "/hr/my-leave", icon: Palmtree },
+      { label: "Leave calendar", href: "/hr/leave-calendar", icon: CalendarHeart, permission: "hr.leaveRequest.view" },
+      { label: "Leave requests", href: "/hr/leave-requests", icon: CalendarDays, permission: "hr.leaveRequest.view" },
+      { label: "Leave policies", href: "/hr/leave-policies", icon: Palmtree, permission: "hr.leavePolicy.view" },
+      { label: "Holidays", href: "/hr/holidays", icon: CalendarHeart, permission: "hr.holiday.view" },
+      { label: "Leave rollover", href: "/hr/leave-rollover", icon: RotateCw, permission: "hr.leavePolicy.edit" },
+      { label: "My Performance", href: "/hr/my-performance", icon: TrendingUp },
+      { label: "Performance cycles", href: "/hr/performance-cycles", icon: TrendingUp, permission: "hr.performanceCycle.view" },
+      { label: "Goals", href: "/hr/goals", icon: Target, permission: "hr.goal.view" },
+      { label: "Reviews", href: "/hr/reviews", icon: ClipboardCheck, permission: "hr.review.view" },
+      { label: "Development plans", href: "/hr/development-plans", icon: GraduationCap, permission: "hr.developmentPlan.view" },
+      { label: "My HR", href: "/hr/my-hr", icon: UserCircle },
+      { label: "Announcements", href: "/hr/announcements", icon: Megaphone, permission: "hr.announcement.view" },
+      { label: "HR requests", href: "/hr/requests", icon: Inbox, permission: "hr.hrRequest.view" },
+      { label: "Equipment requests", href: "/hr/equipment-requests", icon: Laptop, permission: "hr.equipmentRequest.view" },
+      { label: "My Payslips", href: "/hr/my-payslips", icon: Wallet },
+      { label: "Payroll runs", href: "/hr/payroll-runs", icon: Wallet, permission: "hr.payrollRun.view" },
+      { label: "Salary structures", href: "/hr/salary-structures", icon: HandCoins, permission: "hr.salaryStructure.view" },
+      { label: "Salary components", href: "/hr/salary-components", icon: HandCoins, permission: "hr.salaryComponent.view" },
+      { label: "Loans and advances", href: "/hr/loans", icon: HandCoins, permission: "hr.loan.view" },
+      { label: "Statutory rates", href: "/hr/statutory-rates", icon: Receipt, permission: "hr.statutoryRate.view" },
+      { label: "APIT brackets", href: "/hr/apit-brackets", icon: Receipt, permission: "hr.apitBracket.view" },
+    ],
+  },
+  {
+    label: "Calendar",
+    icon: Calendar,
+    module: "calendar",
+    links: [
+      { label: "My Calendar", href: "/calendar", icon: Calendar },
+      { label: "Company Calendar", href: "/calendar/company", icon: Calendar, permission: "calendar.event.view" },
+      { label: "Events", href: "/calendar/events", icon: Calendar, permission: "calendar.event.view" },
+    ],
+  },
+  {
+    label: "Documents",
+    icon: FileStack,
+    module: "documents",
+    links: [
+      { label: "Documents", href: "/documents/records", icon: FileStack, permission: "documents.document.view" },
+      { label: "Folders", href: "/documents/folders", icon: FolderOpen, permission: "documents.folder.view" },
+    ],
+  },
+  {
+    label: "Projects & Tasks",
+    icon: FolderKanban,
+    module: "projects",
+    links: [
+      { label: "My Tasks", href: "/tasks", icon: ListTodo },
+      { label: "My Timesheet", href: "/tasks/timesheet", icon: Clock },
+      { label: "All tasks", href: "/tasks/all", icon: ListTodo, permission: "tasks.allTasks.view" },
+      { label: "Projects", href: "/projects/all", icon: FolderKanban, permission: "projects.project.view" },
+      { label: "Phases", href: "/projects/phases-list", icon: Layers, permission: "projects.phase.view" },
+      { label: "Milestones", href: "/projects/milestones-list", icon: Milestone, permission: "projects.milestone.view" },
+      { label: "Project costs", href: "/projects/costs-list", icon: Receipt, permission: "projects.projectCost.view" },
     ],
   },
   {
     label: "Manufacturing",
     icon: Factory,
-    children: [
-      { label: "Overview", href: "/manufacturing", icon: BarChart3 },
-      { label: "Production Orders", href: "/manufacturing/orders", icon: Factory },
-      { label: "Bill of Materials", href: "/manufacturing/bom", icon: ClipboardList },
-      { label: "Work Centers", href: "/manufacturing/work-centers", icon: Settings },
-      { label: "Routings", href: "/manufacturing/routings", icon: ClipboardList },
-      { label: "MRP", href: "/manufacturing/mrp", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "CRM",
-    icon: Users,
-    children: [
-      { label: "Overview", href: "/crm", icon: BarChart3 },
-      { label: "Leads", href: "/crm/leads", icon: Users },
-      { label: "Opportunities", href: "/crm/opportunities", icon: BarChart3 },
-      { label: "Accounts", href: "/crm/accounts", icon: Building2 },
-      { label: "Contacts", href: "/crm/contacts", icon: Users },
-      { label: "Activities", href: "/crm/activities", icon: ClipboardList },
-    ],
-  },
-  {
-    label: "Sales",
-    icon: Briefcase,
-    children: [
-      { label: "Overview", href: "/sales", icon: BarChart3 },
-      { label: "Quotations", href: "/sales/quotes", icon: FileText },
-      { label: "Sales Orders", href: "/sales/orders", icon: ClipboardList },
-      { label: "Deliveries", href: "/sales/deliveries", icon: Truck },
-      { label: "Price Lists", href: "/sales/price-lists", icon: DollarSign },
-    ],
-  },
-  {
-    label: "Human Resources",
-    icon: Users,
-    children: [
-      { label: "Overview", href: "/hr", icon: BarChart3 },
-      { label: "Employees", href: "/hr/employees", icon: Users },
-      { label: "Leave", href: "/hr/leave", icon: ClipboardList },
-      { label: "Payroll", href: "/hr/payroll", icon: Banknote },
-      { label: "Recruitment", href: "/hr/recruitment", icon: Briefcase },
-    ],
-  },
-  {
-    label: "Asset Management",
-    icon: Wrench,
-    children: [
-      { label: "Overview", href: "/eam", icon: BarChart3 },
-      { label: "Assets", href: "/eam/assets", icon: Building2 },
-      { label: "Work Orders", href: "/eam/work-orders", icon: ClipboardList },
-      { label: "Maintenance Plans", href: "/eam/plans", icon: Settings },
-    ],
-  },
-  {
-    label: "Field Service",
-    icon: Truck,
-    children: [
-      { label: "Overview", href: "/fsm", icon: BarChart3 },
-      { label: "Service Orders", href: "/fsm/orders", icon: ClipboardList },
-      { label: "Technicians", href: "/fsm/technicians", icon: Users },
-      { label: "Contracts", href: "/fsm/contracts", icon: FileText },
-    ],
-  },
-  {
-    label: "Projects",
-    icon: Globe,
-    children: [
-      { label: "Overview", href: "/projects", icon: BarChart3 },
-      { label: "Tasks", href: "/projects/tasks", icon: ClipboardList },
-      { label: "Timesheets", href: "/projects/timesheets", icon: FileText },
+    module: "manufacturing",
+    links: [
+      { label: "Production orders", href: "/manufacturing/production-orders", icon: Factory, permission: "manufacturing.productionOrder.view" },
+      { label: "MRP runs", href: "/manufacturing/mrp-runs", icon: TrendingUp, permission: "manufacturing.mrpRun.view" },
+      { label: "Demand forecasts", href: "/manufacturing/demand-forecasts", icon: CalendarRange, permission: "manufacturing.demandForecast.view" },
+      { label: "Bills of materials", href: "/manufacturing/boms", icon: ClipboardList, permission: "manufacturing.bom.view" },
+      { label: "Routings", href: "/manufacturing/routings", icon: Repeat, permission: "manufacturing.routing.view" },
+      { label: "Work centres", href: "/manufacturing/work-centres", icon: Warehouse, permission: "manufacturing.workCentre.view" },
+      { label: "Machines", href: "/manufacturing/machines", icon: Wrench, permission: "manufacturing.machine.view" },
     ],
   },
   {
     label: "Quality",
     icon: ShieldCheck,
-    children: [
-      { label: "Overview", href: "/quality", icon: BarChart3 },
-      { label: "Inspections", href: "/quality/inspections", icon: ClipboardList },
-      { label: "Non-Conformances", href: "/quality/ncr", icon: ShieldCheck },
-      { label: "Audits", href: "/quality/audits", icon: FileText },
+    module: "quality",
+    links: [
+      { label: "Inspections", href: "/quality/inspections", icon: ClipboardCheck, permission: "quality.inspection.view" },
+      { label: "Non-conformances", href: "/quality/non-conformances", icon: TriangleAlert, permission: "quality.nonConformance.view" },
+      { label: "Inspection plans", href: "/quality/inspection-plans", icon: ClipboardList, permission: "quality.inspectionPlan.view" },
     ],
   },
   {
-    label: "EHS",
+    label: "Health & Safety",
     icon: HardHat,
-    children: [
-      { label: "Overview", href: "/ehs", icon: BarChart3 },
-      { label: "Incidents", href: "/ehs/incidents", icon: AlertTriangle },
-      { label: "Risk Assessments", href: "/ehs/risks", icon: ShieldCheck },
-      { label: "Permits to Work", href: "/ehs/permits", icon: FileText },
+    module: "ehs",
+    links: [
+      { label: "Incidents", href: "/ehs/incidents", icon: TriangleAlert, permission: "ehs.incident.view" },
+      { label: "Risk assessments", href: "/ehs/risk-assessments", icon: ClipboardList, permission: "ehs.riskAssessment.view" },
+      { label: "Permits to work", href: "/ehs/permits", icon: FileCheck, permission: "ehs.permit.view" },
     ],
   },
   {
-    label: "Analytics",
-    icon: BarChart3,
-    children: [
-      { label: "Dashboards", href: "/analytics", icon: BarChart3 },
-      { label: "Reports", href: "/analytics/reports", icon: FileText },
+    label: "Procurement",
+    icon: ShoppingBag,
+    module: "procurement",
+    links: [
+      { label: "Overview", href: "/procurement", icon: PieChart, permission: "procurement.analytics.view" },
+      { label: "Requisitions", href: "/procurement/requisitions", icon: ClipboardList, permission: "procurement.requisition.view" },
+      { label: "RFQs", href: "/procurement/rfqs", icon: FileQuestion, permission: "procurement.rfq.view" },
+      { label: "Purchase orders", href: "/procurement/orders", icon: ShoppingBag, permission: "procurement.order.view" },
+      { label: "Goods receipts", href: "/procurement/receipts", icon: PackageCheck, permission: "procurement.receipt.view" },
+      { label: "Supplier returns", href: "/procurement/returns", icon: RotateCcw, permission: "procurement.receipt.view" },
+      { label: "Suppliers", href: "/procurement/suppliers", icon: Factory, permission: "procurement.supplier.view" },
+    ],
+  },
+  {
+    label: "Products",
+    icon: Package,
+    module: "products",
+    links: [
+      { label: "Products", href: "/products/items", icon: Package, permission: "products.product.view" },
+      { label: "Categories", href: "/products/categories", icon: FolderTree, permission: "products.category.view" },
+      { label: "Units", href: "/products/uoms", icon: Ruler, permission: "products.uom.view" },
+      { label: "Price lists", href: "/products/price-lists", icon: Tags, permission: "products.priceList.view" },
+      { label: "Discount rules", href: "/products/discounts", icon: Percent, permission: "products.discountRule.view" },
+    ],
+  },
+  {
+    label: "Inventory",
+    icon: Warehouse,
+    module: "inventory",
+    links: [
+      { label: "Stock", href: "/inventory/stock", icon: Boxes, permission: "inventory.stock.view" },
+      { label: "Adjustments", href: "/inventory/adjustments", icon: SlidersHorizontal, permission: "inventory.adjustment.view" },
+      { label: "Transfers", href: "/inventory/transfers", icon: Truck, permission: "inventory.transfer.view" },
+      { label: "Stock counts", href: "/inventory/counts", icon: ClipboardCheck, permission: "inventory.count.view" },
+      { label: "Warehouses", href: "/inventory/warehouses", icon: Warehouse, permission: "inventory.warehouse.view" },
+    ],
+  },
+  {
+    label: "Warehouse Ops",
+    icon: PackageSearch,
+    module: "warehouse",
+    links: [
+      { label: "Tasks", href: "/warehouse/tasks", icon: ListTodo, permission: "warehouse.task.view" },
+      { label: "Scan", href: "/warehouse/scan", icon: ScanLine, permission: "warehouse.task.view" },
+      { label: "Picking", href: "/warehouse/picking", icon: PackageSearch, permission: "warehouse.task.view" },
+      { label: "Put-away rules", href: "/warehouse/put-away-rules", icon: ClipboardList, permission: "warehouse.putAwayRule.view" },
+    ],
+  },
+  {
+    label: "Organisation",
+    icon: Network,
+    module: "org",
+    links: [
+      { label: "Branches", href: "/org/branches", icon: Building2, permission: "org.branch.view" },
+      { label: "Departments", href: "/org/departments", icon: GitBranch, permission: "org.department.view" },
+      { label: "Teams", href: "/org/teams", icon: Users, permission: "org.team.view" },
+      { label: "Cost centres", href: "/org/cost-centres", icon: PieChart, permission: "org.costCentre.view" },
+      { label: "Business units", href: "/org/business-units", icon: Briefcase, permission: "org.businessUnit.view" },
+      { label: "Fiscal years", href: "/org/fiscal-years", icon: CalendarRange, permission: "org.fiscalYear.view" },
+      { label: "Exchange rates", href: "/org/exchange-rates", icon: Coins, permission: "org.exchangeRate.view" },
     ],
   },
   {
     label: "Settings",
     icon: Settings,
-    children: [
+    links: [
       { label: "Companies", href: "/settings/companies", icon: Building2 },
-      { label: "Users & Roles", href: "/settings/users", icon: Users },
-      { label: "System", href: "/settings/system", icon: Settings },
+      { label: "Users", href: "/settings/users", icon: Users, permission: "platform.user.view" },
+      { label: "Modules", href: "/settings/modules", icon: Boxes, adminOnly: true },
+      { label: "Approval workflows", href: "/settings/workflows", icon: Workflow, permission: "workflow.definition.view" },
+      { label: "Security", href: "/settings/security", icon: ShieldCheck },
+      { label: "My delegations", href: "/settings/delegations", icon: UserCheck },
+      { label: "Custom fields", href: "/settings/custom-fields", icon: SlidersHorizontal, permission: "platform.customField.view" },
+      { label: "System", href: "/settings/system", icon: Layers, adminOnly: true },
     ],
   },
 ];
 
-function NavItemComponent({ item, depth = 0 }: { item: NavItem; depth?: number }) {
+export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const pathname = usePathname();
-  const isActive = item.href ? pathname === item.href || pathname.startsWith(item.href + "/") : false;
-  const hasChildren = item.children && item.children.length > 0;
+  const { can, context, moduleEnabled } = useWorkspace();
+  const modules = useQuery({ queryKey: ["modules"], queryFn: platformApi.modules, staleTime: 5 * 60_000 });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const isParentActive = hasChildren
-    ? item.children!.some(
-        (child) => child.href && (pathname === child.href || pathname.startsWith(child.href + "/")),
-      )
-    : false;
+  const allowed = (l: NavLink) => (l.adminOnly ? !!context?.allPermissions : !l.permission || can(l.permission));
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const comingSoon = (modules.data ?? []).filter((m) => !m.available);
 
-  const [isOpen, setIsOpen] = useState(isParentActive || isActive);
+  const link = (l: NavLink, nested = false) => (
+    <Link
+      key={l.href}
+      href={l.href}
+      onClick={onNavigate}
+      className={clsx(
+        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+        nested && "pl-9",
+        isActive(l.href) ? "bg-sidebar-active text-white" : "text-sidebar-text hover:bg-sidebar-hover hover:text-white",
+      )}
+    >
+      <l.icon size={16} />
+      {l.label}
+    </Link>
+  );
 
-  if (hasChildren) {
-    return (
-      <div>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={clsx(
-            "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
-            isParentActive
-              ? "text-white bg-blue-600/20"
-              : "text-slate-400 hover:text-white hover:bg-slate-800",
-          )}
-        >
-          <item.icon size={16} className="flex-shrink-0" />
-          <span className="flex-1 text-left font-medium">{item.label}</span>
-          {isOpen ? (
-            <ChevronDown size={14} className="text-slate-500" />
-          ) : (
-            <ChevronRight size={14} className="text-slate-500" />
-          )}
-        </button>
-        {isOpen && (
-          <div className="mt-0.5 ml-2 pl-3 border-l border-slate-700/60 space-y-0.5">
-            {item.children!.map((child) => (
-              <NavItemComponent key={child.href || child.label} item={child} depth={depth + 1} />
+  return (
+    <aside
+      className={clsx(
+        "fixed inset-y-0 left-0 z-30 w-64 bg-sidebar-bg flex flex-col transition-transform lg:static lg:translate-x-0",
+        open ? "translate-x-0" : "-translate-x-full",
+      )}
+      aria-label="Main navigation"
+    >
+      <div className="h-16 flex items-center gap-2 px-5 border-b border-white/10">
+        <ClipboardCheck className="text-blue-400" size={22} />
+        <span className="text-white font-semibold">STTPS ERP</span>
+      </div>
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        {TOP.map((l) => link(l))}
+        {SECTIONS.filter((s) => !s.module || moduleEnabled(s.module)).map((s) => {
+          const links = s.links.filter(allowed);
+          if (links.length === 0) return null;
+          const isCollapsed = collapsed[s.label] ?? !links.some((l) => isActive(l.href));
+          return (
+            <div key={s.label} className="pt-2">
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-sidebar-text hover:text-white"
+                onClick={() => setCollapsed({ ...collapsed, [s.label]: !isCollapsed })}
+                aria-expanded={!isCollapsed}
+              >
+                <s.icon size={16} />
+                <span className="flex-1 text-left font-medium">{s.label}</span>
+                {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+              </button>
+              {!isCollapsed && <div className="space-y-0.5">{links.map((l) => link(l, true))}</div>}
+            </div>
+          );
+        })}
+        {comingSoon.length > 0 && (
+          <div className="pt-4">
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Coming soon</p>
+            {comingSoon.map((m) => (
+              <p key={m.key} className="px-3 py-1 text-xs text-slate-500" title={m.description}>
+                {m.name}
+              </p>
             ))}
           </div>
         )}
-      </div>
-    );
-  }
-
-  return (
-    <Link
-      href={item.href!}
-      className={clsx(
-        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors",
-        isActive
-          ? "text-white bg-blue-600 font-medium"
-          : "text-slate-400 hover:text-white hover:bg-slate-800",
-      )}
-    >
-      <item.icon size={15} className="flex-shrink-0" />
-      <span>{item.label}</span>
-      {item.badge && (
-        <span className="ml-auto text-xs bg-blue-500 text-white rounded-full px-1.5 py-0.5">
-          {item.badge}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-export function Sidebar() {
-  return (
-    <aside className="w-60 bg-slate-900 h-screen flex flex-col flex-shrink-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 h-16 border-b border-slate-800">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">S</span>
-        </div>
-        <div>
-          <span className="text-white font-bold text-base tracking-tight">STTPS</span>
-          <p className="text-slate-500 text-xs leading-none">Enterprise ERP</p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
-        {navigation.map((item) => (
-          <NavItemComponent key={item.href || item.label} item={item} />
-        ))}
       </nav>
-
-      {/* Bottom */}
-      <div className="border-t border-slate-800 p-3">
-        <p className="text-xs text-slate-600 text-center">v0.8.0 — Phase 8</p>
-      </div>
     </aside>
   );
 }

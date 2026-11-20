@@ -25,7 +25,7 @@ const PLANS = ["starter", "professional", "enterprise"];
 
 export function CreateTenantModal({ open, onClose }: Props) {
   const qc = useQueryClient();
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { plan: "starter", currency: "USD", timezone: "UTC" },
   });

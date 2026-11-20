@@ -2,9 +2,10 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { FirestoreService } from "../../firestore/firestore.service";
-import { COLLECTIONS } from "../../firestore/collections";
-import { UserDoc } from "../../firestore/models";
+import { FirestoreService } from "../../firestore/firestore.service.js";
+import { COLLECTIONS } from "../../firestore/collections.js";
+import { UserDoc } from "../../firestore/models.js";
+import { jwtSecret } from "../jwt-secret.js";
 
 export interface JwtPayload {
   sub: string;
@@ -12,6 +13,10 @@ export interface JwtPayload {
   tenantId: string;
   isSuperAdmin: boolean;
   isPlatformAdmin: boolean;
+  /** Set on special-purpose tokens (e.g. the MFA step); those are never access tokens. */
+  purpose?: string;
+  /** Set on a customer portal token; those authenticate through PortalAuthGuard instead, never a staff route. */
+  scope?: string;
 }
 
 @Injectable()
@@ -23,11 +28,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>("JWT_SECRET", "fallback-secret"),
+      secretOrKey: jwtSecret(configService),
     });
   }
 
   async validate(payload: JwtPayload) {
+    if (payload.purpose) throw new UnauthorizedException("Not an access token");
+    if (payload.scope) throw new UnauthorizedException("Not a staff access token");
     const doc = await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(payload.sub).get();
     const user = doc.data();
 

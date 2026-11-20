@@ -55,3 +55,14 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Set up Java for the Firestore emulator
+        if: matrix.app == 'api'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Test
+        if: matrix.app == 'api'
+        run: npm test

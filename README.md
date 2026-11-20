@@ -116,9 +116,9 @@ flowchart LR
 
 | App | Technology | Local port |
 | --- | --- | --- |
-| `web/` | Next.js 15 (App Router), React 19, TanStack Query, Tailwind CSS | 3000 |
-| `admin/` | Next.js 15 (App Router), React 19, Tailwind CSS | 3002 |
-| `api/` | NestJS 10, Passport JWT, Swagger, `firebase-admin` (Firestore) | 3001 |
+| `web/` | Next.js 16 (App Router), React 19, TanStack Query, Tailwind CSS | 3000 |
+| `admin/` | Next.js 16 (App Router), React 19, Tailwind CSS | 3002 |
+| `api/` | NestJS 12 (ESM), Passport JWT, Swagger, `firebase-admin` (Firestore) | 3001 |
 
 All three run on Cloudflare: `web` and `admin` on Workers through OpenNext, and `api` in a Cloudflare Container.
 

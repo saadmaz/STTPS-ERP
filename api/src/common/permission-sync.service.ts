@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { FirestoreService } from "../firestore/firestore.service";
-import { COLLECTIONS } from "../firestore/collections";
-import { CompanyUserDoc, RoleDoc, UserRoleDoc } from "../firestore/models";
+import { FirestoreService } from "../firestore/firestore.service.js";
+import { COLLECTIONS } from "../firestore/collections.js";
+import { CompanyUserDoc, RoleDoc, UserRoleDoc } from "../firestore/models.js";
 
 /**
  * Firestore has no join equivalent for the CompanyUser -> UserRole -> Role
