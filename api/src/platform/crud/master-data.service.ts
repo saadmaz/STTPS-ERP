@@ -247,6 +247,11 @@ export class MasterDataService<T extends BaseDoc, C extends object = object, U e
     return (await this.list(ctx, { limit: 200 })).items;
   }
 
+  /** Every active record, uncapped (up to MAX_RECORDS) — for the reporting engine, which does its own filtering, grouping and aggregation. */
+  async reportRows(ctx: RequestContext): Promise<T[]> {
+    return this.loadAll(ctx);
+  }
+
   get(ctx: RequestContext, id: string): Promise<T> {
     return this.repo.get(ctx, id);
   }

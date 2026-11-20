@@ -34,6 +34,7 @@
 ### Added
 
 - Automation engine (`/automation`): no-code rules of trigger → conditions → actions over the platform's existing domain events (low stock, payments received, invoices posted, sales orders confirmed, goods received, and the rest of the ~20 events already published across the API). Conditions (equals, not equals, greater/less than, contains) match against the triggering event's own fields; actions can send a notification, open a task or raise a purchase requisition, with simple `{{field}}` templating pulling values from the event. A test-run action lets you check a rule against a sample payload before relying on it, and each firing's outcome is kept on the rule itself so you can see what happened.
+- Report builder (`/reports`): build a report over sales orders, invoices, expense claims, purchase orders, leads or tasks — filter, group and aggregate (sum, average, count, min, max), add calculated fields, sort, and compare a date range to the period before it. Run a report for a table or pivot view, or download it as CSV or Excel.
 
 ## [0.5.0] - 2026-11-20
 

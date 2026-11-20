@@ -1,22 +1,32 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine (Phase 6's first item) is now built — API, tests, web screens, docs — on `develop`, not yet released.
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine and the Report builder (Phase 6's first two items) are now built — API, tests, web screens, docs — on `develop`, not yet released.
 
-**Last updated:** 2026-11-20, after the Automation engine.
+**Last updated:** 2026-11-20, after the Report builder.
 
 ## Automation engine: done
 
 - `api/src/automation/` (`AutomationRuleService`, `AutomationEngineService`): no-code rules (trigger → conditions → actions) over the ~20 domain events already published across the codebase. See `CLAUDE.md` §9's Automation domain note for the full design and scope cuts before touching this.
 - Spent nothing from the Firestore index budget (still 199/200) — a rule's firing history lives in a capped array field on the rule itself, not a new collection.
 - Web: `web/src/modules/automation/` (rules list/record, conditions and actions row editors, a test-run dialog), a sidebar entry, pages under `web/src/app/(platform)/automation/`.
-- Tests: `api/test/http/automation.spec.ts` (5 tests: permissions, a real LowStock-triggered firing that notifies/creates a task/raises a requisition, a non-match, an inactive rule, and test-run). Full suite: 49 files, 269 tests, all passing.
-- Docs: `docs/IMPLEMENTATION-PLAN.md`'s Automation engine checkbox ticked with a scope note, `CHANGELOG.md` has an `### Added` entry under `## [Unreleased]`, `CLAUDE.md` §1 and §9 are current.
+- Tests: `api/test/http/automation.spec.ts` (5 tests).
+
+## Report builder: done
+
+- `api/src/reports/` (`ReportDefinitionService`, `ReportingEngineService`): report definitions over six sources (sales orders, invoices, expense claims, purchase orders, leads, tasks), filtered/grouped/aggregated/sorted/compared in memory via a new `reportRows()` on `MasterDataService` itself. Reuses the existing `analytics` catalog stub (now `available: true`). See `CLAUDE.md` §9's Report builder domain note before touching this.
+- **Fixed a real bug while building this**: the filter/condition evaluator (duplicated between this and Automation) treated any non-numeric comparison in `gt`/`gte`/`lt`/`lte` as always `false`, silently breaking date/timestamp filtering in both engines. Fixed in both with a lexical fallback.
+- New API dependency: `exceljs` (Excel export). A transitive `uuid` advisory in its tree was checked and judged not reachable through how `exceljs` actually calls it — see the CLAUDE.md note.
+- Spent nothing from the Firestore index budget (still 199/200) — everything runs in memory over the capped `reportRows()` result.
+- **Flipping `analytics` to `available: true` broke `test/http/guards.spec.ts`'s hard-coded "not yet available" example again** (same recurring gotcha noted for EHS) — it now points at `ai`.
+- Web: `web/src/modules/reports/` (definitions list/record, filter/column/aggregation/calculated-field row editors, a run panel with table/pivot views and CSV/Excel download), a sidebar entry, pages under `web/src/app/(platform)/reports/`.
+- Tests: `api/test/http/reports.spec.ts` (3 tests).
+- Not built, each a documented scope cut (see the plan entry and CLAUDE.md §9): PDF export, scheduled email delivery (no cron scheduler yet), real chart rendering (no charting library exists anywhere in this web app).
 
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **Report builder (§27)**, followed by Dashboard builder, Analytics store, the AI items, API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **Dashboard builder**, followed by Analytics store, the AI items, API platform, Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only one Phase 6 item is done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only two Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
@@ -28,7 +38,7 @@
 
 ## Firestore composite-index budget: still 199/200
 
-One slot of headroom remains. The Automation engine spent nothing (see above). The zero-indexed-filter trick (`{ filters: [], sorts: [{ field: "createdAt", direction: "desc" }] }`) costs exactly 1 index per `large` list and should be the default reach if that last slot is ever spent — see `CLAUDE.md` §5 for the full history of how each of the prior five slots was spent (or deliberately not spent).
+One slot of headroom remains. Both the Automation engine and the Report builder spent nothing (see above). The zero-indexed-filter trick (`{ filters: [], sorts: [{ field: "createdAt", direction: "desc" }] }`) costs exactly 1 index per `large` list and should be the default reach if that last slot is ever spent — see `CLAUDE.md` §5 for the full history of how each of the prior five slots was spent (or deliberately not spent).
 
 ## Release v0.5.0: done (for reference — Phases 0–5)
 

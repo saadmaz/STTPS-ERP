@@ -150,6 +150,12 @@ const SECTIONS: NavSection[] = [
     links: [{ label: "Rules", href: "/automation/rules", icon: Zap, permission: "automation.rule.view" }],
   },
   {
+    label: "Reports",
+    icon: PieChart,
+    module: "analytics",
+    links: [{ label: "Reports", href: "/reports/definitions", icon: PieChart, permission: "analytics.reportDefinition.view" }],
+  },
+  {
     label: "Sales",
     icon: ShoppingCart,
     module: "sales",

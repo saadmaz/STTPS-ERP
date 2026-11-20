@@ -420,7 +420,15 @@ export const MODULES: ModuleDefinition[] = [
   }),
 
   // Intelligence
-  mod({ key: "analytics", name: "Analytics & Reports", description: "Report builder, dashboards and KPIs.", group: "intelligence", available: false }),
+  mod({
+    key: "analytics",
+    name: "Analytics & Reports",
+    description: "Report builder, dashboards and KPIs.",
+    group: "intelligence",
+    available: true,
+    dependsOn: ["sales", "finance", "procurement", "crm", "projects"],
+    permissions: [...entityPermissions("analytics", "reportDefinition", "report definitions")],
+  }),
   mod({
     key: "automation",
     name: "Automation",

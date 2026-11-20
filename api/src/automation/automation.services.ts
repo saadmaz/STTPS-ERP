@@ -38,25 +38,31 @@ function renderTemplate(template: string, context: Record<string, unknown>): str
   });
 }
 
+/** Numeric when both sides parse as numbers, else lexical — so an ISO date/timestamp string still orders correctly. */
+function compareValues(actual: unknown, value: string): number {
+  const actualNum = Number(actual);
+  const valueNum = Number(value);
+  if (actual !== undefined && actual !== null && value !== "" && Number.isFinite(actualNum) && Number.isFinite(valueNum)) return actualNum - valueNum;
+  const actualStr = actual === undefined || actual === null ? "" : String(actual);
+  return actualStr < value ? -1 : actualStr > value ? 1 : 0;
+}
+
 function evaluateCondition(cond: AutomationCondition, context: Record<string, unknown>): boolean {
   const actual = getPath(context, cond.field);
   const actualStr = actual === undefined || actual === null ? "" : String(actual);
-  const actualNum = Number(actual);
-  const valueNum = Number(cond.value);
-  const bothNumeric = actual !== undefined && actual !== null && cond.value !== "" && Number.isFinite(actualNum) && Number.isFinite(valueNum);
   switch (cond.operator) {
     case "eq":
-      return bothNumeric ? actualNum === valueNum : actualStr === cond.value;
+      return compareValues(actual, cond.value) === 0;
     case "neq":
-      return bothNumeric ? actualNum !== valueNum : actualStr !== cond.value;
+      return compareValues(actual, cond.value) !== 0;
     case "gt":
-      return bothNumeric && actualNum > valueNum;
+      return compareValues(actual, cond.value) > 0;
     case "gte":
-      return bothNumeric && actualNum >= valueNum;
+      return compareValues(actual, cond.value) >= 0;
     case "lt":
-      return bothNumeric && actualNum < valueNum;
+      return compareValues(actual, cond.value) < 0;
     case "lte":
-      return bothNumeric && actualNum <= valueNum;
+      return compareValues(actual, cond.value) <= 0;
     case "contains":
       return actualStr.includes(cond.value);
   }
