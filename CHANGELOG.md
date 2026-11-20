@@ -130,6 +130,8 @@
 - POS screens: a Register page (product search, cart, split payments, a receipt), a sales list and record page (refund, void), cashier shifts (close) and terminals.
 - Logistics API (`/logistics`): routes group one or more already-picked-and-packed sales deliveries into an ordered sequence of stops against a vehicle; dispatching a route dispatches each stop's delivery (issuing its stock), and marking a stop delivered or failed drives the same proof-of-delivery and failed-delivery handling Sales deliveries already have. Vehicles (driver, insurance and licence expiry) and fuel logs, which keep a vehicle's own odometer current.
 - Logistics screens: a routes list and record page (dispatch, arrive, deliver, fail, cancel) with a dedicated page for building a new route from existing deliveries, vehicles and fuel logs.
+- Marketing API (`/marketing`): campaigns; segments as a saved filter over one CRM collection (accounts, leads or contacts), previewable; sequence definitions with a variable-length list of steps, and enrollments that advance a lead or account through them with a computed due date, or cancel; a campaign report (leads, conversions, revenue, cost per lead and per acquisition, conversion rate, ROI) matched against leads tagged with the campaign's name.
+- Marketing screens: campaigns with their report, segments with a preview, sequences with a step editor, and enrollments (advance, cancel).
 
 ### Changed
 

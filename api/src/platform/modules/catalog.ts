@@ -404,7 +404,20 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("logistics", "route", "routes"),
     ],
   }),
-  mod({ key: "marketing", name: "Marketing", description: "Campaigns, segments and marketing automation.", group: "advanced", available: false, dependsOn: ["crm"] }),
+  mod({
+    key: "marketing",
+    name: "Marketing",
+    description: "Campaigns, segments and marketing automation.",
+    group: "advanced",
+    available: true,
+    dependsOn: ["crm"],
+    permissions: [
+      ...entityPermissions("marketing", "campaign", "campaigns"),
+      ...entityPermissions("marketing", "segment", "segments"),
+      ...entityPermissions("marketing", "sequence", "sequences"),
+      ...entityPermissions("marketing", "enrollment", "enrollments"),
+    ],
+  }),
 
   // Intelligence
   mod({ key: "analytics", name: "Analytics & Reports", description: "Report builder, dashboards and KPIs.", group: "intelligence", available: false }),

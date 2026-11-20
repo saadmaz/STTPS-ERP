@@ -132,6 +132,17 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "Marketing",
+    icon: Megaphone,
+    module: "marketing",
+    links: [
+      { label: "Campaigns", href: "/marketing/campaigns", icon: Megaphone, permission: "marketing.campaign.view" },
+      { label: "Segments", href: "/marketing/segments", icon: Target, permission: "marketing.segment.view" },
+      { label: "Sequences", href: "/marketing/sequences", icon: Repeat, permission: "marketing.sequence.view" },
+      { label: "Enrollments", href: "/marketing/enrollments", icon: ListTodo, permission: "marketing.enrollment.view" },
+    ],
+  },
+  {
     label: "Sales",
     icon: ShoppingCart,
     module: "sales",
