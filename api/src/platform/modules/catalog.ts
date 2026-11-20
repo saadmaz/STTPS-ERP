@@ -453,6 +453,9 @@ export const MODULES: ModuleDefinition[] = [
     permissions: [
       { code: "ai.assistant.ask", name: "Ask the AI assistant", module: "ai", action: "ask" },
       { code: "ai.insights.view", name: "View AI insights", module: "ai", action: "view" },
+      { code: "ai.agents.act", name: "Use AI agent actions", module: "ai", action: "act" },
+      { code: "ai.agents.lowRiskExecute", name: "Let an AI agent execute low-risk actions directly", module: "ai", action: "lowRiskExecute" },
+      { code: "ai.agents.approvalRequiredExecute", name: "Let an AI agent request approval-gated actions", module: "ai", action: "approvalRequiredExecute" },
       ...entityPermissions("ai", "documentExtraction", "document extractions"),
     ],
   }),

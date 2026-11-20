@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, the AI assistant, AI document processing and AI insights (Phase 6's first seven items) are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, and all four AI items (assistant, document processing, insights, agents) — Phase 6's first eight items — are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after AI insights.
+**Last updated:** 2026-11-20, after AI agents.
 
 ## Automation engine: done
 
@@ -64,11 +64,21 @@
 - Tests: `api/test/http/insights.spec.ts` (2 tests).
 - Not built, each a documented scope cut: demand/cash-flow/supplier/project-risk signals (each needs an unregistered report source), real time-series forecasting.
 
+## AI agents: done
+
+- `api/src/ai/agents.services.ts` (`AiAgentService`, `AgentActionStore`), `POST /ai/agents/act`. Two tiers wired up with one example action each: `notify_user` (low-risk, executes immediately) and `create_requisition` (approval-required, routes through the existing generic workflow/approval engine exactly like `PurchaseOrderService.submit()` does, auto-approving when no workflow is configured). See `CLAUDE.md` §9's AI agents note before touching this.
+- Every call is audited regardless of tier; a baseline `ai.agents.act` permission plus a per-action tier permission, checked inside the service (not a single static route permission).
+- No new web screen — a pending approval already surfaces in the existing generic My Work / approvals inbox.
+- Tests: `api/test/http/agents.spec.ts` (3 tests, including a full pending → approve → executed round trip).
+- Not built, each a documented scope cut: a larger action catalog, a distinct `recommend` tier (folded into `read_only` — nothing yet needs them to differ).
+
+**All four AI items (blueprint §28) are now done.** This closes out the AI Layer entirely.
+
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **AI agents** (read-only/draft/recommend/low-risk-execute/approval-required-execute permission tiers, every action audited and routed through the approval engine), followed by the API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is the **API platform** (§29) — API keys and OAuth clients with scoped permissions, a versioned public REST API, rate limits, request logs, a usage dashboard, outbound webhooks — followed by Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only seven Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only eight Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 

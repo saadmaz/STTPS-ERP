@@ -40,6 +40,7 @@
 - AI assistant (`/ai`): ask natural-language questions about your own data — overdue invoices, open leads, expense claims, overdue tasks, or what's waiting for your approval — answered by Claude through the same permission-checked report engine, so it only ever sees what you can see.
 - AI document extraction (`/ai/document-extractions`): upload an invoice, receipt, purchase order, CV or bank statement and get its fields extracted automatically; review and edit them, then (for a receipt) create a draft expense claim from it. Nothing is ever posted automatically.
 - AI insights (`/ai/insights`): automatically flags a sales decline from last month and unusually large expense claims, with a short plain-English summary.
+- AI agents (`/ai/agents/act`): low-risk actions (like sending a notification) run immediately; higher-risk ones (like raising a purchase requisition) go through the normal approval workflow first. Every action is logged.
 
 ## [0.5.0] - 2026-11-20
 

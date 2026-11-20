@@ -5,8 +5,10 @@ import { FinanceModule } from "../finance/finance.module.js";
 import { Ctx, RequestContext } from "../platform/context/request-context.js";
 import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
+import { ProcurementModule } from "../procurement/procurement.module.js";
 import { ReportsModule } from "../reports/reports.module.js";
-import { AskAiDto } from "./ai.dto.js";
+import { AgentActionStore, AiAgentService } from "./agents.services.js";
+import { ActAgentDto, AskAiDto } from "./ai.dto.js";
 import { AiAssistantService } from "./ai.services.js";
 import { CreateDraftDto, ExtractDocumentDto, UpdateDocumentExtractionDto } from "./document-extraction.dto.js";
 import { DocumentExtractionService } from "./document-extraction.services.js";
@@ -57,6 +59,21 @@ class InsightsController {
   }
 }
 
+@ApiTags("AI")
+@ApiBearerAuth()
+@RequireModule("ai")
+@Controller("ai/agents")
+class AiAgentsController {
+  constructor(private readonly agents: AiAgentService) {}
+
+  @Post("act")
+  @HttpCode(200)
+  @RequirePermission("ai.agents.act")
+  act(@Ctx() ctx: RequestContext, @Body(validated(ActAgentDto)) dto: ActAgentDto) {
+    return this.agents.act(ctx, dto.actionName, dto.input);
+  }
+}
+
 const crud = [
   createMasterDataController({
     path: "ai/document-extractions", tag: "AI: Document extraction", module: "ai", permission: "ai.documentExtraction",
@@ -65,9 +82,9 @@ const crud = [
 ];
 
 @Module({
-  imports: [ReportsModule, FinanceModule],
-  controllers: [AiAssistantController, DocumentExtractionActionsController, InsightsController, ...crud],
-  providers: [AiAssistantService, DocumentExtractorService, DocumentExtractionService, InsightsService],
-  exports: [AiAssistantService, DocumentExtractionService, InsightsService],
+  imports: [ReportsModule, FinanceModule, ProcurementModule],
+  controllers: [AiAssistantController, DocumentExtractionActionsController, InsightsController, AiAgentsController, ...crud],
+  providers: [AiAssistantService, DocumentExtractorService, DocumentExtractionService, InsightsService, AgentActionStore, AiAgentService],
+  exports: [AiAssistantService, DocumentExtractionService, InsightsService, AiAgentService],
 })
 export class AiModule {}
