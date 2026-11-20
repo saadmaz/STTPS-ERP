@@ -5,6 +5,7 @@ import { COLLECTIONS } from "../../firestore/collections.js";
 import { UserDoc } from "../../firestore/models.js";
 import { JobDoc, JobQueueService } from "../jobs/job-queue.service.js";
 import { EmailSender } from "./email.sender.js";
+import { SmsSender } from "./sms.sender.js";
 
 export const NOTIFICATIONS_COLLECTION = "notifications";
 export const NOTIFICATION_PREFS_COLLECTION = "notificationPreferences";
@@ -40,12 +41,19 @@ export interface NotifyInput {
   entityType?: string | null;
   entityId?: string | null;
   priority?: NotificationPriority;
+  /**
+   * Sends a text message too, via Twilio — opt-in per call (not automatic
+   * for every notification, unlike email), since a caller should only ask
+   * for this on something genuinely worth a text (e.g. a high dunning
+   * level), not every routine notification.
+   */
+  textChannel?: "sms" | "whatsapp";
 }
 
 interface PreferencesDoc {
   userId: string;
   /** Categories muted per channel. "*" mutes the channel entirely. */
-  muted: { inApp: string[]; email: string[] };
+  muted: { inApp: string[]; email: string[]; text: string[] };
   updatedAt: string;
 }
 
@@ -63,11 +71,15 @@ export class NotificationsService implements OnModuleInit {
     private readonly firestore: FirestoreService,
     private readonly jobs: JobQueueService,
     private readonly email: EmailSender,
+    private readonly sms: SmsSender,
   ) {}
 
   onModuleInit(): void {
     this.jobs.register<{ notificationId: string }>("notification.email", (job: JobDoc<{ notificationId: string }>) =>
       this.deliverEmail(job.payload.notificationId),
+    );
+    this.jobs.register<{ notificationId: string; channel: "sms" | "whatsapp" }>("notification.text", (job) =>
+      this.deliverText(job.payload.notificationId, job.payload.channel),
     );
   }
 
@@ -98,10 +110,16 @@ export class NotificationsService implements OnModuleInit {
       if (tx) {
         tx.create(ref, doc);
         this.jobs.enqueueInTx(tx, "notification.email", { notificationId: doc.id }, { id: `email_${doc.id}` });
+        if (input.textChannel) {
+          this.jobs.enqueueInTx(tx, "notification.text", { notificationId: doc.id, channel: input.textChannel }, { id: `text_${doc.id}` });
+        }
       } else {
         void ref
           .create(doc)
-          .then(() => this.jobs.enqueue("notification.email", { notificationId: doc.id }, { id: `email_${doc.id}` }))
+          .then(() => {
+            this.jobs.enqueue("notification.email", { notificationId: doc.id }, { id: `email_${doc.id}` });
+            if (input.textChannel) this.jobs.enqueue("notification.text", { notificationId: doc.id, channel: input.textChannel }, { id: `text_${doc.id}` });
+          })
           .catch((error) => this.logger.error(`Notification write failed: ${(error as Error).message}`));
       }
       return doc;
@@ -156,14 +174,14 @@ export class NotificationsService implements OnModuleInit {
 
   async preferences(userId: string): Promise<PreferencesDoc> {
     const doc = (await this.firestore.collection<PreferencesDoc>(NOTIFICATION_PREFS_COLLECTION).doc(userId).get()).data();
-    return doc ?? { userId, muted: { inApp: [], email: [] }, updatedAt: new Date(0).toISOString() };
+    return doc ?? { userId, muted: { inApp: [], email: [], text: [] }, updatedAt: new Date(0).toISOString() };
   }
 
-  async setPreferences(userId: string, muted: { inApp?: string[]; email?: string[] }): Promise<PreferencesDoc> {
+  async setPreferences(userId: string, muted: { inApp?: string[]; email?: string[]; text?: string[] }): Promise<PreferencesDoc> {
     const current = await this.preferences(userId);
     const next: PreferencesDoc = {
       userId,
-      muted: { inApp: muted.inApp ?? current.muted.inApp, email: muted.email ?? current.muted.email },
+      muted: { inApp: muted.inApp ?? current.muted.inApp, email: muted.email ?? current.muted.email, text: muted.text ?? current.muted.text },
       updatedAt: new Date().toISOString(),
     };
     await this.firestore.collection<PreferencesDoc>(NOTIFICATION_PREFS_COLLECTION).doc(userId).set(next);
@@ -183,6 +201,17 @@ export class NotificationsService implements OnModuleInit {
       subject: notification.title,
       text: [notification.body, notification.link ? `${appUrl}${notification.link}` : null].filter(Boolean).join("\n\n"),
     });
+    return { sent: true };
+  }
+
+  private async deliverText(notificationId: string, channel: "sms" | "whatsapp"): Promise<{ sent: boolean; reason?: string }> {
+    const notification = (await this.firestore.collection<NotificationDoc>(NOTIFICATIONS_COLLECTION).doc(notificationId).get()).data();
+    if (!notification) return { sent: false, reason: "notification deleted" };
+    const prefs = await this.preferences(notification.userId);
+    if (isMuted(prefs.muted.text, notification.category)) return { sent: false, reason: "muted" };
+    const user = (await this.firestore.collection<UserDoc>(COLLECTIONS.users).doc(notification.userId).get()).data();
+    if (!user?.isActive || !user.phone) return { sent: false, reason: "no active recipient phone" };
+    await this.sms.send({ to: user.phone, body: [notification.title, notification.body].filter(Boolean).join(": "), channel });
     return { sent: true };
   }
 }

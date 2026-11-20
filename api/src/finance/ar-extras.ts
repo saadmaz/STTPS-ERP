@@ -197,6 +197,7 @@ export class DunningService implements OnModuleInit {
             title: `${inv.number} is ${daysLate} days overdue (${due.label})`,
             body: `${fromMinor(inv.balanceDue, inv.currency)} ${inv.currency} outstanding`,
             link: `/finance/invoices/${inv.id}`, priority: due.level >= 2 ? "high" : "normal",
+            textChannel: due.level >= 2 ? "sms" : undefined,
           }, tx);
         }
         if (c?.email) this.jobs.enqueueInTx(tx, "finance.dunningEmail", { invoiceId: inv.id, level: due.level }, { id: `dunning_${inv.id}_${due.level}` });

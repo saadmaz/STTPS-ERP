@@ -13,6 +13,7 @@ import { CompanyUserDoc, UserDoc } from "../../firestore/models.js";
 export class NotificationPreferencesDto {
   @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) inApp?: string[];
   @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) email?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) text?: string[];
 }
 
 /** The signed-in user's own workspace: notifications and work waiting for them (blueprint §24, §25). */

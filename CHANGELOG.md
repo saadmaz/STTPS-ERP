@@ -42,6 +42,7 @@
 - AI insights (`/ai/insights`): automatically flags a sales decline from last month and unusually large expense claims, with a short plain-English summary.
 - AI agents (`/ai/agents/act`): low-risk actions (like sending a notification) run immediately; higher-risk ones (like raising a purchase requisition) go through the normal approval workflow first. Every action is logged.
 - API keys and webhooks (Settings → API keys / Webhooks): issue a scoped API key for an external system to call this API with (via an `x-api-key` header, no sign-in needed), with its own rate limit; register a webhook URL to receive a JSON payload whenever a chosen event (an invoice posted, an order confirmed, and so on) happens.
+- SMS and WhatsApp notifications: overdue-invoice reminders now also send a text message once an invoice is seriously overdue, alongside the existing email and in-app notification; you can mute a notification category for text the same way you already can for email.
 
 ## [0.5.0] - 2026-11-20
 

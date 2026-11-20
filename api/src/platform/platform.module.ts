@@ -17,6 +17,7 @@ import { EventBusService } from "./events/event-bus.service.js";
 import { ModulesService } from "./modules/modules.service.js";
 import { ModulesController } from "./modules/modules.controller.js";
 import { EmailSender } from "./notifications/email.sender.js";
+import { SmsSender } from "./notifications/sms.sender.js";
 import { NotificationsService } from "./notifications/notifications.service.js";
 import { ApprovalsService } from "./approvals/approvals.service.js";
 import { ApprovalDefinitionsService, DelegationsService } from "./approvals/approval-definitions.service.js";
@@ -107,6 +108,7 @@ const SHARED = [
   EventBusService,
   ModulesService,
   EmailSender,
+  SmsSender,
   NotificationsService,
   ApprovalsService,
   ApprovalDefinitionsService,

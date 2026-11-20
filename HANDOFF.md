@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, all four AI items (assistant, document processing, insights, agents) and the API platform — Phase 6's first nine items — are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, all four AI items (assistant, document processing, insights, agents) and the API platform — Phase 6's first nine items — are fully built. The tenth item, Integrations, is **partly** built (SMS/WhatsApp notification channels only) and left unchecked in the plan on purpose. Everything here is API, tests, docs on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after the API platform.
+**Last updated:** 2026-11-20, after the SMS/WhatsApp notification channel (part of Integrations).
 
 ## Automation engine: done
 
@@ -83,13 +83,20 @@
 - Tests: `api/test/http/api-platform.spec.ts` (4 tests). The full suite was re-run after this item specifically because it touches the global auth guard, not just the usual new-tests check.
 - Not built, each a documented scope cut: OAuth clients, a detailed per-request log, a separate usage dashboard.
 
-**Only two Phase 6 items remain: Integrations (payment gateways, bank feeds, SMS/WhatsApp/push, Google/Microsoft 365, e-commerce order import, courier tracking) and Mobile (an installable PWA).**
+## Integrations: partly done (SMS/WhatsApp only)
+
+- `api/src/platform/notifications/sms.sender.ts` (`SmsSender`), alongside the existing `EmailSender`. `NotifyInput.textChannel` ("sms" | "whatsapp") is an explicit per-call opt-in; AR dunning (`finance/ar-extras.ts`) uses it from dunning level 2 onward as a real, working example. `NotificationPreferencesDoc.muted.text` follows the existing `inApp`/`email` shape. No `TWILIO_*` env vars means log-and-no-op. See `CLAUDE.md` §9's Integrations note before touching this.
+- No web screen (there wasn't one for the existing email/in-app preferences either — a pre-existing gap, not a regression here).
+- Tests: `api/test/http/notifications-channels.spec.ts` (1 test) plus the existing `ar-extras.spec.ts` dunning test, which already exercises the new code path.
+- **The rest of this plan item is real, substantial, undone work**: payment gateways (Stripe/PayPal — a payment-intent lifecycle plus a signed inbound webhook), bank feeds (needs its own "bank transaction import" entity — AI document processing's `bank_statement` extraction gives a partial head start, reviewed data but no draft-creation path yet), push notifications (no device-token storage or FCM/APNs wiring exists), Google Workspace/Microsoft 365 (OAuth app registration; Calendar sync specifically already cut in the Calendar note), e-commerce order import (no inbound-webhook-to-draft-order mapping), courier tracking (no mapping/routing/carrier API integration anywhere in this codebase, the same gap Logistics' own note names). **The plan checkbox was deliberately left unchecked, not ticked with a scope note** — unlike every other item this phase, most of what this one names is still undone.
+
+**Only Mobile (an installable PWA) remains fully unstarted from Phase 6's eleven items.**
 
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **Integrations** (third-party connectors), followed by Mobile (PWA) — the last two Phase 6 items.
-2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module. Integrations in particular names several real third-party services (payment gateways, SMS/WhatsApp providers, Google/Microsoft 365) that likely need real credentials/accounts to build against meaningfully — check with the owner about which ones are actually in scope before starting.
-3. Don't release yet — only nine Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. Integrations is partly done (see above) — the rest of it, or **Mobile** (an installable PWA with focused flows for employees, sales reps, warehouse scanning, managers' approvals and drivers), are what's left.
+2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module. The rest of Integrations in particular names several real third-party services (payment gateways, bank feeds, Google/Microsoft 365) that need real credentials/accounts to build against meaningfully — check with the owner about which ones are actually worth pursuing before starting any of them.
+3. Don't release yet. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
