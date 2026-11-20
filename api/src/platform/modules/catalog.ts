@@ -421,7 +421,15 @@ export const MODULES: ModuleDefinition[] = [
 
   // Intelligence
   mod({ key: "analytics", name: "Analytics & Reports", description: "Report builder, dashboards and KPIs.", group: "intelligence", available: false }),
-  mod({ key: "automation", name: "Automation", description: "No-code triggers, conditions and actions.", group: "intelligence", available: false }),
+  mod({
+    key: "automation",
+    name: "Automation",
+    description: "No-code triggers, conditions and actions.",
+    group: "intelligence",
+    available: true,
+    dependsOn: ["procurement", "projects"],
+    permissions: [...entityPermissions("automation", "rule", "automation rules")],
+  }),
   mod({ key: "ai", name: "AI Assistant", description: "Assistant, document extraction, insights and agents.", group: "intelligence", available: false }),
   mod({ key: "integrations", name: "Integrations & API", description: "API keys, webhooks and third-party connectors.", group: "intelligence", available: false }),
 ];

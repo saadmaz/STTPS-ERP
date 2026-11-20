@@ -90,6 +90,7 @@ import {
   UserPlus,
   Users,
   Workflow,
+  Zap,
 } from "lucide-react";
 import { platformApi } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
@@ -141,6 +142,12 @@ const SECTIONS: NavSection[] = [
       { label: "Sequences", href: "/marketing/sequences", icon: Repeat, permission: "marketing.sequence.view" },
       { label: "Enrollments", href: "/marketing/enrollments", icon: ListTodo, permission: "marketing.enrollment.view" },
     ],
+  },
+  {
+    label: "Automation",
+    icon: Zap,
+    module: "automation",
+    links: [{ label: "Rules", href: "/automation/rules", icon: Zap, permission: "automation.rule.view" }],
   },
   {
     label: "Sales",

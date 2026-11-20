@@ -1,23 +1,22 @@
 # Handoff — STTPS ERP build-out
 
-**The entire implementation plan is done, and v0.5.0 has shipped.** `develop` and `main` are merged and released. There is no next feature queued — check `docs/IMPLEMENTATION-PLAN.md` for whether a new phase has been scoped before starting anything.
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine (Phase 6's first item) is now built — API, tests, web screens, docs — on `develop`, not yet released.
 
-**Last updated:** 2026-11-20, after releasing v0.5.0 (tag pushed, GitHub release published as a pre-release).
+**Last updated:** 2026-11-20, after the Automation engine.
 
-## Release v0.5.0: done
+## Automation engine: done
 
-- `develop` had diverged from `main` (main was last released at v0.4.1 and never caught up) — merging `main` into `develop` was needed before the release PR could merge cleanly; conflicts were only in `CHANGELOG.md` and each app's `package.json`/`package-lock.json` (version numbers, plus `develop`'s already-upgraded dependencies — `qrcode`, zod 4, a newer `react-hook-form` — which were correctly kept). **If a future release hits the same "PR not mergeable" error, check for this exact situation first**: `git log origin/main ^origin/develop` to see what's on `main` only, before assuming something is actually broken.
-- PR #48 `develop` → `main`, squash-merged as `chore(release): v0.5.0`.
-- Tagged `v0.5.0` on `main`, tag pushed.
-- GitHub release published at `v0.5.0` (`--prerelease`, since the project is pre-1.0) with the CHANGELOG `[0.5.0]` section as notes.
-- **Post-deployment checks from `docs/DEPLOYMENT.md` could not be completed**: `https://erp.sttps.co/` returned `503`, and `api.erp.sttps.co`/`admin.erp.sttps.co` didn't respond at all. This matches the Deploy workflow showing `skipped` on both this push and the prior v0.4.1 release — production deploys are gated behind a `CLOUDFLARE_ENABLED` variable that isn't on yet (per `CLAUDE.md`/the changelog's own notes on this). **This is a pre-existing infrastructure state, not something broken by this release** — the owner needs to flip that variable on and re-check the three post-deployment checks themselves once they do.
-- The `release/v0.5.0` branch was left on the remote (not deleted) — harmless, already merged; delete it whenever convenient.
+- `api/src/automation/` (`AutomationRuleService`, `AutomationEngineService`): no-code rules (trigger → conditions → actions) over the ~20 domain events already published across the codebase. See `CLAUDE.md` §9's Automation domain note for the full design and scope cuts before touching this.
+- Spent nothing from the Firestore index budget (still 199/200) — a rule's firing history lives in a capped array field on the rule itself, not a new collection.
+- Web: `web/src/modules/automation/` (rules list/record, conditions and actions row editors, a test-run dialog), a sidebar entry, pages under `web/src/app/(platform)/automation/`.
+- Tests: `api/test/http/automation.spec.ts` (5 tests: permissions, a real LowStock-triggered firing that notifies/creates a task/raises a requisition, a non-match, an inactive rule, and test-run). Full suite: 49 files, 269 tests, all passing.
+- Docs: `docs/IMPLEMENTATION-PLAN.md`'s Automation engine checkbox ticked with a scope note, `CHANGELOG.md` has an `### Added` entry under `## [Unreleased]`, `CLAUDE.md` §1 and §9 are current.
 
 ## If picking this up cold
 
-There is no outstanding work item. Before doing anything:
-1. Re-read `docs/IMPLEMENTATION-PLAN.md` for whether a new phase (6?) has been added since this was written.
-2. If genuinely nothing is queued, this file's job is done — treat any new request as its own task, not a continuation of this build-out.
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **Report builder (§27)**, followed by Dashboard builder, Analytics store, the AI items, API platform, Integrations, then Mobile (PWA).
+2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
+3. Don't release yet — only one Phase 6 item is done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
@@ -27,11 +26,20 @@ There is no outstanding work item. Before doing anything:
 - After every push: `gh run list --branch develop --limit 3` then `gh run watch <id> --exit-status` to confirm CI is actually green.
 - Never force-push or rewrite published history. Never skip hooks.
 
-## Firestore composite-index budget: final state
+## Firestore composite-index budget: still 199/200
 
-**199/200.** One slot of headroom remains for any future module. The zero-indexed-filter trick (`{ filters: [], sorts: [{ field: "createdAt", direction: "desc" }] }`) costs exactly 1 index per `large` list and should be the default reach if that headroom is ever spent — see `CLAUDE.md` §5 for the full history of how each of the last five slots was spent (or deliberately not spent).
+One slot of headroom remains. The Automation engine spent nothing (see above). The zero-indexed-filter trick (`{ filters: [], sorts: [{ field: "createdAt", direction: "desc" }] }`) costs exactly 1 index per `large` list and should be the default reach if that last slot is ever spent — see `CLAUDE.md` §5 for the full history of how each of the prior five slots was spent (or deliberately not spent).
 
-## Everything built across this whole Phase 5 build-out, for reference (eight items, all API + web + tests)
+## Release v0.5.0: done (for reference — Phases 0–5)
+
+- `develop` had diverged from `main` (main was last released at v0.4.1 and never caught up) — merging `main` into `develop` was needed before the release PR could merge cleanly; conflicts were only in `CHANGELOG.md` and each app's `package.json`/`package-lock.json` (version numbers, plus `develop`'s already-upgraded dependencies — `qrcode`, zod 4, a newer `react-hook-form` — which were correctly kept). **If a future release hits the same "PR not mergeable" error, check for this exact situation first**: `git log origin/main ^origin/develop` to see what's on `main` only, before assuming something is actually broken.
+- PR #48 `develop` → `main`, squash-merged as `chore(release): v0.5.0`.
+- Tagged `v0.5.0` on `main`, tag pushed.
+- GitHub release published at `v0.5.0` (`--prerelease`, since the project is pre-1.0) with the CHANGELOG `[0.5.0]` section as notes.
+- **Post-deployment checks from `docs/DEPLOYMENT.md` could not be completed**: `https://erp.sttps.co/` returned `503`, and `api.erp.sttps.co`/`admin.erp.sttps.co` didn't respond at all. This matches the Deploy workflow showing `skipped` on both this push and the prior v0.4.1 release — production deploys are gated behind a `CLOUDFLARE_ENABLED` variable that isn't on yet (per `CLAUDE.md`/the changelog's own notes on this). **This is a pre-existing infrastructure state, not something broken by this release** — the owner needs to flip that variable on and re-check the three post-deployment checks themselves once they do.
+- The `release/v0.5.0` branch was left on the remote (not deleted) — harmless, already merged; delete it whenever convenient.
+
+## Everything built through Phase 5, for reference (eight items, all API + web + tests)
 
 **Manufacturing** (`api/src/manufacturing/`): work centres/machines, BOMs/routings, production orders (the one `large` list).
 **MRP** (same module): demand forecasts + sales-order demand netted against stock/on-order/production; one-BOM-level explosion.
@@ -42,17 +50,11 @@ There is no outstanding work item. Before doing anything:
 **Logistics and fleet** (`api/src/logistics/`, `imports: [SalesModule]`): vehicles, fuel logs, routes (the one `large` list) — a planning layer over Sales' existing `DeliveryDoc`. A fresh build.
 **Marketing** (`api/src/marketing/`, `imports: [CrmModule]`): campaigns, segments (a saved CRM filter), sequences + enrollments (definitions and tracking only, nothing sent), a campaign ROI/cost-per-lead report. All small lists. A fresh build.
 
-Web (`web/src/modules/{manufacturing,quality,ehs,warehouse,pos,logistics,marketing}/*`): every item has full screens, sidebar entries, and standalone tool pages where a generic form couldn't fit the flow (Warehouse's Scan/Picking, POS's Register, Logistics' New-route page) — the `createHref` + hand-built-page-under-a-static-folder pattern, with three working examples now plus the original `hr/leave-rollover`.
-
-Tests: one `api/test/http/<module>.spec.ts` per item (manufacturing 7, manufacturing-mrp 6, quality 8, ehs 5, warehouse 5, pos 7, logistics 4, marketing 7 — 49 tests across the eight items this phase added). Full suite (264 tests) passed clean before the Marketing commit.
-
-Docs updated throughout: every `docs/IMPLEMENTATION-PLAN.md` checkbox has a scope note, `CHANGELOG.md` has an `### Added` entry per item under `## [Unreleased]` (now due to move into a dated release — see the warning above), `CLAUDE.md` §1/§5/§9 are current. Read the §9 domain notes before touching any Phase 5 module — they carry real, hard-won gotchas (Logistics' settle-condition bug, Marketing's `sequences` field-name collision with `MasterDataService`'s own field, MRP's netting-formula reasoning, POS's hand-written transactional services, and more).
-
 ## Where to find things
 
 - Blueprint (source of truth for scope): `docs/BLUEPRINT.md`.
-- Plan checkboxes (now all checked): `docs/IMPLEMENTATION-PLAN.md`.
+- Plan checkboxes: `docs/IMPLEMENTATION-PLAN.md`.
 - Conventions, patterns, module checklist, domain notes, review hotspots: `CLAUDE.md` (repo root).
-- **Release process (the actual next step): `docs/runbooks/release.md`.**
+- Release process: `docs/runbooks/release.md`.
 - Global rules (git workflow, no AI attribution): `C:\Users\Saad\.claude\CLAUDE.md`.
 - Persistent cross-session memory: `C:\Users\Saad\.claude\projects\C--Work-STTPS-STTPS-ERP\memory\` (`MEMORY.md` is the index).
