@@ -93,6 +93,7 @@ import {
   Zap,
   LayoutDashboard,
   Gauge,
+  Sparkles,
 } from "lucide-react";
 import { platformApi } from "@/lib/api";
 import { useWorkspace } from "@/lib/workspace";
@@ -150,6 +151,12 @@ const SECTIONS: NavSection[] = [
     icon: Zap,
     module: "automation",
     links: [{ label: "Rules", href: "/automation/rules", icon: Zap, permission: "automation.rule.view" }],
+  },
+  {
+    label: "AI assistant",
+    icon: Sparkles,
+    module: "ai",
+    links: [{ label: "Ask", href: "/ai", icon: Sparkles, permission: "ai.assistant.ask" }],
   },
   {
     label: "Reports",

@@ -251,6 +251,26 @@ export class ReportingEngineService {
     return source.rows(ctx);
   }
 
+  /** Runs the same pipeline as `run()` without a saved definition — the AI assistant's `run_report` tool uses this. */
+  async runAdHoc(ctx: RequestContext, input: {
+    source: string;
+    filters?: ReportFilter[];
+    columns?: ReportColumn[];
+    calculatedFields?: ReportCalculatedField[];
+    groupBy?: string[];
+    aggregations?: ReportAggregation[];
+    sortBy?: string | null;
+    sortDesc?: boolean;
+  }): Promise<ReportRunResult> {
+    const raw = await this.rowsFor(ctx, input.source);
+    const def = {
+      filters: input.filters ?? [], columns: input.columns ?? [], calculatedFields: input.calculatedFields ?? [],
+      groupBy: (input.groupBy ?? []).slice(0, 2), aggregations: input.aggregations ?? [], sortBy: input.sortBy ?? null,
+      sortDesc: input.sortDesc ?? false, compareField: null,
+    } as ReportDefinitionDoc;
+    return this.execute(raw, def);
+  }
+
   async run(ctx: RequestContext, id: string): Promise<ReportRunResult> {
     const def = await this.definitions.repo.get(ctx, id);
     const source = this.source(def.source);

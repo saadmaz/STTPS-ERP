@@ -443,7 +443,15 @@ export const MODULES: ModuleDefinition[] = [
     dependsOn: ["procurement", "projects"],
     permissions: [...entityPermissions("automation", "rule", "automation rules")],
   }),
-  mod({ key: "ai", name: "AI Assistant", description: "Assistant, document extraction, insights and agents.", group: "intelligence", available: false }),
+  mod({
+    key: "ai",
+    name: "AI Assistant",
+    description: "Assistant, document extraction, insights and agents.",
+    group: "intelligence",
+    available: true,
+    dependsOn: ["analytics"],
+    permissions: [{ code: "ai.assistant.ask", name: "Ask the AI assistant", module: "ai", action: "ask" }],
+  }),
   mod({ key: "integrations", name: "Integrations & API", description: "API keys, webhooks and third-party connectors.", group: "intelligence", available: false }),
 ];
 

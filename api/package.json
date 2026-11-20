@@ -27,6 +27,7 @@
     "indexes": "tsx scripts/generate-indexes.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
     "@google-cloud/bigquery": "^9.6.1",
     "@nestjs/common": "^12.5.1",
     "@nestjs/config": "^12.1.1",

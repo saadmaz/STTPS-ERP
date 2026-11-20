@@ -36,6 +36,7 @@ import { LogisticsModule } from "./logistics/logistics.module.js";
 import { MarketingModule } from "./marketing/marketing.module.js";
 import { AutomationModule } from "./automation/automation.module.js";
 import { ReportsModule } from "./reports/reports.module.js";
+import { AiModule } from "./ai/ai.module.js";
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { ReportsModule } from "./reports/reports.module.js";
     MarketingModule,
     AutomationModule,
     ReportsModule,
+    AiModule,
   ],
   // Order matters: authenticate, resolve the company context, check the module is on, then check permissions.
   providers: [

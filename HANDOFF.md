@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder and the Analytics store (Phase 6's first four items) are now built — API, tests, docs (the last one has no web UI) — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store and the AI assistant (Phase 6's first five items) are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after the Analytics store.
+**Last updated:** 2026-11-20, after the AI assistant.
 
 ## Automation engine: done
 
@@ -41,11 +41,20 @@
 - Tests: `api/test/http/analytics-export.spec.ts` (3 tests).
 - Not built, each a documented scope cut: actual forecasting (out of scope for "get the data somewhere"), per-tenant datasets (one shared dataset, per-tenant tables, to avoid per-tenant GCP provisioning), a typed BigQuery schema per source (one JSON column for now).
 
+## AI assistant: done
+
+- `api/src/ai/` (`AiAssistantService`): `POST /ai/assistant/ask`, a short Claude tool-use loop (model `claude-sonnet-5-5`, via a new `@anthropic-ai/sdk` dependency) with two tools — `run_report` (the Report builder's engine, ad-hoc) and `my_work_summary` (existing approvals/notifications services). Every tool call runs with the asking user's own permissions, so the assistant never sees more than that user already could. See `CLAUDE.md` §9's AI assistant domain note before touching this.
+- No `ANTHROPIC_API_KEY` set means a friendly not-configured answer (the `EmailSender`/`BigQueryExporter` pattern again) — the path this project's own tests and CI take.
+- **Flipping `ai` to `available: true` broke `test/http/guards.spec.ts`'s hard-coded example a third time** — it now points at `integrations`, the last `false` module in the `intelligence` group.
+- Web: `web/src/modules/ai/assistant.tsx`, a one-page chat at `/ai`, a sidebar entry.
+- Tests: `api/test/http/ai.spec.ts` (3 tests).
+- Not built, each a documented scope cut: AI document processing/insights/agents (the next three plan items), more tools (each needs a registered report source first), multi-turn memory (each `ask` is stateless).
+
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is the **AI assistant** (§28) — natural-language questions over permission-checked data — followed by AI document processing, AI insights, AI agents, the API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **AI document processing** (§28) — extraction from invoices/receipts/POs/CVs/bank statements into a **draft** record, never posted directly — followed by AI insights/forecasting, AI agents, the API platform, Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only four Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only five Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
