@@ -156,7 +156,10 @@ const SECTIONS: NavSection[] = [
     label: "AI assistant",
     icon: Sparkles,
     module: "ai",
-    links: [{ label: "Ask", href: "/ai", icon: Sparkles, permission: "ai.assistant.ask" }],
+    links: [
+      { label: "Ask", href: "/ai", icon: Sparkles, permission: "ai.assistant.ask" },
+      { label: "Document extraction", href: "/ai/document-extractions", icon: FileStack, permission: "ai.documentExtraction.view" },
+    ],
   },
   {
     label: "Reports",

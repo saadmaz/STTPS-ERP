@@ -450,7 +450,10 @@ export const MODULES: ModuleDefinition[] = [
     group: "intelligence",
     available: true,
     dependsOn: ["analytics"],
-    permissions: [{ code: "ai.assistant.ask", name: "Ask the AI assistant", module: "ai", action: "ask" }],
+    permissions: [
+      { code: "ai.assistant.ask", name: "Ask the AI assistant", module: "ai", action: "ask" },
+      ...entityPermissions("ai", "documentExtraction", "document extractions"),
+    ],
   }),
   mod({ key: "integrations", name: "Integrations & API", description: "API keys, webhooks and third-party connectors.", group: "intelligence", available: false }),
 ];

@@ -38,6 +38,7 @@
 - Dashboards and KPIs (`/reports/dashboards`, `/reports/kpis`): define a KPI as a tracked field from one of your reports, with a target and warning/critical thresholds; build a dashboard of KPI cards, report tables, charts (bar, line or pie), pivots and an alerts list, laid out on a grid. Everything runs live against current data.
 - Analytics export (`/analytics/export/run`): send your reportable data to BigQuery for heavy cross-module analysis or forecasting in an external BI tool, one tenant+source table at a time.
 - AI assistant (`/ai`): ask natural-language questions about your own data — overdue invoices, open leads, expense claims, overdue tasks, or what's waiting for your approval — answered by Claude through the same permission-checked report engine, so it only ever sees what you can see.
+- AI document extraction (`/ai/document-extractions`): upload an invoice, receipt, purchase order, CV or bank statement and get its fields extracted automatically; review and edit them, then (for a receipt) create a draft expense claim from it. Nothing is ever posted automatically.
 
 ## [0.5.0] - 2026-11-20
 

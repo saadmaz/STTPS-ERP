@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store and the AI assistant (Phase 6's first five items) are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, the AI assistant and AI document processing (Phase 6's first six items) are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after the AI assistant.
+**Last updated:** 2026-11-20, after AI document processing.
 
 ## Automation engine: done
 
@@ -48,13 +48,20 @@
 - **Flipping `ai` to `available: true` broke `test/http/guards.spec.ts`'s hard-coded example a third time** — it now points at `integrations`, the last `false` module in the `intelligence` group.
 - Web: `web/src/modules/ai/assistant.tsx`, a one-page chat at `/ai`, a sidebar entry.
 - Tests: `api/test/http/ai.spec.ts` (3 tests).
-- Not built, each a documented scope cut: AI document processing/insights/agents (the next three plan items), more tools (each needs a registered report source first), multi-turn memory (each `ask` is stateless).
+- Not built, each a documented scope cut: AI insights/agents (the next two plan items), more tools (each needs a registered report source first), multi-turn memory (each `ask` is stateless).
+
+## AI document processing: done
+
+- `api/src/ai/document-extraction.*` + `document-extractor.services.ts` (`DocumentExtractionService`, `DocumentExtractorService`): `POST /ai/document-extractions` takes a base64 file + doc type, forces one Claude tool call against a per-doc-type schema, and stores the structured result for review. See `CLAUDE.md` §9's AI document processing note before touching this — **important finding there**: the backend has no existing path to read an uploaded file's bytes (Files/R2 only ever gives the client a presigned URL), which is why this feature takes the file directly rather than reusing Files.
+- `PATCH :id` is the review step (`reviewedData`); `POST :id/create-draft` only supports `docType: "receipt"` → an expense claim draft. The other four doc types (invoice, purchase_order, cv, bank_statement) extract and review but return a clear 400 on `create-draft`, not a silent no-op.
+- Web: `web/src/modules/ai/document-extraction.tsx` (list/record with a JSON review textarea and a create-draft dialog), a dedicated upload page at `/ai/document-extractions/new`, a sidebar entry.
+- Tests: `api/test/http/document-extraction.spec.ts` (2 tests).
 
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **AI document processing** (§28) — extraction from invoices/receipts/POs/CVs/bank statements into a **draft** record, never posted directly — followed by AI insights/forecasting, AI agents, the API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **AI insights and forecasting** (sales decline, expense anomaly, product trend, excess inventory, churn risk), followed by AI agents, the API platform, Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only five Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only six Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
