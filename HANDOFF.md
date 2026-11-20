@@ -1,20 +1,23 @@
 # Handoff — STTPS ERP build-out
 
-**The entire implementation plan is done.** This file now tracks the release step, not a next feature — read `docs/runbooks/release.md` and `CLAUDE.md` §2 before doing anything else in this repo.
+**The entire implementation plan is done, and v0.5.0 has shipped.** `develop` and `main` are merged and released. There is no next feature queued — check `docs/IMPLEMENTATION-PLAN.md` for whether a new phase has been scoped before starting anything.
 
-**Last updated:** 2026-11-20, after finishing Marketing (the last Phase 5 item, API + web, a fresh build) and pushing to `develop`.
+**Last updated:** 2026-11-20, after releasing v0.5.0 (tag pushed, GitHub release published as a pre-release).
 
-## ⚠️ Next step: follow the release runbook, not another feature
+## Release v0.5.0: done
 
-Every phase of `docs/IMPLEMENTATION-PLAN.md` is checked off. Per `CLAUDE.md` §2 and `docs/runbooks/release.md`:
+- `develop` had diverged from `main` (main was last released at v0.4.1 and never caught up) — merging `main` into `develop` was needed before the release PR could merge cleanly; conflicts were only in `CHANGELOG.md` and each app's `package.json`/`package-lock.json` (version numbers, plus `develop`'s already-upgraded dependencies — `qrcode`, zod 4, a newer `react-hook-form` — which were correctly kept). **If a future release hits the same "PR not mergeable" error, check for this exact situation first**: `git log origin/main ^origin/develop` to see what's on `main` only, before assuming something is actually broken.
+- PR #48 `develop` → `main`, squash-merged as `chore(release): v0.5.0`.
+- Tagged `v0.5.0` on `main`, tag pushed.
+- GitHub release published at `v0.5.0` (`--prerelease`, since the project is pre-1.0) with the CHANGELOG `[0.5.0]` section as notes.
+- **Post-deployment checks from `docs/DEPLOYMENT.md` could not be completed**: `https://erp.sttps.co/` returned `503`, and `api.erp.sttps.co`/`admin.erp.sttps.co` didn't respond at all. This matches the Deploy workflow showing `skipped` on both this push and the prior v0.4.1 release — production deploys are gated behind a `CLOUDFLARE_ENABLED` variable that isn't on yet (per `CLAUDE.md`/the changelog's own notes on this). **This is a pre-existing infrastructure state, not something broken by this release** — the owner needs to flip that variable on and re-check the three post-deployment checks themselves once they do.
+- The `release/v0.5.0` branch was left on the remote (not deleted) — harmless, already merged; delete it whenever convenient.
 
-1. Bump all three `package.json` versions (`api/`, `web/`, `admin/`).
-2. Move the `CHANGELOG.md` `## [Unreleased]` section's content into a new dated release section.
-3. Open **one** PR `develop` → `main`.
-4. **Squash-merge it** (so no stray co-author/Dependabot lines appear in `main`'s history).
-5. Tag the merge commit and publish the GitHub release.
+## If picking this up cold
 
-Read `docs/runbooks/release.md` itself for the exact commands/order — this file only flags that the trigger condition (whole plan done) has been reached; it does not replace the runbook. **Do not start building a new feature or module** — there is no next Phase 5 item, and no Phase 6 has been scoped in `docs/IMPLEMENTATION-PLAN.md` as of this handoff (check the file itself for whether that's changed before assuming otherwise).
+There is no outstanding work item. Before doing anything:
+1. Re-read `docs/IMPLEMENTATION-PLAN.md` for whether a new phase (6?) has been added since this was written.
+2. If genuinely nothing is queued, this file's job is done — treat any new request as its own task, not a continuation of this build-out.
 
 ## Standing instructions (apply to any future work here)
 
