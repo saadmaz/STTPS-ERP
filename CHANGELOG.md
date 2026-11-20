@@ -31,6 +31,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-20
+
 ### Added
 
 - Product blueprint (`docs/BLUEPRINT.md`) and a new phase-based implementation plan covering every blueprint section, replacing the Prisma-era plan.
@@ -231,7 +233,8 @@ First pre-production release. The platform and identity layer is complete; domai
 - Next.js upgraded from 15.1.4 to 15.5.29 in `web` and `admin`, closing critical advisories, and semver-compatible dependency fixes applied across all apps.
 - Server access details removed from the deployment guide.
 
-[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/saadmaz/STTPS-ERP/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/saadmaz/STTPS-ERP/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/saadmaz/STTPS-ERP/compare/v0.2.3...v0.3.0

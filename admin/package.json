@@ -1,6 +1,6 @@
 {
   "name": "sttps-admin",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "STTPS ERP platform admin console: tenants, companies, users and roles (Next.js)",
   "repository": {
     "type": "git",
