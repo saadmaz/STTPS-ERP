@@ -459,7 +459,17 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("ai", "documentExtraction", "document extractions"),
     ],
   }),
-  mod({ key: "integrations", name: "Integrations & API", description: "API keys, webhooks and third-party connectors.", group: "intelligence", available: false }),
+  mod({
+    key: "integrations",
+    name: "Integrations & API",
+    description: "API keys, webhooks and third-party connectors.",
+    group: "intelligence",
+    available: true,
+    permissions: [
+      ...entityPermissions("integrations", "apiKey", "API keys"),
+      ...entityPermissions("integrations", "webhook", "webhooks"),
+    ],
+  }),
 ];
 
 export const MODULES_BY_KEY = new Map(MODULES.map((m) => [m.key, m]));

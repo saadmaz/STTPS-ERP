@@ -459,6 +459,8 @@ const SECTIONS: NavSection[] = [
       { label: "Security", href: "/settings/security", icon: ShieldCheck },
       { label: "My delegations", href: "/settings/delegations", icon: UserCheck },
       { label: "Custom fields", href: "/settings/custom-fields", icon: SlidersHorizontal, permission: "platform.customField.view" },
+      { label: "API keys", href: "/settings/api-keys", icon: KeyRound, permission: "integrations.apiKey.view" },
+      { label: "Webhooks", href: "/settings/webhooks", icon: Network, permission: "integrations.webhook.view" },
       { label: "System", href: "/settings/system", icon: Layers, adminOnly: true },
     ],
   },

@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, and all four AI items (assistant, document processing, insights, agents) — Phase 6's first eight items — are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, all four AI items (assistant, document processing, insights, agents) and the API platform — Phase 6's first nine items — are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after AI agents.
+**Last updated:** 2026-11-20, after the API platform.
 
 ## Automation engine: done
 
@@ -74,11 +74,22 @@
 
 **All four AI items (blueprint §28) are now done.** This closes out the AI Layer entirely.
 
+## API platform: done
+
+- `api/src/platform/api-keys/` + `api/src/platform/webhooks/` (new shared-kernel features, registered in `PlatformModule`, not a domain module). `common/guards/jwt-auth.guard.ts` (the global guard) now also accepts an `x-api-key` header, so every existing `/api/v1/...` route already works with a scoped API key — no per-route changes needed. See `CLAUDE.md` §9's API platform note (and the new §10 review-hotspot entry) before touching the guard again.
+- Rate limiting is a per-process in-memory sliding window (not distributed). Webhooks subscribe to the same ~20 domain event types Automation knows about (an independent second copy of that list, since `platform/` must not depend on a domain module) and deliver via the job queue, recording delivery status/error on the webhook record.
+- **Flipping `integrations` to `available: true` means every catalog module is now available** — `test/http/guards.spec.ts`'s module-switch test now checks against a literal nonexistent key instead of a real "not yet available" module, since there isn't one left; this should be stable going forward.
+- Web: `web/src/modules/platform/integrations.tsx` (API keys and webhooks list/record), dedicated create pages at `/settings/api-keys/new` (shows the secret once) and `/settings/webhooks/new`, sidebar entries under Settings.
+- Tests: `api/test/http/api-platform.spec.ts` (4 tests). The full suite was re-run after this item specifically because it touches the global auth guard, not just the usual new-tests check.
+- Not built, each a documented scope cut: OAuth clients, a detailed per-request log, a separate usage dashboard.
+
+**Only two Phase 6 items remain: Integrations (payment gateways, bank feeds, SMS/WhatsApp/push, Google/Microsoft 365, e-commerce order import, courier tracking) and Mobile (an installable PWA).**
+
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is the **API platform** (§29) — API keys and OAuth clients with scoped permissions, a versioned public REST API, rate limits, request logs, a usage dashboard, outbound webhooks — followed by Integrations, then Mobile (PWA).
-2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only eight Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **Integrations** (third-party connectors), followed by Mobile (PWA) — the last two Phase 6 items.
+2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module. Integrations in particular names several real third-party services (payment gateways, SMS/WhatsApp providers, Google/Microsoft 365) that likely need real credentials/accounts to build against meaningfully — check with the owner about which ones are actually in scope before starting.
+3. Don't release yet — only nine Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 

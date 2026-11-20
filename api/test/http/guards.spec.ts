@@ -99,7 +99,9 @@ describe("HTTP guard chain", () => {
   it("lists modules for navigation and protects module switches", async () => {
     const res = await http().get("/api/v1/platform/modules").set(as("viewer")).expect(200);
     expect(res.body.find((m: { key: string }) => m.key === "org")).toMatchObject({ enabled: true, core: true });
-    await http().put("/api/v1/platform/modules/integrations").set(as("viewer")).send({ enabled: true }).expect(403);
-    await http().put("/api/v1/platform/modules/integrations").set(as("admin")).send({ enabled: true }).expect(400); // integrations is not available yet
+    // A fake key, not a real catalog entry: once every real module is available (as of "integrations" in Phase 6), there's no
+    // real "not yet available" example left to repoint this at, and "unknown module" hits the same 400 as "not available".
+    await http().put("/api/v1/platform/modules/not-a-real-module").set(as("viewer")).send({ enabled: true }).expect(403);
+    await http().put("/api/v1/platform/modules/not-a-real-module").set(as("admin")).send({ enabled: true }).expect(400);
   });
 });
