@@ -951,3 +951,83 @@ export class ReturnService extends MasterDataService<ReturnDoc, ReturnInput, Upd
     });
   }
 }
+
+const REVENUE_STATUSES = new Set(["confirmed", "partially_delivered", "delivered", "closed"]);
+
+@Injectable()
+export class SalesAnalyticsService {
+  constructor(private readonly firestore: FirestoreService) {}
+
+  /** Revenue, AOV, margin by product/customer/rep, and quote conversion (blueprint §6 sales analytics). */
+  async summary(ctx: RequestContext, range: { from?: string; to?: string } = {}) {
+    const col = (name: string) => this.firestore.collection(name).where("companyId", "==", ctx.companyId).where("archived", "==", false);
+    const [orderSnap, quoteSnap, productSnap] = await Promise.all([
+      col(SALES_COLLECTIONS.orders).select("accountId", "ownerUserId", "currency", "date", "status", "lines", "totals").limit(20_000).get(),
+      col(SALES_COLLECTIONS.quotes).select("status", "sentAt", "respondedAt", "ownerUserId", "accountId").limit(20_000).get(),
+      col(PRODUCT_COLLECTIONS.products).select("purchasePrice", "currency").limit(20_000).get(),
+    ]);
+    const inRange = (d: string) => (!range.from || d >= range.from) && (!range.to || d <= range.to);
+    const orders = orderSnap.docs
+      .map((d) => d.data() as Pick<OrderDoc, "accountId" | "ownerUserId" | "currency" | "date" | "status" | "lines" | "totals">)
+      .filter((o) => REVENUE_STATUSES.has(o.status) && inRange(o.date));
+    const productInfo = new Map(productSnap.docs.map((d) => [d.id, d.data() as Pick<ProductDoc, "purchasePrice" | "currency">]));
+
+    const add = (m: Record<string, { revenue: number; margin: number }>, k: string, revenue: number, margin: number) => {
+      const row = m[k] ?? { revenue: 0, margin: 0 };
+      row.revenue += revenue;
+      row.margin += margin;
+      m[k] = row;
+    };
+    const byProduct: Record<string, { revenue: number; margin: number }> = {};
+    const byCustomer: Record<string, { revenue: number; margin: number }> = {};
+    const byRep: Record<string, { revenue: number; margin: number; orders: number }> = {};
+    let revenue = 0;
+    let margin = 0;
+    for (const o of orders) {
+      const orderRevenue = o.totals.subtotal - o.totals.discount; // net sales, pre-tax — VAT collected isn't revenue
+      revenue += orderRevenue;
+      const rep = o.ownerUserId ?? "unassigned";
+      const existingRep = byRep[rep] ?? { revenue: 0, margin: 0, orders: 0 };
+      existingRep.orders += 1;
+      byRep[rep] = existingRep;
+      let orderMargin = 0;
+      for (const l of o.lines) {
+        const info = productInfo.get(l.productId);
+        const cost = info && info.currency === o.currency ? extend(l.qty, info.purchasePrice) : 0;
+        const lineMargin = l.net - cost;
+        orderMargin += lineMargin;
+        add(byProduct, l.productId, l.net, lineMargin);
+      }
+      margin += orderMargin;
+      add(byCustomer, o.accountId, orderRevenue, orderMargin);
+      existingRep.revenue += orderRevenue;
+      existingRep.margin += orderMargin;
+    }
+
+    const quotes = quoteSnap.docs.map((d) => d.data() as Pick<QuoteDoc, "status" | "sentAt" | "respondedAt" | "ownerUserId" | "accountId">);
+    const sent = quotes.filter((q) => q.sentAt);
+    const converted = sent.filter((q) => q.status === "converted");
+    const responseDays = sent
+      .filter((q) => q.respondedAt)
+      .map((q) => Math.max(0, (Date.parse(q.respondedAt!) - Date.parse(q.sentAt!)) / 86_400_000));
+
+    return {
+      range,
+      orderCount: orders.length,
+      revenue,
+      averageOrderValue: orders.length ? Math.round(revenue / orders.length) : 0,
+      margin,
+      marginPct: revenue ? Math.round((margin * 10_000) / revenue) : 0,
+      byProduct: Object.entries(byProduct).map(([productId, v]) => ({ productId, ...v })).sort((a, b) => b.revenue - a.revenue).slice(0, 50),
+      byCustomer: Object.entries(byCustomer).map(([accountId, v]) => ({ accountId, ...v })).sort((a, b) => b.revenue - a.revenue).slice(0, 50),
+      byRep: Object.entries(byRep).map(([ownerUserId, v]) => ({ ownerUserId, ...v })).sort((a, b) => b.revenue - a.revenue),
+      quotes: {
+        sent: sent.length,
+        converted: converted.length,
+        conversionRatePct: sent.length ? Math.round((converted.length * 10_000) / sent.length) : 0,
+        averageResponseDays: responseDays.length ? Math.round((responseDays.reduce((a, b) => a + b, 0) / responseDays.length) * 10) / 10 : null,
+      },
+      note: "Amounts are minor units, before tax; orders in other currencies are summed as recorded. Margin uses each product's current purchase price as an estimated cost, not the order's own historical cost layer.",
+    };
+  }
+}

@@ -177,6 +177,7 @@ const SECTIONS: NavSection[] = [
     icon: ShoppingCart,
     module: "sales",
     links: [
+      { label: "Overview", href: "/sales", icon: PieChart, permission: "sales.analytics.view" },
       { label: "Quotes", href: "/sales/quotes", icon: FileText, permission: "sales.quote.view" },
       { label: "Orders", href: "/sales/orders", icon: ShoppingCart, permission: "sales.order.view" },
       { label: "Deliveries", href: "/sales/deliveries", icon: Truck, permission: "sales.delivery.view" },

@@ -163,6 +163,7 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("sales", "delivery", "deliveries"),
       ...entityPermissions("sales", "return", "returns"),
       { code: "sales.settings.edit", name: "Edit sales settings (tax rates, thresholds)", module: "sales", action: "edit" },
+      { code: "sales.analytics.view", name: "View sales analytics", module: "sales", action: "view" },
     ],
   }),
   mod({

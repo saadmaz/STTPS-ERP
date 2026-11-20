@@ -107,6 +107,7 @@ export const salesApi = {
   deliveries: crud<Delivery>("/sales/deliveries"),
   returns: crud<SalesReturn>("/sales/returns"),
   post: <T,>(path: string, body: object = {}) => api.post(path, body).then((r) => r.data as T),
+  analytics: () => api.get("/sales/analytics").then((r) => r.data),
 };
 
 const qty = (n: number) => String(n / 1000);

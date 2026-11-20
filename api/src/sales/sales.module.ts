@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Module, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Module, Param, Post, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { IsOptional, IsString, MaxLength } from "class-validator";
 import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
@@ -8,7 +8,7 @@ import { createMasterDataController, validated } from "../platform/crud/master-d
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { ProductsModule } from "../products/products.module.js";
 import { InventoryModule } from "../inventory/inventory.module.js";
-import { DeliveryService, LinePricer, OrderService, QuoteService, ReturnService, SalesSettingsService } from "./sales.services.js";
+import { DeliveryService, LinePricer, OrderService, QuoteService, ReturnService, SalesAnalyticsService, SalesSettingsService } from "./sales.services.js";
 import {
   CancelDto,
   CreateDeliveryDto,
@@ -44,7 +44,15 @@ class SalesActionsController {
     private readonly deliveries: DeliveryService,
     private readonly returns: ReturnService,
     private readonly settings: SalesSettingsService,
+    private readonly analytics: SalesAnalyticsService,
   ) {}
+
+  @Get("analytics")
+  @RequirePermission("sales.analytics.view")
+  @ApiOperation({ summary: "Revenue, AOV, margin by product/customer/rep, and quote conversion" })
+  summary(@Ctx() ctx: RequestContext, @Query("from") from?: string, @Query("to") to?: string) {
+    return this.analytics.summary(ctx, { from, to });
+  }
 
   @Get("settings")
   @RequirePermission("sales.quote.view")
@@ -218,7 +226,7 @@ const crud = [
   createMasterDataController({ path: "sales/returns", tag: "Sales: Returns", module: "sales", permission: "sales.return", service: ReturnService, createDto: CreateReturnDto, updateDto: UpdateReturnDto }),
 ];
 
-const SERVICES = [SalesSettingsService, LinePricer, QuoteService, OrderService, DeliveryService, ReturnService];
+const SERVICES = [SalesSettingsService, LinePricer, QuoteService, OrderService, DeliveryService, ReturnService, SalesAnalyticsService];
 
 @Module({
   imports: [ProductsModule, InventoryModule],

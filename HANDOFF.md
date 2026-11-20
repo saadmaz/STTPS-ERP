@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) has been worked through in full.** Phases 0–5 are done and released as v0.5.0. Ten of Phase 6's eleven line items are now done: the Automation engine, the Report builder, the Dashboard builder, the Analytics store, all four AI items (assistant, document processing, insights, agents), the API platform, and Mobile (an installable PWA). The eleventh, Integrations, is **partly** done (SMS/WhatsApp notification channels only) and left unchecked in the plan on purpose — most of what it names is still real, undone work needing third-party accounts this environment doesn't have. Everything here is on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) has been worked through in full, and Phase 1 is now fully closed out too.** Phases 0–5 are done and released as v0.5.0. Ten of Phase 6's eleven line items are now done: the Automation engine, the Report builder, the Dashboard builder, the Analytics store, all four AI items (assistant, document processing, insights, agents), the API platform, and Mobile (an installable PWA). The eleventh, Integrations, is **partly** done (SMS/WhatsApp notification channels only) and left unchecked in the plan on purpose — most of what it names is still real, undone work needing third-party accounts this environment doesn't have. Sales analytics (Phase 1's one leftover item) is also now done. Everything here is on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after Mobile/PWA — this is a natural stopping point. Phase 6 is effectively done; what's left (the rest of Integrations, or Phase 7) needs a real decision from the owner about scope and priority, not another "pick the next item."
+**Last updated:** 2026-11-20, after Sales analytics. This is a natural stopping point. Phase 6 is effectively done and Phase 1 is fully closed; what's left (the rest of Integrations, Phase 7, or the remaining Phase 0 leftovers) needs a real decision from the owner about scope and priority, not another "pick the next item."
 
 ## Automation engine: done
 
@@ -99,11 +99,19 @@
 
 **Phase 6 is now effectively complete** (10 of 11 items fully done, Integrations partly done). This is a natural stopping point.
 
+## Sales analytics: done (Phase 1 is now fully closed out)
+
+- `SalesAnalyticsService` in `api/src/sales/sales.services.ts`, `GET /sales/analytics` — mirrors the exact shape CRM's and Procurement's own analytics services already use. See `CLAUDE.md` §9's Sales analytics note before touching this (in particular: revenue is net of tax/discount, not the order's tax-inclusive total; margin is an estimate from each product's current purchase price, not a historical cost snapshot; there's no "by branch" breakdown since neither orders nor accounts carry a branchId anywhere in this codebase).
+- Web: `/sales` (previously no overview page existed there), mirroring `/crm`'s dashboard layout.
+- Tests: `api/test/http/sales-analytics.spec.ts` (2 tests).
+
+**Phase 1 is now fully done.** Only Phase 0 has real leftovers now: record-level scope, audit trail writes from every service, an import/export framework, and the dashboard-widget framework (this last one is arguably superseded in spirit by the Dashboard builder already shipped in Phase 6, though it was scoped as a Phase 0 "framework" item specifically — worth a quick look before assuming it's actually still needed as originally written).
+
 ## If picking this up cold
 
 1. Phase 6 is done except for the rest of Integrations (payment gateways, bank feeds, push notifications, Google Workspace/Microsoft 365, e-commerce order import, courier tracking — see the Integrations section above for what's genuinely still needed for each). None of these are "pick the next checkbox and go" — each needs a real decision from the owner about priority and, for most, actual third-party credentials/accounts this environment doesn't have.
-2. The alternative is Phase 7 (Hardening and 1.0: security, reliability, performance, accessibility, industry templates, data migration tooling, a documentation pass, then the 1.0.0 release) or the leftover Phase 0/1 items (sales analytics, record-level scope, audit trail, import/export, dashboard framework).
-3. **Check with the owner before starting any of the above** — don't default to "keep picking the next unchecked item" the way earlier phases did; that convention applied while Phases 0–6 were a well-defined, mostly-buildable backlog. What's left now is genuinely a set of different, larger decisions.
+2. Phase 1 is fully done. The alternative is Phase 7 (Hardening and 1.0: security, reliability, performance, accessibility, industry templates, data migration tooling, a documentation pass, then the 1.0.0 release) or the remaining Phase 0 leftovers (record-level scope, audit trail, import/export, dashboard framework).
+3. **Check with the owner before starting any of the above** — don't default to "keep picking the next unchecked item" the way earlier phases did; that convention applied while Phases 0–6 were a well-defined, mostly-buildable backlog. What's left now is genuinely a set of different, larger decisions — record-level scope in particular is a codebase-wide architectural change (CLAUDE.md §10 calls it out as the single most consistently-flagged gap), not a bounded single-module item like everything built this session.
 4. Don't release yet. Follow `docs/runbooks/release.md` when told to.
 
 ## Standing instructions (apply to any future work here)
