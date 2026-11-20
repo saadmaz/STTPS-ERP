@@ -239,6 +239,18 @@ export class ReportingEngineService {
     return source;
   }
 
+  /** Every registered source key, for the analytics export to iterate without its own copy of this registry. */
+  sourceKeys(): string[] {
+    return Object.keys(this.sources);
+  }
+
+  /** The source's raw rows, permission-checked exactly like `run()`. */
+  async rowsFor(ctx: RequestContext, key: string): Promise<Record<string, unknown>[]> {
+    const source = this.source(key);
+    if (!hasPermission(ctx, source.permission)) throw new ForbiddenException(`Permission required: ${source.permission}`);
+    return source.rows(ctx);
+  }
+
   async run(ctx: RequestContext, id: string): Promise<ReportRunResult> {
     const def = await this.definitions.repo.get(ctx, id);
     const source = this.source(def.source);

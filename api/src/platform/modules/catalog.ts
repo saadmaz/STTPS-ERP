@@ -431,6 +431,7 @@ export const MODULES: ModuleDefinition[] = [
       ...entityPermissions("analytics", "reportDefinition", "report definitions"),
       ...entityPermissions("analytics", "kpiDefinition", "KPI definitions"),
       ...entityPermissions("analytics", "dashboard", "dashboards"),
+      { code: "analytics.export.run", name: "Run the BigQuery analytics export", module: "analytics", action: "run" },
     ],
   }),
   mod({

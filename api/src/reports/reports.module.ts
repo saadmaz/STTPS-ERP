@@ -1,17 +1,19 @@
-import { Controller, Get, Header, Module, Param } from "@nestjs/common";
+import { Body, Controller, Get, Header, HttpCode, Module, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
 import { CrmModule } from "../crm/crm.module.js";
 import { FinanceModule } from "../finance/finance.module.js";
 import { Ctx, RequestContext } from "../platform/context/request-context.js";
-import { createMasterDataController } from "../platform/crud/master-data.controller.js";
+import { createMasterDataController, validated } from "../platform/crud/master-data.controller.js";
 import { RequireModule } from "../platform/modules/require-module.decorator.js";
 import { ProcurementModule } from "../procurement/procurement.module.js";
 import { SalesModule } from "../sales/sales.module.js";
 import { TasksModule } from "../tasks/tasks.module.js";
+import { AnalyticsExportService } from "./analytics-export.services.js";
+import { BigQueryExporter } from "./bigquery-exporter.js";
 import { CreateDashboardDto, CreateKpiDefinitionDto, UpdateDashboardDto, UpdateKpiDefinitionDto } from "./dashboards.dto.js";
 import { DashboardEngineService, DashboardService, KpiDefinitionService } from "./dashboards.services.js";
-import { CreateReportDefinitionDto, UpdateReportDefinitionDto } from "./reports.dto.js";
+import { CreateReportDefinitionDto, RunAnalyticsExportDto, UpdateReportDefinitionDto } from "./reports.dto.js";
 import { ReportDefinitionService, ReportingEngineService } from "./reports.services.js";
 
 @ApiTags("Reports")
@@ -72,17 +74,32 @@ class DashboardsActionsController {
   }
 }
 
+@ApiTags("Reports")
+@ApiBearerAuth()
+@RequireModule("analytics")
+@Controller("analytics/export")
+class AnalyticsExportController {
+  constructor(private readonly export_: AnalyticsExportService) {}
+
+  @Post("run")
+  @HttpCode(200)
+  @RequirePermission("analytics.export.run")
+  run(@Ctx() ctx: RequestContext, @Body(validated(RunAnalyticsExportDto)) dto: RunAnalyticsExportDto) {
+    return this.export_.run(ctx, dto.sources);
+  }
+}
+
 const crud = [
   createMasterDataController({ path: "reports/definitions", tag: "Reports: Definitions", module: "analytics", permission: "analytics.reportDefinition", service: ReportDefinitionService, createDto: CreateReportDefinitionDto, updateDto: UpdateReportDefinitionDto }),
   createMasterDataController({ path: "reports/kpis", tag: "Reports: KPIs", module: "analytics", permission: "analytics.kpiDefinition", service: KpiDefinitionService, createDto: CreateKpiDefinitionDto, updateDto: UpdateKpiDefinitionDto }),
   createMasterDataController({ path: "reports/dashboards", tag: "Reports: Dashboards", module: "analytics", permission: "analytics.dashboard", service: DashboardService, createDto: CreateDashboardDto, updateDto: UpdateDashboardDto }),
 ];
 
-const SERVICES = [ReportDefinitionService, ReportingEngineService, KpiDefinitionService, DashboardService, DashboardEngineService];
+const SERVICES = [ReportDefinitionService, ReportingEngineService, KpiDefinitionService, DashboardService, DashboardEngineService, BigQueryExporter, AnalyticsExportService];
 
 @Module({
   imports: [SalesModule, FinanceModule, ProcurementModule, CrmModule, TasksModule],
-  controllers: [ReportsActionsController, KpisActionsController, DashboardsActionsController, ...crud],
+  controllers: [ReportsActionsController, KpisActionsController, DashboardsActionsController, AnalyticsExportController, ...crud],
   providers: SERVICES,
   exports: SERVICES,
 })

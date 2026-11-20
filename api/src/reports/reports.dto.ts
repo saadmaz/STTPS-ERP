@@ -3,6 +3,11 @@ import { Type } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, Length, MaxLength, ValidateNested } from "class-validator";
 import { REPORT_AGGREGATION_FUNCTIONS, REPORT_CALC_OPERATORS, REPORT_FILTER_OPERATORS, REPORT_SOURCES } from "./reports.models.js";
 
+export class RunAnalyticsExportDto {
+  @ApiPropertyOptional({ enum: REPORT_SOURCES, isArray: true, description: "Defaults to every registered source" })
+  @IsOptional() @IsArray() @ArrayMaxSize(REPORT_SOURCES.length) @IsIn(REPORT_SOURCES, { each: true }) sources?: (typeof REPORT_SOURCES)[number][];
+}
+
 export class ReportFilterDto {
   @ApiProperty() @IsString() @Length(1, 200) field!: string;
   @ApiProperty({ enum: REPORT_FILTER_OPERATORS }) @IsIn(REPORT_FILTER_OPERATORS) operator!: (typeof REPORT_FILTER_OPERATORS)[number];

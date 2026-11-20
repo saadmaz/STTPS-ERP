@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder and the Dashboard builder (Phase 6's first three items) are now built — API, tests, web screens, docs — on `develop`, not yet released.
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder and the Analytics store (Phase 6's first four items) are now built — API, tests, docs (the last one has no web UI) — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after the Dashboard builder.
+**Last updated:** 2026-11-20, after the Analytics store.
 
 ## Automation engine: done
 
@@ -32,11 +32,20 @@
 - Tests: `api/test/http/dashboards.spec.ts` (3 tests).
 - Not built, each a documented scope cut: Calendar/Funnel/Map widget types, drag-and-drop widget layout, a materialised/cached KPI history.
 
+## Analytics store: done
+
+- `api/src/reports/bigquery-exporter.ts` + `analytics-export.services.ts` (`BigQueryExporter`, `AnalyticsExportService`), sibling files in the existing `reports` module/`analytics` catalog key. `POST /analytics/export/run` streams each report source's rows (reusing the Report builder's registry) into one BigQuery table per tenant+source. See `CLAUDE.md` §9's Analytics store domain note before touching this.
+- New API dependency: `@google-cloud/bigquery`. No new `npm audit` findings (still just the two pre-existing `exceljs`/`uuid` ones, already assessed).
+- `BigQueryExporter` follows `EmailSender`'s exact pattern: no `BIGQUERY_DATASET` env var means log-and-no-op — this project has no real GCP project wired up anywhere, including CI, so that's the path every test and every environment today actually takes.
+- No web UI (this is a data pipe for an external BI tool, not an ERP screen, per the blueprint).
+- Tests: `api/test/http/analytics-export.spec.ts` (3 tests).
+- Not built, each a documented scope cut: actual forecasting (out of scope for "get the data somewhere"), per-tenant datasets (one shared dataset, per-tenant tables, to avoid per-tenant GCP provisioning), a typed BigQuery schema per source (one JSON column for now).
+
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is the **Analytics store** (a Firestore → BigQuery export), followed by the AI items, API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is the **AI assistant** (§28) — natural-language questions over permission-checked data — followed by AI document processing, AI insights, AI agents, the API platform, Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only three Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only four Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
