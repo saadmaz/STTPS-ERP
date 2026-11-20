@@ -72,7 +72,9 @@ describe("sign-in security", () => {
 
     const setup = await http().post("/api/v1/auth/mfa/setup").set(auth).expect(200);
     await http().post("/api/v1/auth/mfa/enable").set(auth).send({ code: "000000" }).expect(400);
-    const enabled = await http().post("/api/v1/auth/mfa/enable").set(auth).send({ code: totpAt(setup.body.secret, currentStep()) }).expect(200);
+    // Captured once: recomputing currentStep() for the replay check below could cross a 30s step boundary and flake.
+    const enrolStep = currentStep();
+    const enabled = await http().post("/api/v1/auth/mfa/enable").set(auth).send({ code: totpAt(setup.body.secret, enrolStep) }).expect(200);
     expect(enabled.body.recoveryCodes).toHaveLength(10);
 
     // The stored secret is encrypted, never the plain base32 value.
@@ -89,8 +91,8 @@ describe("sign-in security", () => {
     await http().get("/api/v1/auth/me").set({ Authorization: `Bearer ${challenge.body.mfaToken}` }).expect(401);
 
     // The code used at enrolment cannot be replayed; the next time step works.
-    await http().post("/api/v1/auth/mfa/verify").send({ mfaToken: challenge.body.mfaToken, code: totpAt(setup.body.secret, currentStep()) }).expect(401);
-    const ok = await http().post("/api/v1/auth/mfa/verify").send({ mfaToken: challenge.body.mfaToken, code: totpAt(setup.body.secret, currentStep() + 1) }).expect(200);
+    await http().post("/api/v1/auth/mfa/verify").send({ mfaToken: challenge.body.mfaToken, code: totpAt(setup.body.secret, enrolStep) }).expect(401);
+    const ok = await http().post("/api/v1/auth/mfa/verify").send({ mfaToken: challenge.body.mfaToken, code: totpAt(setup.body.secret, enrolStep + 1) }).expect(200);
     expect(ok.body.accessToken).toBeTruthy();
 
     // A recovery code works once.
