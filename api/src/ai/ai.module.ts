@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Module, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Module, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { RequirePermission } from "../common/decorators/require-permission.decorator.js";
 import { FinanceModule } from "../finance/finance.module.js";
@@ -11,6 +11,7 @@ import { AiAssistantService } from "./ai.services.js";
 import { CreateDraftDto, ExtractDocumentDto, UpdateDocumentExtractionDto } from "./document-extraction.dto.js";
 import { DocumentExtractionService } from "./document-extraction.services.js";
 import { DocumentExtractorService } from "./document-extractor.services.js";
+import { InsightsService } from "./insights.services.js";
 
 @ApiTags("AI")
 @ApiBearerAuth()
@@ -42,6 +43,20 @@ class DocumentExtractionActionsController {
   }
 }
 
+@ApiTags("AI")
+@ApiBearerAuth()
+@RequireModule("ai")
+@Controller("ai/insights")
+class InsightsController {
+  constructor(private readonly insights: InsightsService) {}
+
+  @Get("run")
+  @RequirePermission("ai.insights.view")
+  run(@Ctx() ctx: RequestContext) {
+    return this.insights.run(ctx);
+  }
+}
+
 const crud = [
   createMasterDataController({
     path: "ai/document-extractions", tag: "AI: Document extraction", module: "ai", permission: "ai.documentExtraction",
@@ -51,8 +66,8 @@ const crud = [
 
 @Module({
   imports: [ReportsModule, FinanceModule],
-  controllers: [AiAssistantController, DocumentExtractionActionsController, ...crud],
-  providers: [AiAssistantService, DocumentExtractorService, DocumentExtractionService],
-  exports: [AiAssistantService, DocumentExtractionService],
+  controllers: [AiAssistantController, DocumentExtractionActionsController, InsightsController, ...crud],
+  providers: [AiAssistantService, DocumentExtractorService, DocumentExtractionService, InsightsService],
+  exports: [AiAssistantService, DocumentExtractionService, InsightsService],
 })
 export class AiModule {}

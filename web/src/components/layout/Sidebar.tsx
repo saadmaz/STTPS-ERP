@@ -158,6 +158,7 @@ const SECTIONS: NavSection[] = [
     module: "ai",
     links: [
       { label: "Ask", href: "/ai", icon: Sparkles, permission: "ai.assistant.ask" },
+      { label: "Insights", href: "/ai/insights", icon: TrendingUp, permission: "ai.insights.view" },
       { label: "Document extraction", href: "/ai/document-extractions", icon: FileStack, permission: "ai.documentExtraction.view" },
     ],
   },

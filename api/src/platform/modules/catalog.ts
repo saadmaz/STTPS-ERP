@@ -452,6 +452,7 @@ export const MODULES: ModuleDefinition[] = [
     dependsOn: ["analytics"],
     permissions: [
       { code: "ai.assistant.ask", name: "Ask the AI assistant", module: "ai", action: "ask" },
+      { code: "ai.insights.view", name: "View AI insights", module: "ai", action: "view" },
       ...entityPermissions("ai", "documentExtraction", "document extractions"),
     ],
   }),

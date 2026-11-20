@@ -1,8 +1,8 @@
 # Handoff — STTPS ERP build-out
 
-**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, the AI assistant and AI document processing (Phase 6's first six items) are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
+**Phase 6 (Intelligence and integrations) is in progress.** Phases 0–5 are done and released as v0.5.0. The Automation engine, the Report builder, the Dashboard builder, the Analytics store, the AI assistant, AI document processing and AI insights (Phase 6's first seven items) are now built — API, tests, docs — on `develop`, not yet released. Also fixed one unrelated pre-existing flaky test along the way (`api/test/http/auth.spec.ts`'s MFA replay check could cross a TOTP step boundary).
 
-**Last updated:** 2026-11-20, after AI document processing.
+**Last updated:** 2026-11-20, after AI insights.
 
 ## Automation engine: done
 
@@ -57,11 +57,18 @@
 - Web: `web/src/modules/ai/document-extraction.tsx` (list/record with a JSON review textarea and a create-draft dialog), a dedicated upload page at `/ai/document-extractions/new`, a sidebar entry.
 - Tests: `api/test/http/document-extraction.spec.ts` (2 tests).
 
+## AI insights: done
+
+- `api/src/ai/insights.services.ts` (`InsightsService`), `GET /ai/insights/run`. Two deterministic signals (sales decline month-over-month, expense-claim anomalies past 2.5x average), reusing `ReportingEngineService.rowsFor()`; an optional one-paragraph Claude narration with a plain-joined-messages fallback when unconfigured. See `CLAUDE.md` §9's AI insights note.
+- Web: `web/src/modules/ai/insights.tsx`, page at `/ai/insights`, sidebar entry.
+- Tests: `api/test/http/insights.spec.ts` (2 tests).
+- Not built, each a documented scope cut: demand/cash-flow/supplier/project-risk signals (each needs an unregistered report source), real time-series forecasting.
+
 ## If picking this up cold
 
-1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **AI insights and forecasting** (sales decline, expense anomaly, product trend, excess inventory, churn risk), followed by AI agents, the API platform, Integrations, then Mobile (PWA).
+1. Re-read `docs/IMPLEMENTATION-PLAN.md`'s Phase 6 section. The next unchecked item in phase order is **AI agents** (read-only/draft/recommend/low-risk-execute/approval-required-execute permission tiers, every action audited and routed through the approval engine), followed by the API platform, Integrations, then Mobile (PWA).
 2. Before diverging into anything else (the leftover Phase 0/1 items — sales analytics, record-level scope, audit trail, import/export, dashboard framework — or Phase 7), check with the owner: Phase 6/7 items are much larger and more ambiguous than a Phase 5 module, each closer to its own mini-project than a well-specified CRUD module.
-3. Don't release yet — only six Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
+3. Don't release yet — only seven Phase 6 items are done. Follow `docs/runbooks/release.md` when told to, not automatically after each item (unlike the Phase 5 convention noted in earlier history below).
 
 ## Standing instructions (apply to any future work here)
 
